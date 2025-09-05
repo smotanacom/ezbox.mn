@@ -70,6 +70,27 @@ export const ProductPage: React.FC = () => {
     }));
   };
 
+  // Helper function to check if a specific dimension option would result in out-of-stock
+  const isOptionOutOfStock = (dimensionName: string, optionValue: string): boolean => {
+    if (!product) return true;
+    
+    // Create a hypothetical selection with this option
+    const hypotheticalSelection = {
+      ...selectedDimensions,
+      [dimensionName]: optionValue
+    };
+    
+    // Check if any variant matches this selection and is in stock
+    const hasInStockVariant = product.variants.some(variant => {
+      const matchesAllDimensions = Object.entries(hypotheticalSelection).every(
+        ([dimName, dimValue]) => variant.dimensionValues[dimName] === dimValue
+      );
+      return matchesAllDimensions && variant.inStock;
+    });
+    
+    return !hasInStockVariant;
+  };
+
   const getCurrentPrice = (): number => {
     if (currentVariant?.price) {
       return currentVariant.price;
@@ -114,7 +135,6 @@ export const ProductPage: React.FC = () => {
 
   const handleContinueShopping = () => {
     setModalOpen(false);
-    navigate('/');
   };
 
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
@@ -218,11 +238,36 @@ export const ProductPage: React.FC = () => {
                   label={dimension.name}
                   onChange={(e) => handleDimensionChange(dimension.name, e.target.value)}
                 >
-                  {dimension.options.map((option) => (
-                    <MenuItem key={option.value} value={option.value}>
-                      {option.name}
-                    </MenuItem>
-                  ))}
+                  {dimension.options.map((option) => {
+                    const isOutOfStock = isOptionOutOfStock(dimension.name, option.value);
+                    return (
+                      <MenuItem 
+                        key={option.value} 
+                        value={option.value}
+                        sx={{
+                          color: isOutOfStock ? 'text.disabled' : 'text.primary',
+                          fontStyle: isOutOfStock ? 'italic' : 'normal',
+                          opacity: isOutOfStock ? 0.6 : 1
+                        }}
+                      >
+                        {option.name}
+                        {isOutOfStock && (
+                          <Typography
+                            component="span"
+                            variant="caption"
+                            sx={{ 
+                              ml: 1, 
+                              color: 'error.main', 
+                              fontWeight: 'bold',
+                              fontSize: '0.75rem'
+                            }}
+                          >
+                            (Out of Stock)
+                          </Typography>
+                        )}
+                      </MenuItem>
+                    );
+                  })}
                 </Select>
               </FormControl>
             ))}

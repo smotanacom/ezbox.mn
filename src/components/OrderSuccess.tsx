@@ -19,6 +19,7 @@ import {
   Receipt
 } from '@mui/icons-material';
 import { useCartStore } from '../store/cartStore';
+import { useOrderStore } from '../store/orderStore';
 
 interface OrderData {
   orderNumber: string;
@@ -41,9 +42,11 @@ export const OrderSuccess: React.FC = () => {
   const { orderNumber } = useParams<{ orderNumber: string }>();
   const navigate = useNavigate();
   const { clearCart } = useCartStore();
+  const { getOrderById } = useOrderStore();
   
   const [orderData, setOrderData] = useState<OrderData | null>(null);
   const [copySuccess, setCopySuccess] = useState<string>('');
+  const [cartAlreadyCleared, setCartAlreadyCleared] = useState<boolean>(false);
 
   // Bank details - in a real app, these would come from a config/environment
   const bankDetails = {
@@ -55,31 +58,56 @@ export const OrderSuccess: React.FC = () => {
   };
 
   useEffect(() => {
-    // Get order data from sessionStorage
+    if (!orderNumber) return;
+
+    // First, try to get order data from sessionStorage (for fresh orders)
     const storedOrder = sessionStorage.getItem('currentOrder');
     if (storedOrder) {
       try {
         const order = JSON.parse(storedOrder) as OrderData;
         if (order.orderNumber === orderNumber) {
           setOrderData(order);
-          // Clear cart after successful order
-          clearCart();
-          // Don't remove sessionStorage immediately - keep it for the session
-        } else {
-          // Order number doesn't match
-          console.warn('Order number mismatch');
-          setOrderData(null);
+          
+          // Only clear cart if we haven't cleared it for this order yet
+          // Check if there's a flag in sessionStorage indicating cart was already cleared
+          const cartClearedKey = `cart_cleared_${orderNumber}`;
+          const hasCartBeenCleared = sessionStorage.getItem(cartClearedKey);
+          
+          if (!hasCartBeenCleared && !cartAlreadyCleared) {
+            // Clear cart after successful order (first time visiting this order)
+            clearCart();
+            setCartAlreadyCleared(true);
+            // Mark that we've cleared the cart for this order
+            sessionStorage.setItem(cartClearedKey, 'true');
+          }
+          
+          return; // Exit early if we found the order in sessionStorage
         }
       } catch (error) {
-        console.error('Error parsing order data:', error);
-        setOrderData(null);
+        console.error('Error parsing order data from sessionStorage:', error);
       }
+    }
+    
+    // If not found in sessionStorage, try to get from persistent order store (for historical orders)
+    const persistentOrder = getOrderById(orderNumber);
+    if (persistentOrder) {
+      // Convert from persistent order format to OrderData format
+      const orderData: OrderData = {
+        orderNumber: persistentOrder.orderNumber,
+        items: persistentOrder.items,
+        total: persistentOrder.total,
+        customerInfo: persistentOrder.customerInfo,
+        createdAt: persistentOrder.createdAt
+      };
+      setOrderData(orderData);
+      
+      // Don't clear cart for historical orders - cart clearing only happens for fresh orders
     } else {
-      // No order data found
-      console.warn('No order data found');
+      // No order data found anywhere
+      console.warn('No order data found for order number:', orderNumber);
       setOrderData(null);
     }
-  }, [orderNumber, navigate, clearCart]);
+  }, [orderNumber, navigate, clearCart, cartAlreadyCleared, getOrderById]);
 
   // Clean up sessionStorage only when user explicitly navigates away
   useEffect(() => {
