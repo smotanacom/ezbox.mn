@@ -46,6 +46,22 @@
       }(window.location))
     </script>
     <!-- End Single Page Apps for GitHub Pages -->
+    
+    <!-- Dynamic Asset Path Handler -->
+    <script type="text/javascript">
+      // Dynamically set the base href for assets based on hostname
+      (function() {
+        var basePath = '/';
+        if (window.location.hostname === 'smotanacom.github.io') {
+          basePath = '/ezbox.mn/';
+        }
+        
+        // Set base href for relative asset loading
+        var base = document.createElement('base');
+        base.href = basePath;
+        document.head.insertBefore(base, document.head.firstChild);
+      })();
+    </script>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
