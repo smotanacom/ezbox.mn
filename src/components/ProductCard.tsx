@@ -69,13 +69,40 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onClick }) =>
           {product.description}
         </Typography>
         <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography variant="h6" component="span" color="primary">
-            ${product.basePrice.toFixed(2)}
-          </Typography>
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+            {product.specialPrice ? (
+              <>
+                <Typography
+                  variant="h6"
+                  component="span"
+                  sx={{
+                    textDecoration: 'line-through',
+                    color: 'text.secondary',
+                    fontSize: '1rem'
+                  }}
+                >
+                  ${product.basePrice.toFixed(2)}
+                </Typography>
+                <Typography variant="h6" component="span" color="error">
+                  ${product.specialPrice.toFixed(2)}
+                </Typography>
+                <Chip
+                  label="SALE"
+                  size="small"
+                  color="error"
+                  sx={{ fontWeight: 'bold' }}
+                />
+              </>
+            ) : (
+              <Typography variant="h6" component="span" color="primary">
+                ${product.basePrice.toFixed(2)}
+              </Typography>
+            )}
+          </Box>
           {product.category && (
-            <Chip 
-              label={product.category} 
-              size="small" 
+            <Chip
+              label={product.category}
+              size="small"
               variant="outlined"
               sx={{ textTransform: 'capitalize' }}
             />

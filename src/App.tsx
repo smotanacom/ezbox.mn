@@ -1,9 +1,9 @@
 import React from 'react';
 import {Link as RouterLink, Route, Routes, useNavigate} from 'react-router-dom';
 import {AppBar, Box, Link, Toolbar, IconButton, Badge, Button} from '@mui/material';
-import {ShoppingCart, Receipt} from '@mui/icons-material';
+import {ShoppingCart, Receipt, LocalOffer} from '@mui/icons-material';
 import {HomePage} from './components/HomePage';
-import {ProductList} from './components/ProductList';
+import {Specials} from './components/Specials';
 import {ProductPage} from './components/ProductPage';
 import {Cart} from './components/Cart';
 import {Checkout} from './components/Checkout';
@@ -35,10 +35,11 @@ function AppContent() {
                         <Button
                             color="inherit"
                             component={RouterLink}
-                            to="/products"
+                            to="/specials"
+                            startIcon={<LocalOffer />}
                             sx={{ textTransform: 'none', fontSize: '1rem' }}
                         >
-                            Products
+                            Specials
                         </Button>
                     </Box>
                     <IconButton
@@ -64,7 +65,7 @@ function AppContent() {
 
             <Routes>
                 <Route index element={<HomePage/>}/>
-                <Route path="/products" element={<ProductList/>}/>
+                <Route path="/specials" element={<Specials/>}/>
                 <Route path="/product/:productId" element={<ProductPage/>}/>
                 <Route path="/cart" element={<Cart/>}/>
                 <Route path="/checkout" element={<Checkout/>}/>

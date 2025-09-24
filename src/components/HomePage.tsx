@@ -7,10 +7,19 @@ import {
   Button
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import ShoppingBagIcon from '@mui/icons-material/ShoppingBag';
+import LocalOfferIcon from '@mui/icons-material/LocalOffer';
+import { useProducts } from '../hooks/useProducts';
+import { ProductCard } from './ProductCard';
 
 export const HomePage: React.FC = () => {
   const navigate = useNavigate();
+  const { products, loading, error } = useProducts();
+
+  const handleProductClick = (productId: string) => {
+    navigate(`/product/${productId}`);
+  };
+
+  const specialsCount = products.filter(p => p.specialPrice).length;
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
@@ -22,11 +31,7 @@ export const HomePage: React.FC = () => {
           borderRadius: 3,
           color: 'white',
           textAlign: 'center',
-          minHeight: '70vh',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          alignItems: 'center'
+          mb: 6
         }}
       >
         <Box
@@ -47,33 +52,67 @@ export const HomePage: React.FC = () => {
           Welcome to EzBox Store
         </Typography>
         <Typography variant="h5" sx={{ mb: 3, opacity: 0.95 }}>
-          Your One-Stop Shop for Quality Products
+          Your One-Stop Shop for Quality Furniture
         </Typography>
         <Typography variant="body1" sx={{ maxWidth: 800, mx: 'auto', opacity: 0.9, mb: 4 }}>
-          Discover our carefully curated selection of premium products. From electronics to fashion,
-          home essentials to unique gifts, we bring you the best quality at unbeatable prices.
+          Discover our carefully curated selection of premium furniture. From living room essentials to bedroom comfort,
+          office solutions to dining elegance, we bring you the best quality at unbeatable prices.
           Shop with confidence with our secure checkout and fast delivery.
         </Typography>
-        <Button
-          variant="contained"
-          size="large"
-          startIcon={<ShoppingBagIcon />}
-          onClick={() => navigate('/products')}
-          sx={{
-            backgroundColor: 'white',
-            color: '#667eea',
-            px: 4,
-            py: 1.5,
-            fontSize: '1.1rem',
-            fontWeight: 'bold',
-            '&:hover': {
-              backgroundColor: 'rgba(255,255,255,0.9)'
-            }
-          }}
-        >
-          Shop Now
-        </Button>
+        {specialsCount > 0 && (
+          <Button
+            variant="contained"
+            size="large"
+            startIcon={<LocalOfferIcon />}
+            onClick={() => navigate('/specials')}
+            sx={{
+              backgroundColor: '#ff4444',
+              color: 'white',
+              px: 4,
+              py: 1.5,
+              fontSize: '1.1rem',
+              fontWeight: 'bold',
+              '&:hover': {
+                backgroundColor: '#ff6666'
+              }
+            }}
+          >
+            View {specialsCount} Special Offers
+          </Button>
+        )}
       </Paper>
+
+      <Typography variant="h3" component="h2" gutterBottom sx={{ mb: 4 }}>
+        All Products
+      </Typography>
+
+      {loading && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+          <Typography>Loading products...</Typography>
+        </Box>
+      )}
+
+      {error && (
+        <Box sx={{ mb: 4 }}>
+          <Typography color="error">{error}</Typography>
+        </Box>
+      )}
+
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 2
+        }}
+      >
+        {products.map((product) => (
+          <ProductCard
+            key={product.id}
+            product={product}
+            onClick={() => handleProductClick(product.id)}
+          />
+        ))}
+      </Box>
     </Container>
   );
 };

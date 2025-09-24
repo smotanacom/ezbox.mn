@@ -6,6 +6,7 @@ export const products: Product[] = [
     name: "Modern L-Shaped Sectional Sofa",
     description: "Spacious L-shaped sectional sofa with premium fabric upholstery. Perfect for large living rooms. Includes ottoman and throw pillows.",
     basePrice: 1299.99,
+    specialPrice: 999.99,
     mainImage: "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=600",
     dimensions: [
       {
@@ -55,6 +56,7 @@ export const products: Product[] = [
     name: "Solid Wood Dining Table",
     description: "Beautiful solid oak dining table with natural finish. Seats 6-8 people comfortably. Sturdy construction with classic design.",
     basePrice: 899.99,
+    specialPrice: 699.99,
     mainImage: "https://images.unsplash.com/photo-1549497538-303791108f95?w=600",
     dimensions: [
       {
@@ -105,6 +107,7 @@ export const products: Product[] = [
     name: "Ergonomic Office Chair",
     description: "High-back ergonomic office chair with lumbar support. Adjustable height, armrests, and tilt mechanism for maximum comfort.",
     basePrice: 349.99,
+    specialPrice: 249.99,
     mainImage: "https://images.unsplash.com/photo-1592078615290-033ee584e267?w=600",
     dimensions: [
       {
@@ -155,6 +158,7 @@ export const products: Product[] = [
     name: "Platform Bed Frame with Headboard",
     description: "Modern platform bed frame with upholstered headboard. No box spring needed. Includes slat support system.",
     basePrice: 799.99,
+    specialPrice: 599.99,
     mainImage: "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=600",
     dimensions: [
       {
@@ -300,6 +304,7 @@ export const products: Product[] = [
     name: "Glass Top Coffee Table",
     description: "Modern coffee table with tempered glass top and sleek metal legs. Features lower shelf for storage. Easy to clean and maintain.",
     basePrice: 399.99,
+    specialPrice: 299.99,
     mainImage: "https://images.unsplash.com/photo-1565374395542-0ce18882c857?w=600",
     dimensions: [
       {
@@ -519,6 +524,7 @@ export const products: Product[] = [
     name: "Entertainment Center TV Stand",
     description: "Modern TV stand with cable management system. Accommodates TVs up to 65 inches. Features open shelving and closed storage.",
     basePrice: 449.99,
+    specialPrice: 349.99,
     mainImage: "https://images.unsplash.com/photo-1621955964441-c173e01c135b?w=600",
     dimensions: [
       {
@@ -606,6 +612,7 @@ export const products: Product[] = [
     name: "L-Shaped Computer Desk",
     description: "Spacious L-shaped desk perfect for home office or gaming setup. Built-in cable management and sturdy steel frame.",
     basePrice: 399.99,
+    specialPrice: 319.99,
     mainImage: "https://images.unsplash.com/photo-1518455027359-f3f8164ba6bd?w=600",
     dimensions: [
       {

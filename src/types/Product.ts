@@ -20,6 +20,7 @@ export interface Product {
   name: string;
   description: string;
   basePrice: number;
+  specialPrice?: number;
   mainImage: string;
   dimensions: Dimension[];
   variants: ProductVariant[];
