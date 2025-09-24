@@ -3,7 +3,7 @@ import { Product } from '../types/Product';
 export const products: Product[] = [
   {
     id: "tshirt-001",
-    name: "Classic Cotton T-Shirt",
+    name: "Classic Double Cotton T-Shirt",
     description: "A comfortable and versatile cotton t-shirt perfect for everyday wear. Made from 100% organic cotton with a relaxed fit.",
     basePrice: 29.99,
     mainImage: "https://placehold.co/600x400/4a90e2/white?text=Classic+T-Shirt",
