@@ -7,7 +7,7 @@ export const products: Product[] = [
     description: "Spacious L-shaped sectional sofa with premium fabric upholstery. Perfect for large living rooms. Includes ottoman and throw pillows.",
     basePrice: 1299.99,
     specialPrice: 999.99,
-    mainImage: "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=600",
+    mainImage: "/images/products/placeholder.svg",
     dimensions: [
       {
         name: "configuration",

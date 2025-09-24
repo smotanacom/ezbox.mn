@@ -49,7 +49,7 @@ export const HomePage: React.FC = () => {
           }}
         />
         <Typography variant="h2" component="h1" gutterBottom sx={{ fontWeight: 'bold' }}>
-          Welcome to EzBox Store
+          TAvilga hiij bna
         </Typography>
         <Typography variant="h5" sx={{ mb: 3, opacity: 0.95 }}>
           Your One-Stop Shop for Quality Furniture
