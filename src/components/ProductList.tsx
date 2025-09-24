@@ -36,11 +36,11 @@ export const ProductList: React.FC = () => {
         </Alert>
       )}
       
-      <Box 
-        sx={{ 
-          display: 'grid',
-          gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
-          gap: 3
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 2
         }}
       >
         {products.map((product) => (

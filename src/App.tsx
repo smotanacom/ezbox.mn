@@ -1,7 +1,8 @@
 import React from 'react';
 import {Link as RouterLink, Route, Routes, useNavigate} from 'react-router-dom';
-import {AppBar, Box, Link, Toolbar, IconButton, Badge} from '@mui/material';
+import {AppBar, Box, Link, Toolbar, IconButton, Badge, Button} from '@mui/material';
 import {ShoppingCart, Receipt} from '@mui/icons-material';
+import {HomePage} from './components/HomePage';
 import {ProductList} from './components/ProductList';
 import {ProductPage} from './components/ProductPage';
 import {Cart} from './components/Cart';
@@ -26,10 +27,20 @@ function AppContent() {
                         component={RouterLink}
                         to="/"
                         variant="h6"
-                        sx={{flexGrow: 1, cursor: 'pointer', textDecoration: 'none', color: 'inherit'}}
+                        sx={{cursor: 'pointer', textDecoration: 'none', color: 'inherit', mr: 3}}
                     >
                         EzBox Store
                     </Link>
+                    <Box sx={{ flexGrow: 1 }}>
+                        <Button
+                            color="inherit"
+                            component={RouterLink}
+                            to="/products"
+                            sx={{ textTransform: 'none', fontSize: '1rem' }}
+                        >
+                            Products
+                        </Button>
+                    </Box>
                     <IconButton
                         color="inherit"
                         onClick={() => navigate('/orders')}
@@ -52,7 +63,8 @@ function AppContent() {
             </AppBar>
 
             <Routes>
-                <Route index element={<ProductList/>}/>
+                <Route index element={<HomePage/>}/>
+                <Route path="/products" element={<ProductList/>}/>
                 <Route path="/product/:productId" element={<ProductPage/>}/>
                 <Route path="/cart" element={<Cart/>}/>
                 <Route path="/checkout" element={<Checkout/>}/>
