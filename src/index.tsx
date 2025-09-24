@@ -4,12 +4,8 @@ import './index.css';
 import App from './App';
 import {BrowserRouter} from "react-router-dom";
 
-// Auto-detect base path: use '/ezbox.mn' for GitHub Pages, '/' for custom domain
+// Use root path for custom domain
 const getBaseName = () => {
-  const hostname = window.location.hostname;
-  if (hostname === 'smotanacom.github.io') {
-    return '/ezbox.mn';
-  }
   return '/';
 };
 
