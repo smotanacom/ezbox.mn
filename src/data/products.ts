@@ -687,8 +687,8 @@ export const products: Product[] = [
     ],
     category: "office",
     tags: ["storage", "filing", "organization"]
-  },
-  {
+      },
+      {
     id: "accent-chair-001",
     name: "Mid-Century Accent Chair",
     description: "Stylish mid-century modern accent chair with wooden legs. Perfect for reading corners or as additional seating.",
