@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { Suspense, useEffect, useState, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -37,7 +37,7 @@ import type {
   ParameterSelection,
 } from '@/types/database';
 
-export default function ProductsPage() {
+function ProductsContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { items, total, addToCart, updateCartItem, removeFromCart, loading: cartLoading } = useCart();
@@ -401,5 +401,13 @@ export default function ProductsPage() {
       {/* Sticky Cart at Bottom */}
       <Cart compact sticky />
     </>
+  );
+}
+
+export default function ProductsPage() {
+  return (
+    <Suspense fallback={<LoadingState />}>
+      <ProductsContent />
+    </Suspense>
   );
 }
