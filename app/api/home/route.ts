@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
 import { getCached, setCache } from '@/lib/cache';
+import { getCategories, getProducts, getSpecials, calculateSpecialOriginalPrice } from '@/lib/api';
 
 // Cache for 5 minutes (300 seconds)
 export const revalidate = 300;
@@ -20,26 +20,33 @@ export async function GET() {
       });
     }
 
-    // Fetch all home page data in parallel
-    const [
-      { data: categories, error: categoriesError },
-      { data: products, error: productsError },
-      { data: specials, error: specialsError },
-    ] = await Promise.all([
-      supabase.from('categories').select('*').order('id'),
-      supabase.from('products').select('*').order('id'),
-      supabase.from('specials').select('*').eq('status', 'available').order('id'),
+    // Fetch all home page data in parallel using lib/api functions
+    const [categories, products, specials] = await Promise.all([
+      getCategories(),
+      getProducts(),
+      getSpecials('available'),
     ]);
 
-    if (categoriesError) throw categoriesError;
-    if (productsError) throw productsError;
-    if (specialsError) throw specialsError;
+    // Calculate original prices for all specials in parallel
+    const specialOriginalPrices: Record<number, number> = {};
+    await Promise.all(
+      specials.map(async (special) => {
+        try {
+          const originalPrice = await calculateSpecialOriginalPrice(special.id);
+          specialOriginalPrices[special.id] = originalPrice;
+        } catch (error) {
+          console.error(`Error calculating original price for special ${special.id}:`, error);
+          specialOriginalPrices[special.id] = 0;
+        }
+      })
+    );
 
     // Cache the data
     const data = {
-      categories: categories || [],
-      products: products || [],
-      specials: specials || [],
+      categories,
+      products,
+      specials,
+      specialOriginalPrices,
     };
     setCache(CACHE_KEY, data);
 

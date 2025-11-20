@@ -6,6 +6,7 @@ import {
   addToCart as apiAddToCart,
   updateCartItem as apiUpdateCartItem,
   removeFromCart as apiRemoveFromCart,
+  removeSpecialFromCart as apiRemoveSpecialFromCart,
   addSpecialToCart as apiAddSpecialToCart,
   calculateProductPrice,
 } from '@/lib/api';
@@ -19,6 +20,7 @@ interface CartContextType {
   addToCart: (productId: number, quantity: number, selectedParameters: ParameterSelection) => Promise<void>;
   updateCartItem: (itemId: number, quantity?: number, selectedParameters?: ParameterSelection) => Promise<void>;
   removeFromCart: (itemId: number) => Promise<void>;
+  removeSpecialFromCart: (specialId: number) => Promise<void>;
   addSpecialToCart: (specialId: number) => Promise<void>;
   refreshCart: () => Promise<void>;
 }
@@ -118,6 +120,21 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     [refreshCart]
   );
 
+  const removeSpecialFromCart = useCallback(
+    async (specialId: number) => {
+      if (!cart) return;
+
+      try {
+        await apiRemoveSpecialFromCart(cart.id, specialId);
+        await refreshCart();
+      } catch (error) {
+        console.error('Error removing special from cart:', error);
+        throw error;
+      }
+    },
+    [cart, refreshCart]
+  );
+
   const addSpecialToCart = useCallback(
     async (specialId: number) => {
       if (!cart) return;
@@ -141,6 +158,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     addToCart,
     updateCartItem,
     removeFromCart,
+    removeSpecialFromCart,
     addSpecialToCart,
     refreshCart,
   };

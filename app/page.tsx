@@ -11,13 +11,14 @@ import { LoadingState } from '@/components/layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ShoppingCart } from 'lucide-react';
+import { ShoppingCart, Package } from 'lucide-react';
 import type { Category, Product, SpecialWithItems } from '@/types/database';
 
 export default function Home() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [productsByCategory, setProductsByCategory] = useState<Record<number, Product[]>>({});
   const [specials, setSpecials] = useState<SpecialWithItems[]>([]);
+  const [specialOriginalPrices, setSpecialOriginalPrices] = useState<Record<number, number>>({});
   const [loading, setLoading] = useState(true);
   const [addingSpecial, setAddingSpecial] = useState<Set<number>>(new Set());
   const [addedSpecial, setAddedSpecial] = useState<Set<number>>(new Set());
@@ -43,6 +44,9 @@ export default function Home() {
 
         setCategories(data.categories);
         setSpecials(data.specials);
+
+        // Use pre-calculated original prices from API
+        setSpecialOriginalPrices(data.specialOriginalPrices || {});
 
         // Group products by category
         const grouped: Record<number, Product[]> = {};
@@ -123,49 +127,115 @@ export default function Home() {
             >
               Special Offers
             </SectionHeader>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="space-y-6">
               {specials.map((special) => {
                 const isAdding = addingSpecial.has(special.id);
                 const isAdded = addedSpecial.has(special.id);
                 const error = specialErrors[special.id];
+                const originalPrice = specialOriginalPrices[special.id] || 0;
+                const savings = originalPrice - special.discounted_price;
+                const savingsPercent = originalPrice > 0 ? Math.round((savings / originalPrice) * 100) : 0;
 
                 return (
                   <Card key={special.id} className={`overflow-hidden hover:shadow-lg transition-all ${isAdding ? 'opacity-50' : ''}`}>
-                    <div className="aspect-video relative overflow-hidden">
-                      <Image
-                        src={special.picture_url}
-                        alt={special.name}
-                        className="object-cover w-full h-full"
-                      />
-                    </div>
-                    <CardHeader>
-                      <CardTitle className="text-lg font-semibold">{special.name}</CardTitle>
-                      {special.description && (
-                        <CardDescription>{special.description}</CardDescription>
-                      )}
-                    </CardHeader>
-                    <CardContent className="pb-0">
-                      <div className="flex justify-between items-center mb-4">
-                        <span className="text-3xl font-bold text-green-600">
-                          ₮{special.discounted_price.toLocaleString()}
-                        </span>
+                    <div className="flex flex-col lg:flex-row">
+                      {/* Left side: Image, Name, Description */}
+                      <div className="lg:w-1/3 flex flex-col">
+                        <div className="aspect-video lg:aspect-square relative overflow-hidden">
+                          <Image
+                            src={special.picture_url}
+                            alt={special.name}
+                            className="object-cover w-full h-full"
+                          />
+                          {savingsPercent > 0 && (
+                            <Badge className="absolute top-2 right-2 bg-red-600 text-white text-lg px-3 py-1">
+                              Save {savingsPercent}%
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="p-6 flex-1">
+                          <h3 className="text-2xl font-bold mb-2">{special.name}</h3>
+                          {special.description && (
+                            <p className="text-muted-foreground">{special.description}</p>
+                          )}
+                        </div>
                       </div>
-                    </CardContent>
-                    <CardFooter className="flex flex-col gap-2">
-                      <Button
-                        onClick={() => handleAddSpecialToCart(special.id)}
-                        disabled={isAdding || isAdded}
-                        size="lg"
-                        className="w-full bg-green-600 hover:bg-green-700"
-                      >
-                        {isAdded && <span className="mr-2">✓</span>}
-                        {!isAdded && !isAdding && <ShoppingCart className="mr-2 h-4 w-4" />}
-                        {isAdding ? 'Adding...' : isAdded ? 'Added' : 'Add to Cart'}
-                      </Button>
-                      {error && (
-                        <p className="text-sm text-destructive text-center">{error}</p>
-                      )}
-                    </CardFooter>
+
+                      {/* Middle: Products List */}
+                      <div className="lg:w-1/3 p-6 border-t lg:border-t-0 lg:border-l bg-gray-50">
+                        <div className="flex items-center gap-2 mb-4">
+                          <Package className="h-5 w-5 text-primary" />
+                          <h4 className="font-semibold text-lg">Included Products</h4>
+                        </div>
+                        <div className="space-y-3">
+                          {special.items?.map((item: any, idx: number) => {
+                            const product = item.product;
+                            if (!product) return null;
+
+                            return (
+                              <div key={idx} className="flex items-start gap-3 pb-3 border-b last:border-b-0">
+                                <div className="relative w-16 h-16 rounded-md overflow-hidden bg-white flex-shrink-0">
+                                  <Image
+                                    src={product.picture_url}
+                                    alt={product.name}
+                                    className="object-cover w-full h-full"
+                                  />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium text-sm line-clamp-2">
+                                    {product.name}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    Qty: {item.quantity}
+                                  </p>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Right side: Pricing and CTA */}
+                      <div className="lg:w-1/3 p-6 border-t lg:border-t-0 lg:border-l bg-gradient-to-br from-green-50 to-white flex flex-col justify-between">
+                        <div>
+                          <p className="text-sm text-muted-foreground mb-2">Bundle Price</p>
+                          {originalPrice > 0 && (
+                            <div className="mb-4">
+                              <div className="flex items-baseline gap-2 mb-1">
+                                <span className="text-lg text-muted-foreground line-through">
+                                  ₮{originalPrice.toLocaleString()}
+                                </span>
+                              </div>
+                              <div className="text-sm font-semibold text-red-600">
+                                You Save ₮{savings.toLocaleString()}
+                              </div>
+                            </div>
+                          )}
+                          <div className="text-4xl font-bold text-green-600 mb-6">
+                            ₮{special.discounted_price.toLocaleString()}
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Button
+                            onClick={() => handleAddSpecialToCart(special.id)}
+                            disabled={isAdding || isAdded}
+                            size="lg"
+                            className="w-full bg-green-600 hover:bg-green-700"
+                          >
+                            {isAdded && <span className="mr-2">✓</span>}
+                            {!isAdded && !isAdding && <ShoppingCart className="mr-2 h-4 w-4" />}
+                            {isAdding ? 'Adding...' : isAdded ? 'Added to Cart' : 'Add Bundle to Cart'}
+                          </Button>
+                          {error && (
+                            <p className="text-sm text-destructive text-center">{error}</p>
+                          )}
+                          <p className="text-xs text-muted-foreground text-center">
+                            Pre-configured bundle • No customization
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </Card>
                 );
               })}

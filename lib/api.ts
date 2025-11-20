@@ -282,6 +282,16 @@ export async function removeFromCart(itemId: number): Promise<void> {
   if (error) throw error;
 }
 
+export async function removeSpecialFromCart(cartId: number, specialId: number): Promise<void> {
+  const { error } = await supabase
+    .from('product_in_cart')
+    .delete()
+    .eq('cart_id', cartId)
+    .eq('special_id', specialId);
+
+  if (error) throw error;
+}
+
 export async function calculateCartTotal(cartId: number): Promise<number> {
   const items = await getCartItems(cartId);
 
@@ -345,6 +355,36 @@ export async function getSpecials(status?: string): Promise<SpecialWithItems[]> 
   );
 
   return specialsWithItems as SpecialWithItems[];
+}
+
+// Calculate the original price of a special (sum of all items with their parameters)
+export async function calculateSpecialOriginalPrice(specialId: number): Promise<number> {
+  const { data: items, error } = await supabase
+    .from('special_items')
+    .select(`
+      *,
+      product:products(*)
+    `)
+    .eq('special_id', specialId);
+
+  if (error) throw error;
+  if (!items) return 0;
+
+  let total = 0;
+  for (const item of items as any[]) {
+    if (!item.product) continue;
+
+    // Get product details with parameters
+    const product = await getProductWithDetails(item.product.id);
+    if (!product) continue;
+
+    // Calculate price with selected parameters
+    const selectedParams = (item.selected_parameters as ParameterSelection) || {};
+    const itemPrice = calculateProductPrice(product, selectedParams);
+    total += itemPrice * item.quantity;
+  }
+
+  return total;
 }
 
 export async function addSpecialToCart(

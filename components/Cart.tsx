@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/contexts/CartContext';
 import { calculateProductPrice } from '@/lib/api';
@@ -36,10 +36,58 @@ interface CartProps {
 
 export default function Cart({ showCheckoutButton = true, compact = false, sticky = false }: CartProps) {
   const router = useRouter();
-  const { items, total, updateCartItem, removeFromCart, loading } = useCart();
+  const { items, total, updateCartItem, removeFromCart, removeSpecialFromCart, loading } = useCart();
   const [updatingItems, setUpdatingItems] = useState<Set<number>>(new Set());
+  const [removingSpecials, setRemovingSpecials] = useState<Set<number>>(new Set());
   const [itemErrors, setItemErrors] = useState<Record<number, string>>({});
-  const [isMinimized, setIsMinimized] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(true);
+  const prevItemsLength = useRef(items.length);
+
+  // Group items by special_id
+  const specialBundles = items.filter(item => item.special_id !== null);
+  const regularItems = items.filter(item => item.special_id === null);
+
+  // Group special items by special_id
+  const itemsBySpecial = specialBundles.reduce((acc, item) => {
+    const specialId = item.special_id!;
+    if (!acc[specialId]) {
+      acc[specialId] = [];
+    }
+    acc[specialId].push(item);
+    return acc;
+  }, {} as Record<number, typeof items>);
+
+  const handleRemoveSpecial = async (specialId: number) => {
+    setRemovingSpecials(prev => new Set(prev).add(specialId));
+
+    try {
+      await removeSpecialFromCart(specialId);
+    } catch (error) {
+      console.error('Error removing special from cart:', error);
+    } finally {
+      setRemovingSpecials(prev => {
+        const next = new Set(prev);
+        next.delete(specialId);
+        return next;
+      });
+    }
+  };
+
+  const getBundlePrice = (bundleItems: typeof items) => {
+    return bundleItems.reduce((sum, item) => {
+      if (!item.product) return sum;
+      const params = (item.selected_parameters as ParameterSelection) || {};
+      return sum + (calculateProductPrice(item.product, params) * item.quantity);
+    }, 0);
+  };
+
+  // Expand cart when items are added
+  useEffect(() => {
+    if (items.length > prevItemsLength.current && isMinimized) {
+      setIsMinimized(false);
+    }
+    prevItemsLength.current = items.length;
+  }, [items.length, isMinimized]);
 
   const getItemPrice = (item: typeof items[0]) => {
     if (!item.product) return 0;
@@ -111,12 +159,12 @@ export default function Cart({ showCheckoutButton = true, compact = false, stick
       `}>
         {/* Header Bar */}
         <div
-          onClick={() => items.length > 0 && setIsMinimized(!isMinimized)}
-          className={`
+          onClick={() => setIsMinimized(!isMinimized)}
+          className="
             flex items-center justify-between px-6 h-16 border-b bg-gradient-to-r from-blue-50 to-white
-            ${items.length > 0 ? 'cursor-pointer hover:bg-blue-50' : ''}
+            cursor-pointer hover:bg-blue-50
             transition-colors
-          `}
+          "
         >
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-3">
@@ -161,26 +209,29 @@ export default function Cart({ showCheckoutButton = true, compact = false, stick
                 Checkout
               </Button>
             )}
-            {items.length > 0 && (
-              <Button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsMinimized(!isMinimized);
-                }}
-                size="icon"
-                variant="ghost"
-                aria-label={isMinimized ? 'Expand cart' : 'Minimize cart'}
-              >
-                {isMinimized ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
-              </Button>
-            )}
+            <Button
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsMinimized(!isMinimized);
+              }}
+              size="icon"
+              variant="ghost"
+              aria-label={isMinimized ? 'Expand cart' : 'Minimize cart'}
+            >
+              {isMinimized ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+            </Button>
           </div>
         </div>
 
         {/* Cart Content */}
         {!isMinimized && (
           <div className="overflow-y-auto h-[calc(40vh-4rem)] bg-gray-50">
-            {items.length === 0 ? (
+            {loading ? (
+              <div className="flex flex-col items-center justify-center h-full text-gray-400">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-3"></div>
+                <p className="text-sm">Loading cart...</p>
+              </div>
+            ) : items.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-gray-400">
                 <ShoppingCart className="h-16 w-16 mb-3 opacity-20" />
                 <p className="text-sm">Your cart is empty</p>
@@ -188,7 +239,68 @@ export default function Cart({ showCheckoutButton = true, compact = false, stick
               </div>
             ) : (
               <div className="p-4 space-y-3">
-                {items.map((item) => {
+                {/* Render Special Bundles */}
+                {Object.entries(itemsBySpecial).map(([specialId, bundleItems]) => {
+                  const isRemoving = removingSpecials.has(Number(specialId));
+                  const bundlePrice = getBundlePrice(bundleItems);
+
+                  return (
+                    <div
+                      key={`special-${specialId}`}
+                      className={`
+                        bg-gradient-to-br from-green-50 to-white rounded-lg p-4 shadow-sm border-2 border-green-200
+                        ${isRemoving ? 'opacity-50' : ''}
+                      `}
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <Badge className="bg-green-600 text-white">Special Bundle</Badge>
+                          <span className="text-xs text-muted-foreground">Cannot be edited</span>
+                        </div>
+                        <Button
+                          onClick={() => handleRemoveSpecial(Number(specialId))}
+                          disabled={isRemoving}
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 flex-shrink-0 hover:bg-red-50 hover:text-red-600"
+                          title="Remove bundle"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+
+                      <div className="space-y-2 mb-3">
+                        {bundleItems.map((item) => (
+                          <div key={item.id} className="flex items-center gap-2 text-sm">
+                            <div className="relative w-12 h-12 rounded overflow-hidden bg-white flex-shrink-0">
+                              <Image
+                                src={item.product?.picture_url}
+                                alt={item.product?.name || 'Product'}
+                                className="object-cover w-full h-full"
+                              />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-xs line-clamp-1">
+                                {item.product?.name}
+                              </p>
+                              <p className="text-xs text-muted-foreground">Qty: {item.quantity}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="flex items-center justify-between pt-2 border-t">
+                        <span className="text-sm font-medium">Bundle Total:</span>
+                        <span className="text-lg font-bold text-green-600">
+                          ₮{bundlePrice.toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* Render Regular Items */}
+                {regularItems.map((item) => {
                   const isUpdating = updatingItems.has(item.id);
                   const error = itemErrors[item.id];
                   const selections = (item.selected_parameters as ParameterSelection) || {};
@@ -308,20 +420,121 @@ export default function Cart({ showCheckoutButton = true, compact = false, stick
   }
 
   return (
-    <Card>
-      <div className="overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Product</TableHead>
-              <TableHead>Configuration</TableHead>
-              <TableHead className="w-24">Quantity</TableHead>
-              <TableHead className="w-32">Price</TableHead>
-              <TableHead className="w-24">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-          {items.map((item) => {
+    <div className="space-y-6">
+      {/* Special Bundles */}
+      {Object.entries(itemsBySpecial).map(([specialId, bundleItems]) => {
+        const isRemoving = removingSpecials.has(Number(specialId));
+        const bundlePrice = getBundlePrice(bundleItems);
+
+        return (
+          <Card key={`special-${specialId}`} className="overflow-hidden border-2 border-green-200">
+            <div className="bg-gradient-to-r from-green-50 to-white p-4 border-b flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Badge className="bg-green-600 text-white">Special Bundle</Badge>
+                <span className="font-semibold">Pre-configured bundle (Cannot be edited)</span>
+              </div>
+              <Button
+                onClick={() => handleRemoveSpecial(Number(specialId))}
+                disabled={isRemoving}
+                size="sm"
+                variant="destructive"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                {isRemoving ? 'Removing...' : 'Remove Bundle'}
+              </Button>
+            </div>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Product</TableHead>
+                    <TableHead>Configuration</TableHead>
+                    <TableHead className="w-24">Quantity</TableHead>
+                    <TableHead className="w-32">Price</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {bundleItems.map((item) => {
+                    const selections = (item.selected_parameters as ParameterSelection) || {};
+                    return (
+                      <TableRow key={item.id} className="bg-green-50/30">
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <div className="relative w-16 h-16 rounded-md overflow-hidden">
+                              <Image
+                                src={item.product?.picture_url}
+                                alt={item.product?.name || 'Product'}
+                                className="object-cover w-full h-full"
+                              />
+                            </div>
+                            <div>
+                              <div className="font-medium">
+                                {item.product?.name}
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                Base: ₮{item.product?.base_price.toLocaleString()}
+                              </div>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-2">
+                            {item.product?.parameter_groups?.map((pg) => {
+                              const selectedParamId = selections[pg.parameter_group_id];
+                              const selectedParam = pg.parameters?.find(p => p.id === selectedParamId);
+                              if (!selectedParam) return null;
+                              return (
+                                <Badge key={pg.parameter_group_id} variant="outline">
+                                  {pg.parameter_group?.name}: {selectedParam.name}
+                                </Badge>
+                              );
+                            })}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="secondary">{item.quantity}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="font-semibold">
+                            ₮{getItemPrice(item).toLocaleString()}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                  <TableRow className="bg-green-100 font-semibold">
+                    <TableCell colSpan={3} className="text-right">
+                      Bundle Total:
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-lg font-bold text-green-600">
+                        ₮{bundlePrice.toLocaleString()}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </div>
+          </Card>
+        );
+      })}
+
+      {/* Regular Items */}
+      {regularItems.length > 0 && (
+        <Card>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Product</TableHead>
+                  <TableHead>Configuration</TableHead>
+                  <TableHead className="w-24">Quantity</TableHead>
+                  <TableHead className="w-32">Price</TableHead>
+                  <TableHead className="w-24">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+          {regularItems.map((item) => {
             const isUpdating = updatingItems.has(item.id);
             const error = itemErrors[item.id];
             return (
@@ -423,30 +636,32 @@ export default function Cart({ showCheckoutButton = true, compact = false, stick
               </TableRow>
             );
           })}
-          <TableRow>
-            <TableCell colSpan={3} className="text-right font-semibold">
-              Total:
-            </TableCell>
-            <TableCell>
-              <div className="text-xl font-bold">
-                ₮{total.toLocaleString()}
-              </div>
-            </TableCell>
-            <TableCell>
-              {showCheckoutButton && (
-                <Button
-                  onClick={() => router.push('/checkout')}
-                  size="lg"
-                  className="bg-green-600 hover:bg-green-700"
-                >
-                  Checkout
-                </Button>
-              )}
-            </TableCell>
-          </TableRow>
-          </TableBody>
-        </Table>
-      </div>
-    </Card>
+              </TableBody>
+            </Table>
+          </div>
+        </Card>
+      )}
+
+      {/* Total and Checkout */}
+      <Card className="bg-gradient-to-r from-blue-50 to-white">
+        <div className="p-6 flex items-center justify-between">
+          <div>
+            <p className="text-sm text-muted-foreground mb-1">Cart Total</p>
+            <div className="text-3xl font-bold">
+              ₮{total.toLocaleString()}
+            </div>
+          </div>
+          {showCheckoutButton && (
+            <Button
+              onClick={() => router.push('/checkout')}
+              size="lg"
+              className="bg-green-600 hover:bg-green-700"
+            >
+              Proceed to Checkout
+            </Button>
+          )}
+        </div>
+      </Card>
+    </div>
   );
 }
