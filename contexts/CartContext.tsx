@@ -3,13 +3,11 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { Cart, CartItemWithDetails, ParameterSelection } from '@/types/database';
 import {
-  getOrCreateCart,
-  getCartItems,
   addToCart as apiAddToCart,
   updateCartItem as apiUpdateCartItem,
   removeFromCart as apiRemoveFromCart,
-  calculateCartTotal,
   addSpecialToCart as apiAddSpecialToCart,
+  calculateProductPrice,
 } from '@/lib/api';
 import { getCurrentUser, getOrCreateGuestSession } from '@/lib/auth';
 
@@ -39,17 +37,34 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       const user = getCurrentUser();
       const guestSession = getOrCreateGuestSession();
 
-      const currentCart = await getOrCreateCart(
-        user?.id,
-        user ? undefined : guestSession
-      );
+      // Use the batched API route
+      const params = new URLSearchParams();
+      if (user?.id) {
+        params.set('userId', user.id.toString());
+      } else {
+        params.set('sessionId', guestSession);
+      }
 
-      setCart(currentCart);
+      const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+      const response = await fetch(`${baseUrl}/api/cart?${params}`, {
+        cache: 'no-store',
+      });
 
-      const cartItems = await getCartItems(currentCart.id);
-      setItems(cartItems);
+      if (!response.ok) {
+        throw new Error('Failed to fetch cart');
+      }
 
-      const cartTotal = await calculateCartTotal(currentCart.id);
+      const data = await response.json();
+      setCart(data.cart);
+      setItems(data.items);
+
+      // Calculate total client-side from items
+      const cartTotal = data.items.reduce((sum: number, item: CartItemWithDetails) => {
+        if (!item.product) return sum;
+        const params = (item.selected_parameters as ParameterSelection) || {};
+        const price = calculateProductPrice(item.product, params);
+        return sum + (price * item.quantity);
+      }, 0);
       setTotal(cartTotal);
     } catch (error) {
       console.error('Error refreshing cart:', error);

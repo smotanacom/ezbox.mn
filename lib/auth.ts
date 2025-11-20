@@ -21,10 +21,21 @@ async function verifyPassword(password: string, hash: string): Promise<boolean> 
 }
 
 // Register new user
-export async function register(phone: string, password: string): Promise<User> {
+export async function register(
+  phone: string,
+  password: string,
+  name?: string,
+  address?: string,
+  secondaryPhone?: string
+): Promise<User> {
   // Validate phone number (8 digits)
   if (!/^\d{8}$/.test(phone)) {
     throw new Error('Phone number must be exactly 8 digits');
+  }
+
+  // Validate secondary phone if provided
+  if (secondaryPhone && !/^\d{8}$/.test(secondaryPhone)) {
+    throw new Error('Secondary phone number must be exactly 8 digits');
   }
 
   // Check if user already exists
@@ -47,6 +58,9 @@ export async function register(phone: string, password: string): Promise<User> {
     .insert({
       phone,
       password_hash,
+      name: name || null,
+      address: address || null,
+      secondary_phone: secondaryPhone || null,
     } as any)
     .select()
     .single();
@@ -91,6 +105,8 @@ export function saveSession(user: User): void {
     localStorage.setItem(SESSION_KEY, JSON.stringify(session));
     // Remove guest session if exists
     localStorage.removeItem(GUEST_SESSION_KEY);
+    // Dispatch event to notify header of auth change
+    window.dispatchEvent(new Event('auth-change'));
   }
 }
 
@@ -110,6 +126,8 @@ export function getSession(): AuthSession | null {
 export function clearSession(): void {
   if (typeof window !== 'undefined') {
     localStorage.removeItem(SESSION_KEY);
+    // Dispatch event to notify header of auth change
+    window.dispatchEvent(new Event('auth-change'));
   }
 }
 
@@ -135,8 +153,17 @@ export function getOrCreateGuestSession(): string {
 // Update user profile
 export async function updateUserProfile(
   userId: number,
-  updates: { address?: string }
+  updates: {
+    name?: string;
+    address?: string;
+    secondary_phone?: string;
+  }
 ): Promise<User> {
+  // Validate secondary phone if provided
+  if (updates.secondary_phone && !/^\d{8}$/.test(updates.secondary_phone)) {
+    throw new Error('Secondary phone number must be exactly 8 digits');
+  }
+
   const { data, error } = await (supabase as any)
     .from('users')
     .update({

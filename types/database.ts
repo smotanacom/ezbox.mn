@@ -161,7 +161,9 @@ export interface Database {
           id: number
           phone: string
           password_hash: string
+          name: string | null
           address: string | null
+          secondary_phone: string | null
           is_admin: boolean
           created_at: string
           updated_at: string
@@ -170,7 +172,9 @@ export interface Database {
           id?: number
           phone: string
           password_hash: string
+          name?: string | null
           address?: string | null
+          secondary_phone?: string | null
           is_admin?: boolean
           created_at?: string
           updated_at?: string
@@ -179,7 +183,9 @@ export interface Database {
           id?: number
           phone?: string
           password_hash?: string
+          name?: string | null
           address?: string | null
+          secondary_phone?: string | null
           is_admin?: boolean
           created_at?: string
           updated_at?: string
@@ -249,8 +255,10 @@ export interface Database {
           cart_id: number | null
           user_id: number | null
           status: string
+          name: string
           address: string
           phone: string
+          secondary_phone: string | null
           total_price: number
           created_at: string
           updated_at: string
@@ -260,8 +268,10 @@ export interface Database {
           cart_id?: number | null
           user_id?: number | null
           status?: string
+          name: string
           address: string
           phone: string
+          secondary_phone?: string | null
           total_price: number
           created_at?: string
           updated_at?: string
@@ -271,8 +281,10 @@ export interface Database {
           cart_id?: number | null
           user_id?: number | null
           status?: string
+          name?: string
           address?: string
           phone?: string
+          secondary_phone?: string | null
           total_price?: number
           created_at?: string
           updated_at?: string

@@ -2,8 +2,16 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { getCategories, getProducts, getSpecials } from '@/lib/api';
 import { useCart } from '@/contexts/CartContext';
+import Image from '@/components/Image';
+import ProductCarousel from '@/components/ProductCarousel';
+import { PageContainer } from '@/components/layout';
+import { SectionHeader } from '@/components/layout';
+import { LoadingState } from '@/components/layout';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { ShoppingCart } from 'lucide-react';
 import type { Category, Product, SpecialWithItems } from '@/types/database';
 
 export default function Home() {
@@ -11,6 +19,9 @@ export default function Home() {
   const [productsByCategory, setProductsByCategory] = useState<Record<number, Product[]>>({});
   const [specials, setSpecials] = useState<SpecialWithItems[]>([]);
   const [loading, setLoading] = useState(true);
+  const [addingSpecial, setAddingSpecial] = useState<Set<number>>(new Set());
+  const [addedSpecial, setAddedSpecial] = useState<Set<number>>(new Set());
+  const [specialErrors, setSpecialErrors] = useState<Record<number, string>>({});
   const { addSpecialToCart } = useCart();
 
   useEffect(() => {
@@ -18,15 +29,24 @@ export default function Home() {
       try {
         setLoading(true);
 
-        // Load categories
-        const cats = await getCategories();
-        setCategories(cats);
+        // Use the batched API route
+        const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+        const response = await fetch(`${baseUrl}/api/home`, {
+          cache: 'no-store',
+        });
 
-        // Load products for each category
-        const allProducts = await getProducts();
+        if (!response.ok) {
+          throw new Error('Failed to fetch home data');
+        }
+
+        const data = await response.json();
+
+        setCategories(data.categories);
+        setSpecials(data.specials);
+
+        // Group products by category
         const grouped: Record<number, Product[]> = {};
-
-        for (const product of allProducts) {
+        for (const product of data.products) {
           if (product.category_id) {
             if (!grouped[product.category_id]) {
               grouped[product.category_id] = [];
@@ -34,12 +54,7 @@ export default function Home() {
             grouped[product.category_id].push(product);
           }
         }
-
         setProductsByCategory(grouped);
-
-        // Load available specials
-        const availableSpecials = await getSpecials('available');
-        setSpecials(availableSpecials);
       } catch (error) {
         console.error('Error loading data:', error);
       } finally {
@@ -51,152 +66,191 @@ export default function Home() {
   }, []);
 
   const handleAddSpecialToCart = async (specialId: number) => {
+    setAddingSpecial(prev => new Set(prev).add(specialId));
+    setSpecialErrors(prev => {
+      const next = { ...prev };
+      delete next[specialId];
+      return next;
+    });
+
     try {
       await addSpecialToCart(specialId);
-      alert('Special added to cart!');
+      // Show checkmark
+      setAddedSpecial(prev => new Set(prev).add(specialId));
+      // Clear checkmark after 2 seconds
+      setTimeout(() => {
+        setAddedSpecial(prev => {
+          const next = new Set(prev);
+          next.delete(specialId);
+          return next;
+        });
+      }, 2000);
     } catch (error) {
       console.error('Error adding special:', error);
-      alert('Failed to add special to cart');
+      setSpecialErrors(prev => ({
+        ...prev,
+        [specialId]: 'Failed to add special'
+      }));
+    } finally {
+      setAddingSpecial(prev => {
+        const next = new Set(prev);
+        next.delete(specialId);
+        return next;
+      });
     }
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl">Loading...</div>
-      </div>
-    );
+    return <LoadingState />;
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center">
-            <h1 className="text-3xl font-bold text-gray-900">EzBox.mn</h1>
-            <div className="flex gap-4">
-              <Link
-                href="/products"
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
-              >
-                Browse Products
-              </Link>
-              <Link
-                href="/cart"
-                className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition"
-              >
-                Cart
-              </Link>
-            </div>
-          </div>
+    <>
+      {/* Hero Section */}
+      <div className="bg-white border-b">
+        <div className="max-w-7xl mx-auto px-4 py-12 sm:px-6 lg:px-8 text-center">
+          <h1 className="text-4xl font-bold tracking-tight mb-2">EzBox.mn</h1>
+          <p className="text-muted-foreground">Quality modular kitchens for your home</p>
         </div>
-      </header>
+      </div>
 
-      <main className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+      <PageContainer>
         {/* Specials Section */}
         {specials.length > 0 && (
           <section className="mb-12">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">Special Offers</h2>
+            <SectionHeader
+              action={<Badge variant="secondary">Limited Time</Badge>}
+            >
+              Special Offers
+            </SectionHeader>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {specials.map((special) => (
-                <div
-                  key={special.id}
-                  className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition"
-                >
-                  {special.picture_url && (
-                    <div className="h-48 bg-gray-200 flex items-center justify-center">
-                      <span className="text-gray-400">Image</span>
+              {specials.map((special) => {
+                const isAdding = addingSpecial.has(special.id);
+                const isAdded = addedSpecial.has(special.id);
+                const error = specialErrors[special.id];
+
+                return (
+                  <Card key={special.id} className={`overflow-hidden hover:shadow-lg transition-all ${isAdding ? 'opacity-50' : ''}`}>
+                    <div className="aspect-video relative overflow-hidden">
+                      <Image
+                        src={special.picture_url}
+                        alt={special.name}
+                        className="object-cover w-full h-full"
+                      />
                     </div>
-                  )}
-                  <div className="p-6">
-                    <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                      {special.name}
-                    </h3>
-                    {special.description && (
-                      <p className="text-gray-600 mb-4">{special.description}</p>
-                    )}
-                    <div className="flex justify-between items-center">
-                      <span className="text-2xl font-bold text-green-600">
-                        ₮{special.discounted_price.toLocaleString()}
-                      </span>
-                      <button
+                    <CardHeader>
+                      <CardTitle className="text-lg font-semibold">{special.name}</CardTitle>
+                      {special.description && (
+                        <CardDescription>{special.description}</CardDescription>
+                      )}
+                    </CardHeader>
+                    <CardContent className="pb-0">
+                      <div className="flex justify-between items-center mb-4">
+                        <span className="text-3xl font-bold text-green-600">
+                          ₮{special.discounted_price.toLocaleString()}
+                        </span>
+                      </div>
+                    </CardContent>
+                    <CardFooter className="flex flex-col gap-2">
+                      <Button
                         onClick={() => handleAddSpecialToCart(special.id)}
-                        className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition"
+                        disabled={isAdding || isAdded}
+                        size="lg"
+                        className="w-full bg-green-600 hover:bg-green-700"
                       >
-                        Add to Cart
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
+                        {isAdded && <span className="mr-2">✓</span>}
+                        {!isAdded && !isAdding && <ShoppingCart className="mr-2 h-4 w-4" />}
+                        {isAdding ? 'Adding...' : isAdded ? 'Added' : 'Add to Cart'}
+                      </Button>
+                      {error && (
+                        <p className="text-sm text-destructive text-center">{error}</p>
+                      )}
+                    </CardFooter>
+                  </Card>
+                );
+              })}
             </div>
           </section>
         )}
 
-        {/* Products by Category Table */}
-        <section>
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">Products by Category</h2>
-          <div className="bg-white rounded-lg shadow overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Category
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Products
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {categories.map((category) => (
-                  <tr key={category.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <Link
-                        href={`/products?category=${category.id}`}
-                        className="flex flex-col items-start group"
-                      >
-                        {category.picture_url && (
-                          <div className="w-20 h-20 bg-gray-200 rounded mb-2 flex items-center justify-center">
-                            <span className="text-xs text-gray-400">Image</span>
-                          </div>
-                        )}
-                        <span className="text-sm font-medium text-blue-600 group-hover:text-blue-800">
-                          {category.name}
-                        </span>
-                      </Link>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-wrap gap-4">
-                        {productsByCategory[category.id]?.map((product) => (
-                          <Link
-                            key={product.id}
-                            href={`/products?product=${product.id}`}
-                            className="flex flex-col items-center group"
-                          >
-                            {product.picture_url && (
-                              <div className="w-20 h-20 bg-gray-200 rounded mb-2 flex items-center justify-center">
-                                <span className="text-xs text-gray-400">Image</span>
-                              </div>
-                            )}
-                            <span className="text-sm text-center text-gray-700 group-hover:text-blue-600 max-w-[100px]">
-                              {product.name}
-                            </span>
-                            <span className="text-xs text-gray-500">
-                              ₮{product.base_price.toLocaleString()}
-                            </span>
-                          </Link>
-                        ))}
+        {/* Products by Category */}
+        <section className="space-y-12">
+          {categories.map((category) => (
+            <div key={category.id} className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xl font-semibold">
+                  {category.name}
+                </h3>
+                <Link
+                  href={`/products?category=${category.id}`}
+                  className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                >
+                  View all →
+                </Link>
+              </div>
+              <div className="relative group">
+                <div className="flex gap-6 overflow-x-auto overflow-y-hidden scrollbar-hide scroll-smooth pb-2"
+                  style={{
+                    scrollbarWidth: 'none',
+                    msOverflowStyle: 'none',
+                  }}
+                >
+                  {/* Category Card */}
+                  <Link
+                    href={`/products?category=${category.id}`}
+                    className="flex-shrink-0 w-[200px] sm:w-[220px] md:w-[240px]"
+                  >
+                    <Card className="overflow-hidden hover:shadow-xl hover:scale-[1.02] transition-all duration-200 h-full border-2 border-primary/20 bg-primary/5">
+                      <div className="aspect-square relative overflow-hidden bg-gradient-to-br from-primary/10 to-primary/5">
+                        <Image
+                          src={category.picture_url}
+                          alt={category.name}
+                          className="object-cover w-full h-full hover:scale-110 transition-transform duration-300"
+                        />
                       </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                      <CardContent className="p-4">
+                        <h4 className="text-sm font-bold line-clamp-2 mb-2 min-h-[2.5rem] text-primary">
+                          View All
+                        </h4>
+                        <span className="text-xs text-muted-foreground">
+                          Browse {category.name}
+                        </span>
+                      </CardContent>
+                    </Card>
+                  </Link>
+
+                  {/* Products */}
+                  {(productsByCategory[category.id] || []).map((product) => (
+                    <Link
+                      key={product.id}
+                      href={`/products?product=${product.id}`}
+                      className="flex-shrink-0 w-[200px] sm:w-[220px] md:w-[240px]"
+                    >
+                      <Card className="overflow-hidden hover:shadow-xl hover:scale-[1.02] transition-all duration-200 h-full border-gray-200">
+                        <div className="aspect-square relative overflow-hidden bg-gray-100">
+                          <Image
+                            src={product.picture_url}
+                            alt={product.name}
+                            className="object-cover w-full h-full hover:scale-110 transition-transform duration-300"
+                          />
+                        </div>
+                        <CardContent className="p-4">
+                          <h4 className="text-sm font-semibold line-clamp-2 mb-2 min-h-[2.5rem]">
+                            {product.name}
+                          </h4>
+                          <span className="text-base font-bold text-primary">
+                            ₮{product.base_price.toLocaleString()}
+                          </span>
+                        </CardContent>
+                      </Card>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ))}
         </section>
-      </main>
-    </div>
+      </PageContainer>
+    </>
   );
 }

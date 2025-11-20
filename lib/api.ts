@@ -11,6 +11,8 @@ import type {
   Special,
   SpecialWithItems,
   ParameterSelection,
+  Order,
+  User,
 } from '@/types/database';
 
 // Categories
@@ -85,20 +87,64 @@ export async function getProductWithDetails(productId: number): Promise<ProductW
 }
 
 export async function getAllProductsWithDetails(): Promise<ProductWithDetails[]> {
-  const { data: products, error } = await supabase
-    .from('products')
-    .select('*')
-    .order('id');
+  // Use the API route that batches all queries server-side
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+  const response = await fetch(`${baseUrl}/api/products`, {
+    cache: 'no-store',
+  });
+  if (!response.ok) {
+    throw new Error('Failed to fetch products');
+  }
 
-  if (error) throw error;
+  const data = await response.json();
+  const { products, categories, productParamGroups, parameterGroups, parameters } = data;
+
   if (!products) return [];
 
-  // Get all product details in parallel
-  const productsWithDetails = await Promise.all(
-    products.map((product: any) => getProductWithDetails(product.id))
-  );
+  // Create lookup maps for efficient assembly
+  const categoryMap = new Map(categories?.map((c: any) => [c.id, c]) || []);
+  const paramGroupMap = new Map(parameterGroups?.map((pg: any) => [pg.id, pg]) || []);
+  const parametersByGroupId = (parameters || []).reduce((acc: any, param: any) => {
+    if (!acc[param.parameter_group_id]) {
+      acc[param.parameter_group_id] = [];
+    }
+    acc[param.parameter_group_id].push(param);
+    return acc;
+  }, {} as Record<number, any[]>);
 
-  return productsWithDetails.filter((p): p is ProductWithDetails => p !== null);
+  // Group product_parameter_groups by product_id
+  const ppgByProductId = (productParamGroups || []).reduce((acc: any, ppg: any) => {
+    if (!acc[ppg.product_id]) {
+      acc[ppg.product_id] = [];
+    }
+    acc[ppg.product_id].push(ppg);
+    return acc;
+  }, {} as Record<number, any[]>);
+
+  // Assemble the complete product details
+  return products.map((product: any) => {
+    const category = categoryMap.get(product.category_id);
+    const ppgs = ppgByProductId[product.id] || [];
+
+    const parameterGroupsWithParams = ppgs.map((ppg: any) => {
+      const paramGroup = paramGroupMap.get(ppg.parameter_group_id);
+      const params = parametersByGroupId[ppg.parameter_group_id] || [];
+      const defaultParam = params.find((p: any) => p.id === ppg.default_parameter_id);
+
+      return {
+        ...ppg,
+        parameter_group: paramGroup,
+        default_parameter: defaultParam,
+        parameters: params,
+      };
+    });
+
+    return {
+      ...product,
+      category,
+      parameter_groups: parameterGroupsWithParams,
+    };
+  });
 }
 
 // Parameter Groups and Parameters
@@ -349,4 +395,84 @@ export function calculateProductPrice(
   }
 
   return price;
+}
+
+// Orders
+export async function createOrder(
+  cartId: number,
+  userId: number | null,
+  name: string,
+  phone: string,
+  address: string,
+  secondaryPhone?: string
+): Promise<Order> {
+  // Calculate total
+  const total = await calculateCartTotal(cartId);
+
+  // Create order
+  const { data, error } = await supabase
+    .from('orders')
+    .insert({
+      cart_id: cartId,
+      user_id: userId,
+      name,
+      phone,
+      address,
+      secondary_phone: secondaryPhone || null,
+      total_price: total,
+      status: 'pending',
+    } as any)
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  // Mark cart as checked out
+  await supabase
+    .from('carts')
+    .update({ status: 'checked_out' } as any)
+    .eq('id', cartId);
+
+  return data as Order;
+}
+
+// User lookup
+export async function getUserByPhone(phone: string): Promise<User | null> {
+  const { data, error } = await supabase
+    .from('users')
+    .select('*')
+    .eq('phone', phone)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data as User | null;
+}
+
+// Get all orders for a user
+export async function getUserOrders(userId: number): Promise<Order[]> {
+  const { data, error } = await supabase
+    .from('orders')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return data as Order[];
+}
+
+// Get a single order by ID
+export async function getOrderById(orderId: number): Promise<Order | null> {
+  const { data, error } = await supabase
+    .from('orders')
+    .select('*')
+    .eq('id', orderId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data as Order | null;
+}
+
+// Get order items with product details
+export async function getOrderItems(cartId: number) {
+  return getCartItems(cartId);
 }
