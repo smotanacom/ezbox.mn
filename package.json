@@ -14,7 +14,9 @@
     "db:start": "docker-compose up -d",
     "db:stop": "docker-compose down",
     "db:shell": "docker exec -it ezbox-postgres psql -U ezbox -d ezbox",
-    "db:test": "node scripts/test-db.js"
+    "db:test": "node scripts/test-db.js",
+    "deploy": "vercel --prod",
+    "deploy:preview": "vercel"
   },
   "keywords": [],
   "author": "",
