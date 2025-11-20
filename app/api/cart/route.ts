@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
+import type { Cart } from '@/types/database';
 
 export async function GET(request: NextRequest) {
   try {
@@ -41,6 +42,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to get or create cart' }, { status: 500 });
     }
 
+    // Type assertion for cart after null check
+    const validCart = cart as Cart;
+
     // Fetch cart items with all related data in one query using Supabase joins
     const { data: items, error: itemsError } = await supabase
       .from('product_in_cart')
@@ -56,7 +60,7 @@ export async function GET(request: NextRequest) {
           )
         )
       `)
-      .eq('cart_id', cart.id);
+      .eq('cart_id', validCart.id);
 
     if (itemsError) throw itemsError;
 
@@ -98,7 +102,7 @@ export async function GET(request: NextRequest) {
     });
 
     return NextResponse.json({
-      cart,
+      cart: validCart,
       items: enhancedItems,
     });
   } catch (error) {
