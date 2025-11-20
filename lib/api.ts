@@ -428,10 +428,10 @@ export async function createOrder(
   if (error) throw error;
 
   // Mark cart as checked out
-  await supabase
+  await (supabase
     .from('carts')
-    .update({ status: 'checked_out' })
-    .eq('id', cartId);
+    .update({ status: 'checked_out' } as never)
+    .eq('id', cartId) as any);
 
   return data as Order;
 }
