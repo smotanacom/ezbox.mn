@@ -430,7 +430,7 @@ export async function createOrder(
   // Mark cart as checked out
   await supabase
     .from('carts')
-    .update({ status: 'checked_out' } as any)
+    .update({ status: 'checked_out' })
     .eq('id', cartId);
 
   return data as Order;
