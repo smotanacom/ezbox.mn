@@ -252,7 +252,7 @@ export default function CheckoutPage() {
                                   const group = item.product?.parameter_groups?.find(
                                     (g: any) => g.parameter_group?.id === groupId
                                   );
-                                  const param = group?.parameter_group?.parameters?.find(
+                                  const param = group?.parameters?.find(
                                     (p: any) => p.id === paramId
                                   );
                                   return param ? (
