@@ -20,7 +20,8 @@ export async function GET() {
       });
     }
 
-    // Fetch all products with full details using lib/api function
+    // Fetch all products with full details
+    // This will use the internal DB query since we're on the server
     const products = await getAllProductsWithDetails();
 
     // Cache the data
@@ -36,6 +37,10 @@ export async function GET() {
     });
   } catch (error) {
     console.error('Error fetching products data:', error);
-    return NextResponse.json({ error: 'Failed to fetch products' }, { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return NextResponse.json(
+      { error: 'Failed to fetch products', details: errorMessage },
+      { status: 500 }
+    );
   }
 }

@@ -86,18 +86,28 @@ export async function getProductWithDetails(productId: number): Promise<ProductW
   };
 }
 
-export async function getAllProductsWithDetails(): Promise<ProductWithDetails[]> {
-  // Use the API route that batches all queries server-side
-  const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
-  const response = await fetch(`${baseUrl}/api/products`, {
-    cache: 'no-store',
-  });
-  if (!response.ok) {
-    throw new Error('Failed to fetch products');
-  }
+// Internal function that does the actual database queries
+async function _getAllProductsWithDetailsFromDB(): Promise<ProductWithDetails[]> {
+  // Batch fetch all related data in parallel
+  const [
+    { data: products, error: productsError },
+    { data: categories, error: categoriesError },
+    { data: productParamGroups, error: ppgError },
+    { data: parameterGroups, error: pgError },
+    { data: parameters, error: paramsError },
+  ] = await Promise.all([
+    supabase.from('products').select('*').order('id'),
+    supabase.from('categories').select('*').order('id'),
+    supabase.from('product_parameter_groups').select('*'),
+    supabase.from('parameter_groups').select('*').order('id'),
+    supabase.from('parameters').select('*').order('id'),
+  ]);
 
-  const data = await response.json();
-  const { products, categories, productParamGroups, parameterGroups, parameters } = data;
+  if (productsError) throw productsError;
+  if (categoriesError) throw categoriesError;
+  if (ppgError) throw ppgError;
+  if (pgError) throw pgError;
+  if (paramsError) throw paramsError;
 
   if (!products) return [];
 
@@ -145,6 +155,26 @@ export async function getAllProductsWithDetails(): Promise<ProductWithDetails[]>
       parameter_groups: parameterGroupsWithParams,
     };
   });
+}
+
+export async function getAllProductsWithDetails(): Promise<ProductWithDetails[]> {
+  // If running on the server (Node.js environment), query DB directly
+  if (typeof window === 'undefined') {
+    return _getAllProductsWithDetailsFromDB();
+  }
+
+  // If running on the client, use the API route
+  const response = await fetch('/api/products', {
+    cache: 'no-store',
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to fetch products: ${errorText}`);
+  }
+
+  const data = await response.json();
+  return data.products || [];
 }
 
 // Parameter Groups and Parameters

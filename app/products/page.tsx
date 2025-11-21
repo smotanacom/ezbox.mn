@@ -8,28 +8,12 @@ import {
   calculateProductPrice,
 } from '@/lib/api';
 import { useCart } from '@/contexts/CartContext';
-import Image from '@/components/Image';
+import ProductCard from '@/components/ProductCard';
+import ProductConfigRow from '@/components/ProductConfigRow';
 import Cart from '@/components/Cart';
+import HorizontalScroller from '@/components/HorizontalScroller';
 import { PageContainer, PageTitle, SectionHeader, LoadingState } from '@/components/layout';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import { ShoppingCart, Check } from 'lucide-react';
 import type {
   Category,
@@ -211,191 +195,85 @@ function ProductsContent() {
   return (
     <>
       <PageContainer className="pb-[calc(40vh+2rem)]">
-      {/* Categories Section */}
-      <section className="mb-12">
-        <SectionHeader>Categories</SectionHeader>
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex flex-wrap gap-6">
-                {categories.map((cat) => (
-                  <button
-                    key={cat.id}
-                    onClick={() => {
-                      setSelectedCategoryId(cat.id);
-                      const categoryProducts = products.filter((p) => p.category_id === cat.id);
-                      initializeProductConfigs(categoryProducts);
-                      router.push(`/products?category=${cat.id}`);
-                    }}
-                    className="flex flex-col items-center group cursor-pointer transition-all"
-                  >
-                    <div className={`relative w-32 h-32 rounded-lg overflow-hidden ring-2 transition-all mb-2 ${
-                      selectedCategoryId === cat.id
-                        ? 'ring-primary scale-105'
-                        : 'ring-gray-200 group-hover:ring-primary group-hover:scale-[1.02]'
-                    }`}>
-                      <Image
-                        src={cat.picture_url}
-                        alt={cat.name}
-                        className="object-cover w-full h-full"
-                      />
-                    </div>
-                    <span className={`text-sm font-medium transition-colors ${
-                      selectedCategoryId === cat.id
-                        ? 'text-primary'
-                        : 'text-muted-foreground group-hover:text-primary'
-                    }`}>
-                      {cat.name}
-                    </span>
-                  </button>
-                ))}
+      {/* Categories Section - Netflix Style Scroller */}
+      <section className="mb-12 -mx-4 sm:-mx-6 lg:-mx-12">
+        <SectionHeader className="px-4 sm:px-6 lg:px-12">Categories</SectionHeader>
+          <HorizontalScroller>
+            {categories.map((cat) => (
+              <div key={cat.id} className="flex-shrink-0 w-[45vw] sm:w-[30vw] md:w-[23vw] lg:w-[18vw] xl:w-[15vw]">
+                <ProductCard
+                  imageUrl={cat.picture_url}
+                  title={cat.name}
+                  selected={selectedCategoryId === cat.id}
+                  onClick={() => {
+                    setSelectedCategoryId(cat.id);
+                    const categoryProducts = products.filter((p) => p.category_id === cat.id);
+                    initializeProductConfigs(categoryProducts);
+                    router.push(`/products?category=${cat.id}`);
+                  }}
+                />
               </div>
-            </CardContent>
-          </Card>
+            ))}
+          </HorizontalScroller>
         </section>
 
       {/* Product Configuration Section */}
       <section>
-        <SectionHeader>Configure Products</SectionHeader>
-          <Card>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-48">Product</TableHead>
-                    <TableHead>Configuration</TableHead>
-                    <TableHead className="w-24">Qty</TableHead>
-                    <TableHead className="w-32">Price</TableHead>
-                    <TableHead className="w-32">Action</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                {filteredProducts.length > 0 ? (
-                  filteredProducts.map((product, productIndex) => {
-                    const config = productConfigs[product.id] || { parameters: {}, quantity: 1 };
-                    const price = getProductPrice(product);
-                    const totalPrice = price * config.quantity;
+        {filteredProducts.length > 0 ? (
+          <div>
+            {filteredProducts.map((product, productIndex) => {
+              const config = productConfigs[product.id] || { parameters: {}, quantity: 1 };
+              const price = getProductPrice(product);
+              const totalPrice = price * config.quantity;
 
-                    const isAdding = addingToCart.has(product.id);
-                    const isAdded = addedToCart.has(product.id);
-                    const error = cartErrors[product.id];
+              const isAdding = addingToCart.has(product.id);
+              const isAdded = addedToCart.has(product.id);
+              const error = cartErrors[product.id];
 
-                    return (
-                      <TableRow key={product.id} className={isAdding ? 'opacity-50' : ''}>
-                        {/* Product Name & Base Price */}
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <div className="relative w-16 h-16 rounded-md overflow-hidden flex-shrink-0">
-                              <Image
-                                src={product.picture_url}
-                                alt={product.name}
-                                className="object-cover w-full h-full"
-                              />
-                            </div>
-                            <div>
-                              <div className="font-medium">
-                                {product.name}
-                              </div>
-                              <div className="text-sm text-muted-foreground">
-                                Base: ₮{product.base_price.toLocaleString()}
-                              </div>
-                            </div>
-                          </div>
-                        </TableCell>
-
-                        {/* Parameter Configuration */}
-                        <TableCell>
-                          <div className="flex flex-wrap gap-4">
-                            {product.parameter_groups?.map((pg) => (
-                              <div key={pg.parameter_group_id} className="flex flex-col gap-2">
-                                <Label className="text-xs">
-                                  {pg.parameter_group?.name}
-                                </Label>
-                                <Select
-                                  value={String(config.parameters[pg.parameter_group_id] || '')}
-                                  onValueChange={(value) =>
-                                    handleParameterChange(
-                                      product.id,
-                                      pg.parameter_group_id,
-                                      parseInt(value)
-                                    )
-                                  }
-                                >
-                                  <SelectTrigger className="w-[180px]">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {pg.parameters?.map((param) => (
-                                      <SelectItem key={param.id} value={String(param.id)}>
-                                        {param.name}
-                                        {param.price_modifier !== 0 &&
-                                          ` (${param.price_modifier > 0 ? '+' : ''}₮${param.price_modifier.toLocaleString()})`}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                            ))}
-                          </div>
-                        </TableCell>
-
-                        {/* Quantity */}
-                        <TableCell>
-                          <Input
-                            type="number"
-                            min="1"
-                            max="100"
-                            value={config.quantity}
-                            onChange={(e) =>
-                              handleQuantityChange(product.id, parseInt(e.target.value) || 1)
-                            }
-                            className="w-20"
-                          />
-                        </TableCell>
-
-                        {/* Price */}
-                        <TableCell>
-                          <div className="text-lg font-semibold">
-                            ₮{totalPrice.toLocaleString()}
-                          </div>
-                        </TableCell>
-
-                        {/* Add to Cart */}
-                        <TableCell>
-                          <div className="flex flex-col gap-2">
-                            <Button
-                              onClick={() => handleAddToCart(product.id)}
-                              disabled={isAdding || isAdded}
-                              size="sm"
-                              className="bg-green-600 hover:bg-green-700"
-                            >
-                              {isAdded && <Check className="mr-2 h-4 w-4" />}
-                              {!isAdded && !isAdding && <ShoppingCart className="mr-2 h-4 w-4" />}
-                              {isAdding ? 'Adding...' : isAdded ? 'Added' : 'Add'}
-                            </Button>
-                            {error && (
-                              <p className="text-xs text-destructive">{error}</p>
-                            )}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center h-32">
-                      <div className="flex flex-col items-center justify-center text-muted-foreground">
-                        {selectedCategoryId
-                          ? 'No products found in this category'
-                          : 'Select a category to view products'}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                )}
-                </TableBody>
-              </Table>
-            </div>
-          </Card>
-        </section>
+              return (
+                <ProductConfigRow
+                  key={product.id}
+                  product={product}
+                  selectedParameters={config.parameters}
+                  quantity={config.quantity}
+                  onParameterChange={(paramGroupId, paramId) =>
+                    handleParameterChange(product.id, paramGroupId, paramId)
+                  }
+                  onQuantityChange={(newQuantity) =>
+                    handleQuantityChange(product.id, newQuantity)
+                  }
+                  price={price}
+                  totalPrice={totalPrice}
+                  disabled={isAdding}
+                  actions={
+                    <div className="flex flex-col gap-2">
+                      <Button
+                        onClick={() => handleAddToCart(product.id)}
+                        disabled={isAdding || isAdded}
+                        size="sm"
+                        className="bg-secondary hover:bg-secondary/90"
+                      >
+                        {isAdded && <Check className="mr-2 h-4 w-4" />}
+                        {!isAdded && !isAdding && <ShoppingCart className="mr-2 h-4 w-4" />}
+                        {isAdding ? 'Adding...' : isAdded ? 'Added' : 'Add'}
+                      </Button>
+                      {error && (
+                        <p className="text-xs text-destructive">{error}</p>
+                      )}
+                    </div>
+                  }
+                />
+              );
+            })}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center text-muted-foreground py-12">
+            {selectedCategoryId
+              ? 'No products found in this category'
+              : 'Select a category to view products'}
+          </div>
+        )}
+      </section>
       </PageContainer>
 
       {/* Sticky Cart at Bottom */}

@@ -4,14 +4,12 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useCart } from '@/contexts/CartContext';
 import Image from '@/components/Image';
-import ProductCarousel from '@/components/ProductCarousel';
-import { PageContainer } from '@/components/layout';
-import { SectionHeader } from '@/components/layout';
+import KitchenTetris from '@/components/KitchenTetris';
+import CategoryScroller from '@/components/CategoryScroller';
+import SpecialOffersCarousel from '@/components/SpecialOffersCarousel';
 import { LoadingState } from '@/components/layout';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ShoppingCart, Package } from 'lucide-react';
 import type { Category, Product, SpecialWithItems } from '@/types/database';
 
 export default function Home() {
@@ -111,216 +109,90 @@ export default function Home() {
   return (
     <>
       {/* Hero Section */}
-      <div className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-4 py-12 sm:px-6 lg:px-8 text-center">
-          <h1 className="text-4xl font-bold tracking-tight mb-2">EzBox.mn</h1>
-          <p className="text-muted-foreground">Quality modular kitchens for your home</p>
+      <div className="relative bg-gradient-to-br from-primary/5 via-white to-secondary/5 border-b overflow-hidden min-h-[600px]">
+        {/* Animated Background */}
+        <KitchenTetris />
+
+        {/* Content */}
+        <div className="relative z-10 max-w-7xl mx-auto px-4 py-32 sm:px-8 lg:px-12 sm:py-40 lg:py-48">
+          <div className="text-center space-y-6 max-w-4xl mx-auto">
+            {/* Logo/Brand */}
+            <div className="inline-block">
+              <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent mb-2">
+                EzBox.mn
+              </h1>
+              <div className="h-1 bg-gradient-to-r from-primary to-secondary rounded-full"></div>
+            </div>
+
+            {/*/!* Main Tagline *!/*/}
+            {/*<h2 className="text-2xl sm:text-3xl lg:text-4xl font-semibold text-gray-900 drop-shadow-sm">*/}
+            {/*  Transform Your Kitchen with Premium Modular Solutions*/}
+            {/*</h2>*/}
+
+            {/*/!* Subtitle *!/*/}
+            {/*<p className="text-lg sm:text-xl text-gray-600 leading-relaxed drop-shadow-sm">*/}
+            {/*  Customizable, high-quality kitchen modules designed for modern Mongolian homes.*/}
+            {/*  Build your dream kitchen with ease and precision.*/}
+            {/*</p>*/}
+
+            {/*/!* Feature Pills *!/*/}
+            {/*<div className="flex flex-wrap justify-center gap-3 pt-4">*/}
+            {/*  <Badge variant="secondary" className="px-4 py-2 text-sm bg-white/80 backdrop-blur-sm">*/}
+            {/*    🎨 Fully Customizable*/}
+            {/*  </Badge>*/}
+            {/*  <Badge variant="secondary" className="px-4 py-2 text-sm bg-white/80 backdrop-blur-sm">*/}
+            {/*    ✨ Premium Quality*/}
+            {/*  </Badge>*/}
+            {/*  <Badge variant="secondary" className="px-4 py-2 text-sm bg-white/80 backdrop-blur-sm">*/}
+            {/*    📦 Modular Design*/}
+            {/*  </Badge>*/}
+            {/*  <Badge variant="secondary" className="px-4 py-2 text-sm bg-white/80 backdrop-blur-sm">*/}
+            {/*    🚚 Easy Installation*/}
+            {/*  </Badge>*/}
+            {/*</div>*/}
+
+            {/* CTA Buttons */}
+            <div className="flex flex-col sm:flex-row gap-4 justify-center pt-6">
+              <Link href="/products">
+                <Button size="lg" className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-white px-8 py-6 text-lg shadow-lg hover:shadow-xl transition-all">
+                  Browse Products
+                </Button>
+              </Link>
+              <Link href="/products">
+                <Button size="lg" variant="outline" className="w-full sm:w-auto px-8 py-6 text-lg border-2 bg-white/80 backdrop-blur-sm hover:bg-white transition-all">
+                  View Special Offers
+                </Button>
+              </Link>
+            </div>
+
+            {/* Trust Indicators */}
+            <div className="pt-8 text-sm text-gray-500 drop-shadow-sm">
+              <p>🏆 Mongolia's trusted choice for modular kitchens</p>
+            </div>
+          </div>
         </div>
       </div>
 
-      <PageContainer>
-        {/* Specials Section */}
-        {specials.length > 0 && (
-          <section className="mb-12">
-            <SectionHeader
-              action={<Badge variant="secondary">Limited Time</Badge>}
-            >
-              Special Offers
-            </SectionHeader>
-            <div className="space-y-6">
-              {specials.map((special) => {
-                const isAdding = addingSpecial.has(special.id);
-                const isAdded = addedSpecial.has(special.id);
-                const error = specialErrors[special.id];
-                const originalPrice = specialOriginalPrices[special.id] || 0;
-                const savings = originalPrice - special.discounted_price;
-                const savingsPercent = originalPrice > 0 ? Math.round((savings / originalPrice) * 100) : 0;
+      {/* Specials Section - Full Width Carousel */}
+      <SpecialOffersCarousel
+        specials={specials}
+        specialOriginalPrices={specialOriginalPrices}
+        onAddToCart={handleAddSpecialToCart}
+        addingSpecial={addingSpecial}
+        addedSpecial={addedSpecial}
+        specialErrors={specialErrors}
+      />
 
-                return (
-                  <Card key={special.id} className={`overflow-hidden hover:shadow-lg transition-all ${isAdding ? 'opacity-50' : ''}`}>
-                    <div className="flex flex-col lg:flex-row">
-                      {/* Left side: Image, Name, Description */}
-                      <div className="lg:w-1/3 flex flex-col">
-                        <div className="aspect-video lg:aspect-square relative overflow-hidden">
-                          <Image
-                            src={special.picture_url}
-                            alt={special.name}
-                            className="object-cover w-full h-full"
-                          />
-                          {savingsPercent > 0 && (
-                            <Badge className="absolute top-2 right-2 bg-red-600 text-white text-lg px-3 py-1">
-                              Save {savingsPercent}%
-                            </Badge>
-                          )}
-                        </div>
-                        <div className="p-6 flex-1">
-                          <h3 className="text-2xl font-bold mb-2">{special.name}</h3>
-                          {special.description && (
-                            <p className="text-muted-foreground">{special.description}</p>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Middle: Products List */}
-                      <div className="lg:w-1/3 p-6 border-t lg:border-t-0 lg:border-l bg-gray-50">
-                        <div className="flex items-center gap-2 mb-4">
-                          <Package className="h-5 w-5 text-primary" />
-                          <h4 className="font-semibold text-lg">Included Products</h4>
-                        </div>
-                        <div className="space-y-3">
-                          {special.items?.map((item: any, idx: number) => {
-                            const product = item.product;
-                            if (!product) return null;
-
-                            return (
-                              <div key={idx} className="flex items-start gap-3 pb-3 border-b last:border-b-0">
-                                <div className="relative w-16 h-16 rounded-md overflow-hidden bg-white flex-shrink-0">
-                                  <Image
-                                    src={product.picture_url}
-                                    alt={product.name}
-                                    className="object-cover w-full h-full"
-                                  />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="font-medium text-sm line-clamp-2">
-                                    {product.name}
-                                  </p>
-                                  <p className="text-xs text-muted-foreground">
-                                    Qty: {item.quantity}
-                                  </p>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-
-                      {/* Right side: Pricing and CTA */}
-                      <div className="lg:w-1/3 p-6 border-t lg:border-t-0 lg:border-l bg-gradient-to-br from-green-50 to-white flex flex-col justify-between">
-                        <div>
-                          <p className="text-sm text-muted-foreground mb-2">Bundle Price</p>
-                          {originalPrice > 0 && (
-                            <div className="mb-4">
-                              <div className="flex items-baseline gap-2 mb-1">
-                                <span className="text-lg text-muted-foreground line-through">
-                                  ₮{originalPrice.toLocaleString()}
-                                </span>
-                              </div>
-                              <div className="text-sm font-semibold text-red-600">
-                                You Save ₮{savings.toLocaleString()}
-                              </div>
-                            </div>
-                          )}
-                          <div className="text-4xl font-bold text-green-600 mb-6">
-                            ₮{special.discounted_price.toLocaleString()}
-                          </div>
-                        </div>
-
-                        <div className="space-y-2">
-                          <Button
-                            onClick={() => handleAddSpecialToCart(special.id)}
-                            disabled={isAdding || isAdded}
-                            size="lg"
-                            className="w-full bg-green-600 hover:bg-green-700"
-                          >
-                            {isAdded && <span className="mr-2">✓</span>}
-                            {!isAdded && !isAdding && <ShoppingCart className="mr-2 h-4 w-4" />}
-                            {isAdding ? 'Adding...' : isAdded ? 'Added to Cart' : 'Add Bundle to Cart'}
-                          </Button>
-                          {error && (
-                            <p className="text-sm text-destructive text-center">{error}</p>
-                          )}
-                          <p className="text-xs text-muted-foreground text-center">
-                            Pre-configured bundle • No customization
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </Card>
-                );
-              })}
-            </div>
-          </section>
-        )}
-
-        {/* Products by Category */}
-        <section className="space-y-12">
-          {categories.map((category) => (
-            <div key={category.id} className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xl font-semibold">
-                  {category.name}
-                </h3>
-                <Link
-                  href={`/products?category=${category.id}`}
-                  className="text-sm text-muted-foreground hover:text-primary transition-colors"
-                >
-                  View all →
-                </Link>
-              </div>
-              <div className="relative group">
-                <div className="flex gap-6 overflow-x-auto overflow-y-hidden scrollbar-hide scroll-smooth pb-2"
-                  style={{
-                    scrollbarWidth: 'none',
-                    msOverflowStyle: 'none',
-                  }}
-                >
-                  {/* Category Card */}
-                  <Link
-                    href={`/products?category=${category.id}`}
-                    className="flex-shrink-0 w-[200px] sm:w-[220px] md:w-[240px]"
-                  >
-                    <Card className="overflow-hidden hover:shadow-xl hover:scale-[1.02] transition-all duration-200 h-full border-2 border-primary/20 bg-primary/5">
-                      <div className="aspect-square relative overflow-hidden bg-gradient-to-br from-primary/10 to-primary/5">
-                        <Image
-                          src={category.picture_url}
-                          alt={category.name}
-                          className="object-cover w-full h-full hover:scale-110 transition-transform duration-300"
-                        />
-                      </div>
-                      <CardContent className="p-4">
-                        <h4 className="text-sm font-bold line-clamp-2 mb-2 min-h-[2.5rem] text-primary">
-                          View All
-                        </h4>
-                        <span className="text-xs text-muted-foreground">
-                          Browse {category.name}
-                        </span>
-                      </CardContent>
-                    </Card>
-                  </Link>
-
-                  {/* Products */}
-                  {(productsByCategory[category.id] || []).map((product) => (
-                    <Link
-                      key={product.id}
-                      href={`/products?product=${product.id}`}
-                      className="flex-shrink-0 w-[200px] sm:w-[220px] md:w-[240px]"
-                    >
-                      <Card className="overflow-hidden hover:shadow-xl hover:scale-[1.02] transition-all duration-200 h-full border-gray-200">
-                        <div className="aspect-square relative overflow-hidden bg-gray-100">
-                          <Image
-                            src={product.picture_url}
-                            alt={product.name}
-                            className="object-cover w-full h-full hover:scale-110 transition-transform duration-300"
-                          />
-                        </div>
-                        <CardContent className="p-4">
-                          <h4 className="text-sm font-semibold line-clamp-2 mb-2 min-h-[2.5rem]">
-                            {product.name}
-                          </h4>
-                          <span className="text-base font-bold text-primary">
-                            ₮{product.base_price.toLocaleString()}
-                          </span>
-                        </CardContent>
-                      </Card>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            </div>
-          ))}
-        </section>
-      </PageContainer>
+      {/* Products by Category - Full Width Netflix Style */}
+      <section className="py-12 space-y-16 bg-white">
+        {categories.map((category) => (
+          <CategoryScroller
+            key={category.id}
+            category={category}
+            products={productsByCategory[category.id] || []}
+          />
+        ))}
+      </section>
     </>
   );
 }

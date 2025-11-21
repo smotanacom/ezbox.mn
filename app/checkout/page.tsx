@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/contexts/CartContext';
-import { getCurrentUser, login, register } from '@/lib/auth';
+import { getCurrentUser, login, register, saveSession } from '@/lib/auth';
 import { getUserByPhone, createOrder } from '@/lib/api';
 import { PageContainer, PageTitle, EmptyState } from '@/components/layout';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { ShoppingBag, Package } from 'lucide-react';
+import Image from '@/components/Image';
 import type { User } from '@/types/database';
 
 type CheckoutStep = 'phone' | 'login' | 'register' | 'details';
@@ -46,8 +47,7 @@ export default function CheckoutPage() {
     }
   }, []);
 
-  const handlePhoneSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handlePhoneSubmit = async () => {
     setError('');
 
     // Validate phone number
@@ -74,13 +74,13 @@ export default function CheckoutPage() {
     }
   };
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleLogin = async () => {
     setError('');
     setLoading(true);
 
     try {
       const user = await login(phone, password);
+      saveSession(user);
       setCurrentUser(user);
 
       // Prefill form with user data
@@ -96,8 +96,7 @@ export default function CheckoutPage() {
     }
   };
 
-  const handleRegisterAndCheckout = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleRegisterAndCheckout = async () => {
     setError('');
 
     // Validate required fields
@@ -113,44 +112,58 @@ export default function CheckoutPage() {
       setError('Password is required');
       return;
     }
+    if (!cart) {
+      setError('No active cart found');
+      return;
+    }
 
     setLoading(true);
     try {
       // Register the user
       const user = await register(phone, password, name, address, secondaryPhone || undefined);
+      saveSession(user);
       setCurrentUser(user);
 
-      // User is now registered, submit button will be shown
-      setStep('details');
+      // Create the order
+      const order = await createOrder(
+        cart.id,
+        user.id,
+        name,
+        phone,
+        address,
+        secondaryPhone || undefined
+      );
+
+      // Refresh cart to clear it
+      await refreshCart();
+
+      // Redirect to order detail page
+      router.push(`/orders/${order.id}`);
     } catch (err: any) {
-      setError(err.message || 'Registration failed');
+      setError(err.message || 'Registration or checkout failed');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCheckout = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleCheckout = async () => {
     setError('');
-    setLoading(true);
 
     // Validate required fields
     if (!name.trim()) {
       setError('Name is required');
-      setLoading(false);
       return;
     }
     if (!address.trim()) {
       setError('Delivery address is required');
-      setLoading(false);
       return;
     }
     if (!cart) {
       setError('No active cart found');
-      setLoading(false);
       return;
     }
 
+    setLoading(true);
     try {
       // Create the order
       const order = await createOrder(
@@ -191,130 +204,286 @@ export default function CheckoutPage() {
     );
   }
 
+  const deliveryFee = 100000;
+  const grandTotal = total + deliveryFee;
+
   return (
     <>
       <PageContainer>
         <PageTitle icon={Package}>Checkout</PageTitle>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left column: Form */}
-          <div className="lg:col-span-2">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Left Column: Order Summary */}
+          <div>
             <Card>
               <CardHeader>
-                <CardTitle>Delivery Information</CardTitle>
-                <CardDescription>Enter your delivery details to complete the order</CardDescription>
+                <CardTitle>Order Summary</CardTitle>
+                <CardDescription>Review your items before placing the order</CardDescription>
               </CardHeader>
               <CardContent>
-                {error && (
-                  <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 rounded-md">
-                    <p className="text-sm text-destructive">{error}</p>
+                <div className="space-y-4 max-h-[600px] overflow-y-auto">
+                  {items.map((item) => (
+                    <div key={item.id} className="flex gap-4 p-4 bg-muted/50 rounded-lg">
+                      {/* Product Image */}
+                      <div className="relative flex-shrink-0 w-20 h-20 bg-white rounded-md overflow-hidden border">
+                        <Image
+                          src={item.product?.picture_url}
+                          alt={item.product?.name || 'Product'}
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/20 to-transparent"></div>
+                      </div>
+
+                      {/* Product Details */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-start gap-2">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                              {item.product?.category?.name}
+                            </p>
+                            <h4 className="font-medium text-sm mt-1">
+                              {item.product?.name}
+                            </h4>
+
+                            {/* Selected Parameters */}
+                            {item.selected_parameters && Object.keys(item.selected_parameters).length > 0 && (
+                              <div className="mt-2 space-y-1">
+                                {Object.entries(item.selected_parameters).map(([groupId, paramId]) => {
+                                  const group = item.product?.parameter_groups?.find(
+                                    (g: any) => g.parameter_group?.id === groupId
+                                  );
+                                  const param = group?.parameter_group?.parameters?.find(
+                                    (p: any) => p.id === paramId
+                                  );
+                                  return param ? (
+                                    <div key={groupId} className="text-xs text-muted-foreground">
+                                      <span className="font-medium">{group?.parameter_group?.name}:</span> {param.name}
+                                    </div>
+                                  ) : null;
+                                })}
+                              </div>
+                            )}
+
+                            <p className="text-xs text-muted-foreground mt-2">
+                              Quantity: {item.quantity}
+                            </p>
+                          </div>
+
+                          {/* Price */}
+                          <div className="text-right flex-shrink-0">
+                            <p className="font-semibold">
+                              {((item.product?.base_price || 0) * item.quantity).toLocaleString()}₮
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Right Column: Forms and Price Summary */}
+          <div className="space-y-6">
+            {error && (
+              <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md">
+                <p className="text-sm text-destructive">{error}</p>
+              </div>
+            )}
+
+            {/* Section 1: Login/User Information */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Contact Information</CardTitle>
+                <CardDescription>Enter your contact details</CardDescription>
+              </CardHeader>
+              <CardContent>
+
+                {/* Phone number step */}
+                {step === 'phone' && (
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="phone">Phone Number</Label>
+                      <Input
+                        type="tel"
+                        id="phone"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        placeholder="8 digits"
+                        maxLength={8}
+                        required
+                      />
+                      <p className="text-xs text-muted-foreground">Enter your 8-digit phone number</p>
+                    </div>
+
+                    <Button
+                      onClick={handlePhoneSubmit}
+                      disabled={loading}
+                      className="w-full"
+                      size="lg"
+                    >
+                      {loading ? 'Checking...' : 'Continue'}
+                    </Button>
                   </div>
                 )}
 
-              {/* Phone number step */}
-              {step === 'phone' && (
-                <form onSubmit={handlePhoneSubmit} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Phone Number</Label>
-                    <Input
-                      type="tel"
-                      id="phone"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder="8 digits"
-                      maxLength={8}
-                      required
-                    />
-                    <p className="text-xs text-muted-foreground">Enter your 8-digit phone number</p>
-                  </div>
-
-                  <Button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full"
-                    size="lg"
-                  >
-                    {loading ? 'Checking...' : 'Continue'}
-                  </Button>
-                </form>
-              )}
-
-              {/* Login step */}
-              {step === 'login' && (
-                <form onSubmit={handleLogin} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Phone Number</Label>
-                    <div className="px-3 py-2 bg-muted border rounded-md">
-                      {phone}
+                {/* Login step */}
+                {step === 'login' && (
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Phone Number</Label>
+                      <div className="px-3 py-2 bg-muted border rounded-md">
+                        {phone}
+                      </div>
+                      <Button
+                        type="button"
+                        onClick={() => setStep('phone')}
+                        variant="link"
+                        className="p-0 h-auto text-sm"
+                      >
+                        Change phone number
+                      </Button>
                     </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="password">Password</Label>
+                      <Input
+                        type="password"
+                        id="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="Enter your password"
+                        required
+                      />
+                    </div>
+
                     <Button
-                      type="button"
-                      onClick={() => setStep('phone')}
-                      variant="link"
-                      className="p-0 h-auto text-sm"
+                      onClick={handleLogin}
+                      disabled={loading}
+                      className="w-full"
+                      size="lg"
                     >
-                      Change phone number
+                      {loading ? 'Logging in...' : 'Login'}
                     </Button>
                   </div>
+                )}
 
-                  <div className="space-y-2">
-                    <Label htmlFor="password">Password</Label>
-                    <Input
-                      type="password"
-                      id="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Enter your password"
-                      required
-                    />
-                  </div>
-
-                  <Button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full"
-                    size="lg"
-                  >
-                    {loading ? 'Logging in...' : 'Login'}
-                  </Button>
-                </form>
-              )}
-
-              {/* Registration step */}
-              {step === 'register' && (
-                <form onSubmit={handleRegisterAndCheckout} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Phone Number</Label>
-                    <div className="px-3 py-2 bg-muted border rounded-md">
-                      {phone}
+                {/* Registration step - Contact Info */}
+                {step === 'register' && (
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Phone Number</Label>
+                      <div className="px-3 py-2 bg-muted border rounded-md">
+                        {phone}
+                      </div>
+                      <Button
+                        type="button"
+                        onClick={() => setStep('phone')}
+                        variant="link"
+                        className="p-0 h-auto text-sm"
+                      >
+                        Change phone number
+                      </Button>
                     </div>
-                    <Button
-                      type="button"
-                      onClick={() => setStep('phone')}
-                      variant="link"
-                      className="p-0 h-auto text-sm"
-                    >
-                      Change phone number
-                    </Button>
-                  </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="name">
-                      Full Name <span className="text-destructive">*</span>
-                    </Label>
-                    <Input
-                      type="text"
-                      id="name"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="Enter your full name"
-                      required
-                    />
-                  </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="name">
+                        Full Name <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        type="text"
+                        id="name"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="Enter your full name"
+                        required
+                      />
+                    </div>
 
+                    <div className="space-y-2">
+                      <Label htmlFor="secondaryPhone">
+                        Secondary Phone Number (Optional)
+                      </Label>
+                      <Input
+                        type="tel"
+                        id="secondaryPhone"
+                        value={secondaryPhone}
+                        onChange={(e) => setSecondaryPhone(e.target.value)}
+                        placeholder="8 digits"
+                        maxLength={8}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="regPassword">
+                        Create Password <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        type="password"
+                        id="regPassword"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="Create a password"
+                        required
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Details step (for logged in users) - Contact Info */}
+                {step === 'details' && (
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Phone Number</Label>
+                      <div className="px-3 py-2 bg-muted border rounded-md">
+                        {phone}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="detailsName">
+                        Full Name <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        type="text"
+                        id="detailsName"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="Enter your full name"
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="detailsSecondaryPhone">
+                        Secondary Phone Number (Optional)
+                      </Label>
+                      <Input
+                        type="tel"
+                        id="detailsSecondaryPhone"
+                        value={secondaryPhone}
+                        onChange={(e) => setSecondaryPhone(e.target.value)}
+                        placeholder="8 digits"
+                        maxLength={8}
+                      />
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Section 2: Delivery Address */}
+            {(step === 'details' || step === 'register') && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Delivery Address</CardTitle>
+                  <CardDescription>Where should we deliver your order?</CardDescription>
+                </CardHeader>
+                <CardContent>
                   <div className="space-y-2">
                     <Label htmlFor="address">
-                      Delivery Address <span className="text-destructive">*</span>
+                      Address <span className="text-destructive">*</span>
                     </Label>
                     <Input
                       id="address"
@@ -324,153 +493,44 @@ export default function CheckoutPage() {
                       required
                     />
                   </div>
+                </CardContent>
+              </Card>
+            )}
 
-                  <div className="space-y-2">
-                    <Label htmlFor="secondaryPhone">
-                      Secondary Phone Number (Optional)
-                    </Label>
-                    <Input
-                      type="tel"
-                      id="secondaryPhone"
-                      value={secondaryPhone}
-                      onChange={(e) => setSecondaryPhone(e.target.value)}
-                      placeholder="8 digits"
-                      maxLength={8}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="regPassword">
-                      Create Password <span className="text-destructive">*</span>
-                    </Label>
-                    <Input
-                      type="password"
-                      id="regPassword"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Create a password"
-                      required
-                    />
-                  </div>
-
-                  <Button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full"
-                    size="lg"
-                  >
-                    {loading ? 'Creating Account...' : 'Create Account & Continue'}
-                  </Button>
-                </form>
-              )}
-
-              {/* Details step (for logged in users) */}
-              {step === 'details' && (
-                <form onSubmit={handleCheckout} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Phone Number</Label>
-                    <div className="px-3 py-2 bg-muted border rounded-md">
-                      {phone}
+            {/* Section 3: Price Summary with Place Order Button */}
+            {(step === 'details' || step === 'register') && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Order Total</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Subtotal ({items.length} {items.length === 1 ? 'item' : 'items'})</span>
+                      <span className="font-medium">{total.toLocaleString()}₮</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Delivery Fee</span>
+                      <span className="font-medium">{deliveryFee.toLocaleString()}₮</span>
+                    </div>
+                    <Separator />
+                    <div className="flex justify-between pt-2">
+                      <span className="text-lg font-bold">Total</span>
+                      <span className="text-lg font-bold">{grandTotal.toLocaleString()}₮</span>
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="detailsName">
-                      Full Name <span className="text-destructive">*</span>
-                    </Label>
-                    <Input
-                      type="text"
-                      id="detailsName"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="Enter your full name"
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="detailsAddress">
-                      Delivery Address <span className="text-destructive">*</span>
-                    </Label>
-                    <Input
-                      id="detailsAddress"
-                      value={address}
-                      onChange={(e) => setAddress(e.target.value)}
-                      placeholder="Enter your delivery address"
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="detailsSecondaryPhone">
-                      Secondary Phone Number (Optional)
-                    </Label>
-                    <Input
-                      type="tel"
-                      id="detailsSecondaryPhone"
-                      value={secondaryPhone}
-                      onChange={(e) => setSecondaryPhone(e.target.value)}
-                      placeholder="8 digits"
-                      maxLength={8}
-                    />
-                  </div>
-
                   <Button
-                    type="submit"
+                    onClick={step === 'details' ? handleCheckout : handleRegisterAndCheckout}
                     disabled={loading}
-                    className="w-full bg-green-600 hover:bg-green-700"
+                    className="w-full mt-6 bg-secondary hover:bg-secondary/90"
                     size="lg"
                   >
-                    {loading ? 'Processing...' : 'Place Order'}
+                    {loading ? 'Processing...' : step === 'register' ? 'Create Account & Place Order' : 'Place Order'}
                   </Button>
-                </form>
-              )}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Right column: Order summary */}
-          <div className="lg:col-span-1">
-            <Card className="sticky top-4">
-              <CardHeader>
-                <CardTitle>Order Summary</CardTitle>
-              </CardHeader>
-              <CardContent>
-
-              <div className="max-h-96 overflow-y-auto mb-4">
-                <div className="space-y-2">
-                  {items.map((item) => (
-                    <div key={item.id} className="flex gap-3 text-sm">
-                      <span className="text-muted-foreground flex-shrink-0">{item.product?.category?.name}</span>
-                      <span className="font-medium truncate">{item.product?.name}</span>
-                      <span className="text-muted-foreground flex-shrink-0">(x{item.quantity})</span>
-                      <span className="font-medium ml-auto flex-shrink-0">
-                        {((item.product?.base_price || 0) * item.quantity).toLocaleString()}₮
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <Separator />
-
-              <div className="space-y-2 mt-4">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Subtotal</span>
-                  <span>{total.toLocaleString()}₮</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Delivery</span>
-                  <span>Free</span>
-                </div>
-                <Separator />
-                <div className="flex justify-between pt-2">
-                  <span className="text-lg font-bold">Total</span>
-                  <span className="text-lg font-bold">{total.toLocaleString()}₮</span>
-                </div>
-              </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </PageContainer>

@@ -184,3 +184,39 @@ export async function updateUserProfile(
 
   return data as User;
 }
+
+// Change password
+export async function changePassword(
+  userId: number,
+  currentPassword: string,
+  newPassword: string
+): Promise<void> {
+  // Get user to verify current password
+  const { data: user, error: fetchError } = await supabase
+    .from('users')
+    .select('password_hash')
+    .eq('id', userId)
+    .single();
+
+  if (fetchError) throw fetchError;
+
+  // Verify current password
+  const isValid = await verifyPassword(currentPassword, (user as any).password_hash);
+  if (!isValid) {
+    throw new Error('Current password is incorrect');
+  }
+
+  // Hash new password
+  const newPasswordHash = await hashPassword(newPassword);
+
+  // Update password
+  const { error: updateError } = await (supabase as any)
+    .from('users')
+    .update({
+      password_hash: newPasswordHash,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', userId);
+
+  if (updateError) throw updateError;
+}

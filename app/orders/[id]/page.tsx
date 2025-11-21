@@ -83,7 +83,7 @@ export default function OrderDetailPage() {
       case 'processing':
         return <Badge variant="default" className="gap-1"><Package className="h-3 w-3" />Processing</Badge>;
       case 'completed':
-        return <Badge variant="default" className="gap-1 bg-green-600 hover:bg-green-700"><CheckCircle className="h-3 w-3" />Completed</Badge>;
+        return <Badge variant="default" className="gap-1 bg-secondary hover:bg-secondary/90"><CheckCircle className="h-3 w-3" />Completed</Badge>;
       case 'cancelled':
         return <Badge variant="destructive" className="gap-1"><XCircle className="h-3 w-3" />Cancelled</Badge>;
       default:
