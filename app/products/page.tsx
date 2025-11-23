@@ -15,6 +15,7 @@ import HorizontalScroller from '@/components/HorizontalScroller';
 import { PageContainer, PageTitle, SectionHeader, LoadingState } from '@/components/layout';
 import { Button } from '@/components/ui/button';
 import { ShoppingCart, Check } from 'lucide-react';
+import { useTranslation } from '@/contexts/LanguageContext';
 import type {
   Category,
   ProductWithDetails,
@@ -22,6 +23,7 @@ import type {
 } from '@/types/database';
 
 function ProductsContent() {
+  const { t } = useTranslation();
   const searchParams = useSearchParams();
   const router = useRouter();
   const { items, total, addToCart, updateCartItem, removeFromCart, loading: cartLoading } = useCart();
@@ -214,7 +216,7 @@ function ProductsContent() {
       console.error('Error adding to cart:', error);
       setCartErrors(prev => ({
         ...prev,
-        [productId]: 'Failed to add to cart'
+        [productId]: t('products.error-add-to-cart')
       }));
     } finally {
       setAddingToCart(prev => {
@@ -241,7 +243,7 @@ function ProductsContent() {
       <PageContainer className="pb-[calc(40vh+2rem)]">
       {/* Categories Section - Netflix Style Scroller */}
       <section className="mb-12 -mx-4 sm:-mx-6 lg:-mx-12">
-        <SectionHeader className="px-4 sm:px-6 lg:px-12">Categories</SectionHeader>
+        <SectionHeader className="px-4 sm:px-6 lg:px-12">{t('home.categories.title')}</SectionHeader>
           <HorizontalScroller>
             {categories.map((cat) => (
               <div key={cat.id} className="flex-shrink-0 w-[45vw] sm:w-[30vw] md:w-[23vw] lg:w-[18vw] xl:w-[15vw]">
@@ -299,7 +301,7 @@ function ProductsContent() {
                       >
                         {isAdded && <Check className="mr-2 h-4 w-4" />}
                         {!isAdded && !isAdding && <ShoppingCart className="mr-2 h-4 w-4" />}
-                        {isAdding ? 'Adding...' : isAdded ? 'Added' : 'Add'}
+                        {isAdding ? t('products.adding') : isAdded ? t('products.added') : t('products.add')}
                       </Button>
                       {error && (
                         <p className="text-xs text-destructive">{error}</p>
@@ -313,8 +315,8 @@ function ProductsContent() {
         ) : (
           <div className="flex flex-col items-center justify-center text-muted-foreground py-12">
             {selectedCategoryId
-              ? 'No products found in this category'
-              : 'Select a category to view products'}
+              ? t('products.no-products')
+              : t('products.select-category')}
           </div>
         )}
       </section>

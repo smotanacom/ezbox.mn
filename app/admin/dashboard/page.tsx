@@ -33,8 +33,8 @@ export default function AdminDashboardPage() {
       if (error) throw error;
 
       const totalOrders = orders?.length || 0;
-      const pendingOrders = orders?.filter(o => o.status === 'pending').length || 0;
-      const completedOrders = orders?.filter(o => o.status === 'completed').length || 0;
+      const pendingOrders = orders?.filter((o: any) => o.status === 'pending').length || 0;
+      const completedOrders = orders?.filter((o: any) => o.status === 'completed').length || 0;
 
       setStats({
         totalOrders,

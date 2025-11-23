@@ -201,12 +201,11 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 py-16 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
             {/* Image */}
-            <div className="relative h-[400px] lg:h-[500px] rounded-2xl overflow-hidden shadow-xl">
+            <div className="rounded-2xl overflow-hidden shadow-xl">
               <Image
                 src="https://images.unsplash.com/photo-1556912173-46c336c7fd55?w=800&q=80"
                 alt="Custom Kitchen Design"
-                fill
-                className="object-cover"
+                className="w-full h-[400px] lg:h-[500px] object-cover"
               />
             </div>
 

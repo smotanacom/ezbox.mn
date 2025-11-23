@@ -806,25 +806,26 @@ export async function cloneParameterGroup(groupId: number): Promise<ParameterGro
   if (paramsError) throw paramsError;
 
   // Create new group with "(Copy)" suffix
-  const newGroupName = `${originalGroup.name} (Copy)`;
-  const newInternalName = `${originalGroup.internal_name || originalGroup.name} (Copy)`;
+  const newGroupName = `${(originalGroup as any).name} (Copy)`;
+  const newInternalName = `${(originalGroup as any).internal_name || (originalGroup as any).name} (Copy)`;
 
   const { data: newGroup, error: newGroupError } = await supabase
     .from('parameter_groups')
     .insert({
       name: newGroupName,
       internal_name: newInternalName,
-      description: originalGroup.description,
+      description: (originalGroup as any).description,
     } as any)
     .select()
     .single();
 
   if (newGroupError) throw newGroupError;
+  if (!newGroup) throw new Error('Failed to create parameter group');
 
   // Clone all parameters
   if (parameters && parameters.length > 0) {
     const newParameters = parameters.map((param: any) => ({
-      parameter_group_id: newGroup.id,
+      parameter_group_id: (newGroup as any).id,
       name: param.name,
       description: param.description,
       price_modifier: param.price_modifier,

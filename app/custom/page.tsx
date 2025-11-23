@@ -5,8 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import Image from '@/components/Image';
 import { submitCustomDesignRequest } from '@/app/actions/customDesign';
+import { useTranslation } from '@/contexts/LanguageContext';
 
 export default function CustomDesignPage() {
+  const { t } = useTranslation();
   const [phone, setPhone] = useState('');
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -17,7 +19,7 @@ export default function CustomDesignPage() {
     e.preventDefault();
 
     if (!phone.trim()) {
-      setSubmitError('Phone number is required');
+      setSubmitError(t('checkout.phone-required'));
       return;
     }
 
@@ -39,11 +41,11 @@ export default function CustomDesignPage() {
           setSubmitSuccess(false);
         }, 5000);
       } else {
-        setSubmitError(result.error || 'Failed to submit request. Please try again.');
+        setSubmitError(result.error || t('custom.error'));
       }
     } catch (error) {
       console.error('Error submitting custom design request:', error);
-      setSubmitError('An unexpected error occurred. Please try again.');
+      setSubmitError(t('custom.error'));
     } finally {
       setIsSubmitting(false);
     }
@@ -56,13 +58,13 @@ export default function CustomDesignPage() {
         <div className="max-w-7xl mx-auto px-4 py-16 sm:px-6 lg:px-8">
           <div className="text-center space-y-4">
             <Badge className="mb-2 bg-white/20 text-white hover:bg-white/30">
-              Premium Service
+              {t('home.custom.badge')}
             </Badge>
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight">
-              Custom Kitchen Design
+              {t('custom.title')}
             </h1>
             <p className="text-xl sm:text-2xl text-blue-100 max-w-3xl mx-auto">
-              Transform your kitchen dreams into reality with our expert design team
+              {t('custom.subtitle')}
             </p>
           </div>
         </div>
@@ -126,37 +128,37 @@ export default function CustomDesignPage() {
 
             {/* Benefits Section */}
             <div className="bg-white rounded-2xl shadow-lg p-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Why Choose Custom Design?</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">{t('custom.why-choose')}</h2>
               <div className="space-y-4">
                 <div className="flex items-start gap-3">
                   <div className="flex-shrink-0 w-6 h-6 rounded-full bg-green-100 flex items-center justify-center mt-1">
                     <span className="text-green-600 text-sm">✓</span>
                   </div>
-                  <p className="text-gray-700">Perfect fit for your unique space and layout</p>
+                  <p className="text-gray-700">{t('custom.benefit1-description')}</p>
                 </div>
                 <div className="flex items-start gap-3">
                   <div className="flex-shrink-0 w-6 h-6 rounded-full bg-green-100 flex items-center justify-center mt-1">
                     <span className="text-green-600 text-sm">✓</span>
                   </div>
-                  <p className="text-gray-700">Unlimited customization options for style and functionality</p>
+                  <p className="text-gray-700">{t('custom.benefit2-description')}</p>
                 </div>
                 <div className="flex items-start gap-3">
                   <div className="flex-shrink-0 w-6 h-6 rounded-full bg-green-100 flex items-center justify-center mt-1">
                     <span className="text-green-600 text-sm">✓</span>
                   </div>
-                  <p className="text-gray-700">Premium quality materials and craftsmanship</p>
+                  <p className="text-gray-700">{t('custom.benefit3-description')}</p>
                 </div>
                 <div className="flex items-start gap-3">
                   <div className="flex-shrink-0 w-6 h-6 rounded-full bg-green-100 flex items-center justify-center mt-1">
                     <span className="text-green-600 text-sm">✓</span>
                   </div>
-                  <p className="text-gray-700">Dedicated project manager throughout the process</p>
+                  <p className="text-gray-700">{t('home.custom.feature2')}</p>
                 </div>
                 <div className="flex items-start gap-3">
                   <div className="flex-shrink-0 w-6 h-6 rounded-full bg-green-100 flex items-center justify-center mt-1">
                     <span className="text-green-600 text-sm">✓</span>
                   </div>
-                  <p className="text-gray-700">5-year warranty on all custom installations</p>
+                  <p className="text-gray-700">{t('home.custom.feature3')}</p>
                 </div>
               </div>
             </div>
@@ -165,20 +167,18 @@ export default function CustomDesignPage() {
             <div className="bg-white rounded-2xl shadow-lg p-8">
               <h2 className="text-2xl font-bold text-gray-900 mb-6">Featured Projects</h2>
               <div className="grid grid-cols-2 gap-4">
-                <div className="relative h-48 rounded-lg overflow-hidden">
+                <div className="rounded-lg overflow-hidden">
                   <Image
                     src="https://images.unsplash.com/photo-1556912173-3bb406ef7e77?w=400&q=80"
                     alt="Custom Kitchen Example 1"
-                    fill
-                    className="object-cover"
+                    className="w-full h-48 object-cover"
                   />
                 </div>
-                <div className="relative h-48 rounded-lg overflow-hidden">
+                <div className="rounded-lg overflow-hidden">
                   <Image
                     src="https://images.unsplash.com/photo-1565538810643-b5bdb714032a?w=400&q=80"
                     alt="Custom Kitchen Example 2"
-                    fill
-                    className="object-cover"
+                    className="w-full h-48 object-cover"
                   />
                 </div>
               </div>
@@ -188,15 +188,15 @@ export default function CustomDesignPage() {
           {/* Right Column - Contact Form */}
           <div>
             <div className="bg-white rounded-2xl shadow-xl p-8 sticky top-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Get Started Today</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">{t('custom.form-title')}</h2>
               <p className="text-gray-600 mb-6">
-                Fill out the form below and our design team will contact you within 24 hours.
+                {t('custom.form-description')}
               </p>
 
               {submitSuccess && (
                 <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
                   <p className="text-green-800 font-medium">
-                    Thank you for your interest! We'll contact you shortly.
+                    {t('custom.success')}
                   </p>
                 </div>
               )}
@@ -210,36 +210,36 @@ export default function CustomDesignPage() {
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
                   <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
-                    Phone Number <span className="text-red-500">*</span>
+                    {t('custom.phone')} <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="tel"
                     id="phone"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    placeholder="e.g., 99123456"
+                    placeholder={t('custom.phone-placeholder')}
                     required
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition"
                   />
                   <p className="mt-1 text-sm text-gray-500">
-                    8-digit Mongolian phone number
+                    {t('checkout.phone-help')}
                   </p>
                 </div>
 
                 <div>
                   <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
-                    Project Description <span className="text-gray-400">(Optional)</span>
+                    {t('custom.description')} <span className="text-gray-400">(Optional)</span>
                   </label>
                   <textarea
                     id="description"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Tell us about your dream kitchen, space dimensions, style preferences, budget range, etc."
+                    placeholder={t('custom.description-placeholder')}
                     rows={6}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition resize-none"
                   />
                   <p className="mt-1 text-sm text-gray-500">
-                    Any details you can share will help us prepare for your consultation
+                    {t('home.custom.feature1')}
                   </p>
                 </div>
 
@@ -249,7 +249,7 @@ export default function CustomDesignPage() {
                   disabled={isSubmitting}
                   className="w-full bg-primary hover:bg-primary/90 text-white py-6 text-lg font-medium shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isSubmitting ? 'Submitting...' : 'Request Free Consultation'}
+                  {isSubmitting ? t('custom.submitting') : t('custom.submit')}
                 </Button>
               </form>
 

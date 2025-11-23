@@ -68,11 +68,11 @@ function generateOrderEmailHTML(order: Order, items: CartItemWithDetails[]): str
         const paramsList: string[] = [];
         for (const [paramGroupId, paramId] of Object.entries(selectedParams)) {
           const paramGroup = product.parameter_groups.find(
-            (pg) => pg.id === parseInt(paramGroupId)
+            (pg: any) => pg.id === parseInt(paramGroupId)
           );
-          const param = paramGroup?.parameters?.find((p) => p.id === paramId);
+          const param = paramGroup?.parameters?.find((p: any) => p.id === paramId);
           if (paramGroup && param) {
-            paramsList.push(`${paramGroup.name}: ${param.name}`);
+            paramsList.push(`${(paramGroup as any).name}: ${(param as any).name}`);
           }
         }
         if (paramsList.length > 0) {

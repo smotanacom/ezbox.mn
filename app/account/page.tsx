@@ -10,8 +10,10 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { User as UserIcon, Lock, Save } from 'lucide-react';
+import { useTranslation } from '@/contexts/LanguageContext';
 
 export default function AccountPage() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -61,7 +63,7 @@ export default function AccountPage() {
         secondary_phone: secondaryPhone.trim() || undefined,
       });
 
-      setProfileSuccess('Profile updated successfully');
+      setProfileSuccess(t('account.success'));
 
       // Update local user state
       const updatedUser = getCurrentUser();
@@ -69,7 +71,7 @@ export default function AccountPage() {
         setUser(updatedUser);
       }
     } catch (error) {
-      setProfileError(error instanceof Error ? error.message : 'Failed to update profile');
+      setProfileError(error instanceof Error ? error.message : t('account.error'));
     } finally {
       setIsProfileSaving(false);
     }
@@ -86,23 +88,23 @@ export default function AccountPage() {
 
       // Validate passwords
       if (newPassword.length < 6) {
-        throw new Error('New password must be at least 6 characters');
+        throw new Error(t('account.password-too-short'));
       }
 
       if (newPassword !== confirmPassword) {
-        throw new Error('New passwords do not match');
+        throw new Error(t('account.passwords-no-match'));
       }
 
       await changePassword(user.id, currentPassword, newPassword);
 
-      setPasswordSuccess('Password changed successfully');
+      setPasswordSuccess(t('account.password-changed'));
 
       // Clear password fields
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
     } catch (error) {
-      setPasswordError(error instanceof Error ? error.message : 'Failed to change password');
+      setPasswordError(error instanceof Error ? error.message : t('account.password-error'));
     } finally {
       setIsPasswordSaving(false);
     }
@@ -112,7 +114,7 @@ export default function AccountPage() {
     return (
       <main className="min-h-screen bg-background">
         <div className="max-w-4xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-          <div className="text-center">Loading...</div>
+          <div className="text-center">{t('account.loading')}</div>
         </div>
       </main>
     );
@@ -126,9 +128,9 @@ export default function AccountPage() {
     <main className="min-h-screen bg-background">
       <div className="max-w-4xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold tracking-tight">Account Settings</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t('account.title')}</h1>
           <p className="text-muted-foreground mt-2">
-            Manage your profile information and security settings
+            {t('account.subtitle')}
           </p>
         </div>
 
@@ -138,16 +140,16 @@ export default function AccountPage() {
             <CardHeader>
               <div className="flex items-center gap-2">
                 <UserIcon className="h-5 w-5" />
-                <CardTitle>Profile Information</CardTitle>
+                <CardTitle>{t('account.profile')}</CardTitle>
               </div>
               <CardDescription>
-                Update your personal details and delivery information
+                {t('account.profile-description')}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleProfileSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Phone Number</Label>
+                  <Label htmlFor="phone">{t('account.phone')}</Label>
                   <Input
                     id="phone"
                     type="text"
@@ -156,44 +158,44 @@ export default function AccountPage() {
                     className="bg-muted"
                   />
                   <p className="text-xs text-muted-foreground">
-                    Your phone number cannot be changed
+                    {t('account.phone-cannot-change')}
                   </p>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="name">Full Name</Label>
+                  <Label htmlFor="name">{t('account.name')}</Label>
                   <Input
                     id="name"
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="Enter your full name"
+                    placeholder={t('account.name-placeholder')}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="address">Delivery Address</Label>
+                  <Label htmlFor="address">{t('account.address')}</Label>
                   <Input
                     id="address"
                     type="text"
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
-                    placeholder="Enter your delivery address"
+                    placeholder={t('account.address-placeholder')}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="secondary-phone">Secondary Phone (Optional)</Label>
+                  <Label htmlFor="secondary-phone">{t('account.secondary-phone')}</Label>
                   <Input
                     id="secondary-phone"
                     type="text"
                     value={secondaryPhone}
                     onChange={(e) => setSecondaryPhone(e.target.value)}
-                    placeholder="8-digit phone number"
+                    placeholder={t('account.secondary-phone-placeholder')}
                     maxLength={8}
                   />
                   <p className="text-xs text-muted-foreground">
-                    Must be exactly 8 digits if provided
+                    {t('account.secondary-phone-help')}
                   </p>
                 </div>
 
@@ -211,7 +213,7 @@ export default function AccountPage() {
 
                 <Button type="submit" disabled={isProfileSaving} className="w-full sm:w-auto">
                   <Save className="mr-2 h-4 w-4" />
-                  {isProfileSaving ? 'Saving...' : 'Save Changes'}
+                  {isProfileSaving ? t('account.saving') : t('account.save-changes')}
                 </Button>
               </form>
             </CardContent>
@@ -222,22 +224,22 @@ export default function AccountPage() {
             <CardHeader>
               <div className="flex items-center gap-2">
                 <Lock className="h-5 w-5" />
-                <CardTitle>Change Password</CardTitle>
+                <CardTitle>{t('account.change-password')}</CardTitle>
               </div>
               <CardDescription>
-                Update your password to keep your account secure
+                {t('account.change-password-description')}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handlePasswordSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="current-password">Current Password</Label>
+                  <Label htmlFor="current-password">{t('account.current-password')}</Label>
                   <Input
                     id="current-password"
                     type="password"
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
-                    placeholder="Enter your current password"
+                    placeholder={t('account.current-password-placeholder')}
                     required
                   />
                 </div>
@@ -245,29 +247,29 @@ export default function AccountPage() {
                 <Separator />
 
                 <div className="space-y-2">
-                  <Label htmlFor="new-password">New Password</Label>
+                  <Label htmlFor="new-password">{t('account.new-password')}</Label>
                   <Input
                     id="new-password"
                     type="password"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="Enter your new password"
+                    placeholder={t('account.new-password-placeholder')}
                     required
                     minLength={6}
                   />
                   <p className="text-xs text-muted-foreground">
-                    Must be at least 6 characters
+                    {t('account.new-password-help')}
                   </p>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="confirm-password">Confirm New Password</Label>
+                  <Label htmlFor="confirm-password">{t('account.confirm-password')}</Label>
                   <Input
                     id="confirm-password"
                     type="password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="Confirm your new password"
+                    placeholder={t('account.confirm-password-placeholder')}
                     required
                   />
                 </div>
@@ -286,7 +288,7 @@ export default function AccountPage() {
 
                 <Button type="submit" disabled={isPasswordSaving} className="w-full sm:w-auto">
                   <Lock className="mr-2 h-4 w-4" />
-                  {isPasswordSaving ? 'Changing...' : 'Change Password'}
+                  {isPasswordSaving ? t('account.changing') : t('account.change-password-button')}
                 </Button>
               </form>
             </CardContent>
