@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { login, saveSession } from '@/lib/auth';
 import { useCart } from '@/contexts/CartContext';
+import { useTranslation } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -14,6 +15,7 @@ import { LogIn } from 'lucide-react';
 export default function LoginPage() {
   const router = useRouter();
   const { refreshCart } = useCart();
+  const { t } = useTranslation();
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -43,8 +45,8 @@ export default function LoginPage() {
           <div className="flex justify-center mb-4">
             <LogIn className="h-12 w-12 text-primary" />
           </div>
-          <CardTitle className="text-3xl">Welcome Back</CardTitle>
-          <CardDescription>Login to your EzBox account</CardDescription>
+          <CardTitle className="text-3xl">{t('auth.welcome-back')}</CardTitle>
+          <CardDescription>{t('auth.login-description')}</CardDescription>
         </CardHeader>
 
         <CardContent>
@@ -56,22 +58,22 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="phone">Phone Number</Label>
+              <Label htmlFor="phone">{t('auth.phone')}</Label>
               <Input
                 id="phone"
                 type="tel"
                 required
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                placeholder="8 digits (e.g., 99112233)"
+                placeholder={t('auth.phone-placeholder')}
                 maxLength={8}
                 pattern="\d{8}"
               />
-              <p className="text-xs text-muted-foreground">Enter your 8-digit Mongolian phone number</p>
+              <p className="text-xs text-muted-foreground">{t('auth.phone-help')}</p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">{t('auth.password')}</Label>
               <Input
                 id="password"
                 type="password"
@@ -87,20 +89,20 @@ export default function LoginPage() {
               className="w-full"
               size="lg"
             >
-              {loading ? 'Logging in...' : 'Login'}
+              {loading ? t('auth.logging-in') : t('auth.login-button')}
             </Button>
           </form>
         </CardContent>
 
         <CardFooter className="flex flex-col gap-4">
           <p className="text-sm text-muted-foreground text-center">
-            Don't have an account?{' '}
+            {t('auth.no-account')}{' '}
             <Link href="/signup" className="text-primary hover:underline font-medium">
-              Sign up
+              {t('auth.signup-link')}
             </Link>
           </p>
           <Link href="/" className="text-sm text-muted-foreground hover:text-foreground text-center">
-            ← Back to home
+            {t('auth.back-home')}
           </Link>
         </CardFooter>
       </Card>

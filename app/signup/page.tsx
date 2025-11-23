@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { register, saveSession } from '@/lib/auth';
 import { useCart } from '@/contexts/CartContext';
+import { useTranslation } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -14,6 +15,7 @@ import { UserPlus } from 'lucide-react';
 export default function SignupPage() {
   const router = useRouter();
   const { refreshCart } = useCart();
+  const { t } = useTranslation();
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -26,13 +28,13 @@ export default function SignupPage() {
 
     // Validate passwords match
     if (password !== confirmPassword) {
-      setError('Passwords do not match');
+      setError(t('auth.passwords-no-match'));
       return;
     }
 
     // Validate password length
     if (password.length < 6) {
-      setError('Password must be at least 6 characters long');
+      setError(t('auth.password-too-short'));
       return;
     }
 
@@ -57,8 +59,8 @@ export default function SignupPage() {
           <div className="flex justify-center mb-4">
             <UserPlus className="h-12 w-12 text-primary" />
           </div>
-          <CardTitle className="text-3xl">Create Account</CardTitle>
-          <CardDescription>Sign up for EzBox.mn</CardDescription>
+          <CardTitle className="text-3xl">{t('auth.create-account')}</CardTitle>
+          <CardDescription>{t('auth.signup-description')}</CardDescription>
         </CardHeader>
 
         <CardContent>
@@ -70,22 +72,22 @@ export default function SignupPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="phone">Phone Number</Label>
+              <Label htmlFor="phone">{t('auth.phone')}</Label>
               <Input
                 id="phone"
                 type="tel"
                 required
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                placeholder="8 digits (e.g., 99112233)"
+                placeholder={t('auth.phone-placeholder')}
                 maxLength={8}
                 pattern="\d{8}"
               />
-              <p className="text-xs text-muted-foreground">Enter your 8-digit Mongolian phone number</p>
+              <p className="text-xs text-muted-foreground">{t('auth.phone-help')}</p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">{t('auth.password')}</Label>
               <Input
                 id="password"
                 type="password"
@@ -94,11 +96,11 @@ export default function SignupPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 minLength={6}
               />
-              <p className="text-xs text-muted-foreground">At least 6 characters</p>
+              <p className="text-xs text-muted-foreground">{t('auth.password-min')}</p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Label htmlFor="confirmPassword">{t('auth.confirm-password')}</Label>
               <Input
                 id="confirmPassword"
                 type="password"
@@ -115,20 +117,20 @@ export default function SignupPage() {
               className="w-full"
               size="lg"
             >
-              {loading ? 'Creating account...' : 'Sign Up'}
+              {loading ? t('auth.creating-account') : t('auth.signup-button')}
             </Button>
           </form>
         </CardContent>
 
         <CardFooter className="flex flex-col gap-4">
           <p className="text-sm text-muted-foreground text-center">
-            Already have an account?{' '}
+            {t('auth.have-account')}{' '}
             <Link href="/login" className="text-primary hover:underline font-medium">
-              Login
+              {t('auth.login-link')}
             </Link>
           </p>
           <Link href="/" className="text-sm text-muted-foreground hover:text-foreground text-center">
-            ← Back to home
+            {t('auth.back-home')}
           </Link>
         </CardFooter>
       </Card>

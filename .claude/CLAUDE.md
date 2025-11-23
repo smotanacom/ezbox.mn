@@ -8,38 +8,40 @@ EzBox.mn is a modular kitchen e-commerce platform built for Mongolia. It allows 
 
 - **Frontend**: Next.js 14+ (App Router), React 19, TypeScript
 - **Styling**: Tailwind CSS v4 (utility-first, no custom CSS)
-- **Database**: PostgreSQL (Supabase for production, local Docker for development)
+- **Database**: Supabase (PostgreSQL)
 - **Authentication**: Custom phone-based auth (8-digit Mongolian numbers) with bcrypt
 - **State Management**: React Context API (CartContext)
-- **Deployment**: Vercel (production), Docker Compose (local)
+- **Deployment**: Vercel
 
 ## Project Structure
 
 ```
 ezbox/
 ├── app/                    # Next.js App Router pages
-│   ├── layout.tsx         # Root layout with CartProvider
+│   ├── layout.tsx         # Root layout with LanguageProvider & CartProvider
 │   ├── page.tsx           # Home page (categories, products, specials)
 │   ├── products/page.tsx  # Product configurator & cart display
 │   └── cart/page.tsx      # Dedicated cart page
 ├── contexts/              # React Context providers
-│   └── CartContext.tsx   # Cart state management (global)
+│   ├── CartContext.tsx   # Cart state management (global)
+│   └── LanguageContext.tsx # Language/translation management (global)
+├── translations/          # Bilingual text content
+│   ├── en.ts             # English translations (fallback)
+│   └── mn.ts             # Mongolian translations (default)
 ├── lib/                   # Core business logic
 │   ├── supabase.ts       # Supabase client initialization
-│   ├── db.ts             # Direct PostgreSQL client (local dev)
 │   ├── api.ts            # All database queries & business logic
 │   └── auth.ts           # Authentication functions
 ├── types/                 # TypeScript definitions
-│   └── database.ts       # Complete DB schema types
+│   ├── database.ts       # Complete DB schema types
+│   └── translations.ts   # Translation system types
 ├── supabase/             # Database migrations
 │   ├── migrations/       # SQL migration files
 │   │   ├── 0001_init.sql        # Schema creation
 │   │   └── 0002_seed_data.sql   # Sample data
 │   └── migrate.js        # Migration display script
-├── scripts/              # Utility scripts
-│   ├── setup-local.sh    # Automated local setup
-│   └── test-db.js        # Database connection test
-└── docker-compose.yml    # Local PostgreSQL container
+└── scripts/              # Utility scripts
+    └── run-migrations.js # Migration runner script
 ```
 
 ## Key Architectural Decisions
@@ -47,7 +49,7 @@ ezbox/
 ### 1. Database-First Design
 - All business logic lives in `lib/api.ts` as pure functions
 - TypeScript types are generated from database schema
-- Uses PostgreSQL with comprehensive foreign keys and constraints
+- Uses Supabase (PostgreSQL) with comprehensive foreign keys and constraints
 
 ### 2. Flexible Product System
 - Products have configurable **parameter groups** (e.g., "Color", "Width")
@@ -68,6 +70,41 @@ ezbox/
 - bcrypt hashing with salt
 - Session stored in localStorage
 - No JWT or OAuth - simple user/password model
+
+### 5. Bilingual Support (Mongolian/English)
+- **Default language**: Mongolian (`mn`)
+- **Fallback language**: English (`en`)
+- All user-facing text MUST use the translation system
+- Translation files: `translations/mn.ts` (Mongolian), `translations/en.ts` (English)
+- Language context: `contexts/LanguageContext.tsx` provides `useTranslation()` hook
+- Translation hook usage: `const { t } = useTranslation()` then `t('translation.key')`
+
+**CRITICAL RULE**: When adding ANY user-facing text to the application:
+1. ✅ **DO**: Use translation keys via `t('key.name')`
+2. ❌ **DON'T**: Hardcode English or Mongolian text directly in components
+3. **Process**:
+   - Add the translation key to both `translations/en.ts` and `translations/mn.ts`
+   - Use kebab-case for keys (e.g., `'home.browse-products'`, `'cart.checkout'`)
+   - Group keys by feature/page (e.g., `'home.*'`, `'cart.*'`, `'products.*'`)
+   - Use the translation hook in your component: `{t('translation.key')}`
+
+**Examples**:
+```typescript
+// ❌ WRONG - Hardcoded text
+<button>Add to Cart</button>
+
+// ✅ CORRECT - Using translation system
+const { t } = useTranslation();
+<button>{t('products.add-to-cart')}</button>
+
+// translations/en.ts
+'products.add-to-cart': 'Add to Cart'
+
+// translations/mn.ts
+'products.add-to-cart': 'Сагсанд нэмэх'
+```
+
+**Language Switcher**: Available in header, allows users to toggle between Mongolian and English. Preference is stored in localStorage.
 
 ## Database Schema (11 Tables)
 
@@ -166,28 +203,13 @@ cart_total = sum(all item totals)
 - On registration/login, cart can be migrated by updating `cart.user_id`
 - Session ID stored in localStorage persists across page refreshes
 
-## Local Development Setup
+## Development Setup
 
-### Quick Start (Automated)
-```bash
-npm install
-npm run setup:local  # Starts PostgreSQL, runs migrations, creates .env
-npm run dev
-```
-
-### Manual Steps
-1. Start PostgreSQL: `npm run db:start`
-2. Run migrations: `docker exec -i ezbox-postgres psql -U ezbox -d ezbox < supabase/migrations/0001_init.sql`
-3. Seed data: `docker exec -i ezbox-postgres psql -U ezbox -d ezbox < supabase/migrations/0002_seed_data.sql`
-4. Create `.env` with DATABASE_URL
-5. Run: `npm run dev`
-
-### Database Access
-```bash
-npm run db:shell  # Access PostgreSQL CLI
-npm run db:test   # Test connection
-npm run db:stop   # Stop database
-```
+### Quick Start
+1. Create a Supabase project at https://supabase.com
+2. Copy `.env.example` to `.env` and add your Supabase credentials
+3. Run migrations using the Supabase SQL Editor or `npm run migrate:run`
+4. Start development: `npm run dev`
 
 ## Styling Guidelines
 
@@ -216,10 +238,9 @@ npm run db:stop   # Stop database
 ## Common Tasks
 
 ### Adding a New Product
-1. Insert into `products` table
+1. Insert into `products` table via Supabase SQL Editor
 2. Insert parameter group links in `product_parameter_groups`
 3. Set default parameter for each group
-4. Run `npm run db:shell` and use SQL or add to migration
 
 ### Adding a New Parameter
 1. Insert into `parameters` with `parameter_group_id` and `price_modifier`
@@ -259,17 +280,18 @@ Due to Supabase client type inference issues, we use `as any` in some places for
 
 ## Environment Variables
 
-### Local Development
-```env
-DATABASE_URL=postgresql://ezbox:ezbox123@localhost:5432/ezbox
-NEXT_PUBLIC_SUPABASE_URL=http://localhost:3000
-NEXT_PUBLIC_SUPABASE_ANON_KEY=local-development-key
-```
-
-### Production (Supabase + Vercel)
 ```env
 NEXT_PUBLIC_SUPABASE_URL=your-supabase-project-url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+SUPABASE_PASSWORD=your-database-password
+
+# AWS SES for email notifications
+AWS_SES_REGION=us-east-1
+AWS_SES_ACCESS_KEY_ID=your-aws-access-key-id
+AWS_SES_SECRET_ACCESS_KEY=your-aws-secret-access-key
+AWS_SES_FROM_EMAIL=noreply@ezbox.mn
+AWS_SES_ADMIN_EMAIL=admin@ezbox.mn
 ```
 
 ## Known Limitations & Future Enhancements
@@ -329,8 +351,7 @@ Currently no automated tests. For manual testing:
 1. Create `supabase/migrations/000X_description.sql`
 2. Include schema changes
 3. Add version tracking: `INSERT INTO schema_migrations (version) VALUES ('000X_description');`
-4. Test locally: `psql ezbox < supabase/migrations/000X_description.sql`
-5. Apply to production via Supabase SQL Editor
+4. Apply via Supabase SQL Editor or run `npm run migrate:run`
 
 ### Rolling Back
 Migrations are forward-only. For rollback:
@@ -366,8 +387,6 @@ ORDER BY times_ordered DESC;
 ## Documentation Files
 
 - **README.md** - Main project documentation
-- **QUICKSTART.md** - Fast local setup guide
-- **LOCAL_SETUP.md** - Detailed local development options
 - **TAILWIND_GUIDE.md** - Tailwind CSS usage patterns
 - **.claude/CLAUDE.md** - This file (AI context)
 
@@ -377,7 +396,7 @@ ORDER BY times_ordered DESC;
 1. Check existing patterns in similar components
 2. Follow Tailwind CSS conventions (see TAILWIND_GUIDE.md)
 3. Use TypeScript types from `types/database.ts`
-4. Test database queries in `npm run db:shell` first
+4. Test database queries in Supabase SQL Editor first
 
 ### Code Style
 - Use functional components with hooks
@@ -402,4 +421,4 @@ ORDER BY times_ordered DESC;
 
 ---
 
-This project is production-ready and fully functional for local development. The codebase is clean, well-structured, and follows modern React/Next.js best practices.
+This project uses Supabase for all database operations. The codebase is clean, well-structured, and follows modern React/Next.js best practices.
