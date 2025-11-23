@@ -60,6 +60,7 @@ export interface Database {
           description: string | null
           base_price: number
           picture_url: string | null
+          status: string
           created_at: string
           updated_at: string
         }
@@ -70,6 +71,7 @@ export interface Database {
           description?: string | null
           base_price?: number
           picture_url?: string | null
+          status?: string
           created_at?: string
           updated_at?: string
         }
@@ -80,6 +82,7 @@ export interface Database {
           description?: string | null
           base_price?: number
           picture_url?: string | null
+          status?: string
           created_at?: string
           updated_at?: string
         }
@@ -88,18 +91,21 @@ export interface Database {
         Row: {
           id: number
           name: string
+          internal_name: string | null
           description: string | null
           created_at: string
         }
         Insert: {
           id?: number
           name: string
+          internal_name?: string | null
           description?: string | null
           created_at?: string
         }
         Update: {
           id?: number
           name?: string
+          internal_name?: string | null
           description?: string | null
           created_at?: string
         }
@@ -348,6 +354,29 @@ export interface Database {
           created_at?: string
         }
       }
+      admins: {
+        Row: {
+          id: number
+          username: string
+          password_hash: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          username: string
+          password_hash: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          username?: string
+          password_hash?: string
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
   }
 }
@@ -364,6 +393,7 @@ export type ProductInCart = Database['public']['Tables']['product_in_cart']['Row
 export type Order = Database['public']['Tables']['orders']['Row']
 export type Special = Database['public']['Tables']['specials']['Row']
 export type SpecialItem = Database['public']['Tables']['special_items']['Row']
+export type Admin = Database['public']['Tables']['admins']['Row']
 
 // Extended types for frontend use
 export interface ProductWithDetails extends Product {

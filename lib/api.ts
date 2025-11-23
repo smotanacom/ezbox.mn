@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { sendOrderNotificationEmail } from './email';
 import type {
   Category,
   Product,
@@ -27,11 +28,16 @@ export async function getCategories(): Promise<Category[]> {
 }
 
 // Products
-export async function getProducts(categoryId?: number): Promise<Product[]> {
+export async function getProducts(categoryId?: number, includeInactive = false): Promise<Product[]> {
   let query = supabase.from('products').select('*');
 
   if (categoryId) {
     query = query.eq('category_id', categoryId);
+  }
+
+  // Only show active products by default (for public-facing pages)
+  if (!includeInactive) {
+    query = query.eq('status', 'active');
   }
 
   const { data, error } = await query.order('id');
@@ -87,7 +93,7 @@ export async function getProductWithDetails(productId: number): Promise<ProductW
 }
 
 // Internal function that does the actual database queries
-async function _getAllProductsWithDetailsFromDB(): Promise<ProductWithDetails[]> {
+async function _getAllProductsWithDetailsFromDB(includeInactive = false): Promise<ProductWithDetails[]> {
   // Batch fetch all related data in parallel
   const [
     { data: products, error: productsError },
@@ -96,7 +102,9 @@ async function _getAllProductsWithDetailsFromDB(): Promise<ProductWithDetails[]>
     { data: parameterGroups, error: pgError },
     { data: parameters, error: paramsError },
   ] = await Promise.all([
-    supabase.from('products').select('*').order('id'),
+    includeInactive
+      ? supabase.from('products').select('*').order('id')
+      : supabase.from('products').select('*').eq('status', 'active').order('id'),
     supabase.from('categories').select('*').order('id'),
     supabase.from('product_parameter_groups').select('*'),
     supabase.from('parameter_groups').select('*').order('id'),
@@ -157,14 +165,15 @@ async function _getAllProductsWithDetailsFromDB(): Promise<ProductWithDetails[]>
   });
 }
 
-export async function getAllProductsWithDetails(): Promise<ProductWithDetails[]> {
+export async function getAllProductsWithDetails(includeInactive = false): Promise<ProductWithDetails[]> {
   // If running on the server (Node.js environment), query DB directly
   if (typeof window === 'undefined') {
-    return _getAllProductsWithDetailsFromDB();
+    return _getAllProductsWithDetailsFromDB(includeInactive);
   }
 
   // If running on the client, use the API route
-  const response = await fetch('/api/products', {
+  const url = includeInactive ? '/api/products?includeInactive=true' : '/api/products';
+  const response = await fetch(url, {
     cache: 'no-store',
   });
 
@@ -503,7 +512,17 @@ export async function createOrder(
     .update({ status: 'checked_out' } as never)
     .eq('id', cartId) as any);
 
-  return data as Order;
+  const order = data as Order;
+
+  // Send order notification email (non-blocking, don't fail order if email fails)
+  try {
+    await sendOrderNotificationEmail(order, cartId);
+  } catch (emailError) {
+    console.error('Failed to send order notification email:', emailError);
+    // Continue - don't fail the order if email fails
+  }
+
+  return order;
 }
 
 // User lookup
@@ -545,4 +564,372 @@ export async function getOrderById(orderId: number): Promise<Order | null> {
 // Get order items with product details
 export async function getOrderItems(cartId: number) {
   return getCartItems(cartId);
+}
+
+// Admin: Get all orders with optional filtering
+export async function getAllOrders(filters?: {
+  status?: string;
+  searchTerm?: string;
+  sortBy?: 'created_at' | 'total_price' | 'status';
+  sortOrder?: 'asc' | 'desc';
+}): Promise<Order[]> {
+  let query = supabase
+    .from('orders')
+    .select('*');
+
+  // Filter by status
+  if (filters?.status && filters.status !== 'all') {
+    query = query.eq('status', filters.status);
+  }
+
+  // Search by name, phone, or address
+  if (filters?.searchTerm) {
+    const term = filters.searchTerm.toLowerCase();
+    query = query.or(`name.ilike.%${term}%,phone.ilike.%${term}%,address.ilike.%${term}%`);
+  }
+
+  // Sort
+  const sortBy = filters?.sortBy || 'created_at';
+  const sortOrder = filters?.sortOrder || 'desc';
+  query = query.order(sortBy, { ascending: sortOrder === 'asc' });
+
+  const { data, error } = await query;
+
+  if (error) throw error;
+  return data as Order[];
+}
+
+// Admin: Update order status
+export async function updateOrderStatus(orderId: number, status: string): Promise<Order> {
+  const { data, error } = await (supabase as any)
+    .from('orders')
+    .update({
+      status,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', orderId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as Order;
+}
+
+// Admin: Update order details
+export async function updateOrder(
+  orderId: number,
+  updates: {
+    name?: string;
+    phone?: string;
+    address?: string;
+    secondary_phone?: string;
+    status?: string;
+  }
+): Promise<Order> {
+  const { data, error } = await (supabase as any)
+    .from('orders')
+    .update({
+      ...updates,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', orderId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as Order;
+}
+
+// Admin: Delete order
+export async function deleteOrder(orderId: number): Promise<void> {
+  const { error } = await supabase
+    .from('orders')
+    .delete()
+    .eq('id', orderId);
+
+  if (error) throw error;
+}
+
+// Admin: Product Management
+export async function createProduct(product: {
+  name: string;
+  category_id?: number | null;
+  description?: string;
+  base_price: number;
+  picture_url?: string;
+  status?: string;
+}): Promise<Product> {
+  const { data, error } = await supabase
+    .from('products')
+    .insert({
+      name: product.name,
+      category_id: product.category_id || null,
+      description: product.description || null,
+      base_price: product.base_price,
+      picture_url: product.picture_url || null,
+      status: product.status || 'active',
+    } as any)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Supabase error details:', {
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      code: error.code,
+    });
+    throw new Error(error.message || 'Failed to create product');
+  }
+  return data as Product;
+}
+
+export async function updateProduct(
+  productId: number,
+  updates: {
+    name?: string;
+    category_id?: number | null;
+    description?: string;
+    base_price?: number;
+    picture_url?: string;
+    status?: string;
+  }
+): Promise<Product> {
+  const { data, error } = await (supabase as any)
+    .from('products')
+    .update({
+      ...updates,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', productId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as Product;
+}
+
+export async function deleteProduct(productId: number): Promise<void> {
+  // First delete all product_parameter_groups entries
+  await supabase
+    .from('product_parameter_groups')
+    .delete()
+    .eq('product_id', productId);
+
+  // Then delete the product
+  const { error } = await supabase
+    .from('products')
+    .delete()
+    .eq('id', productId);
+
+  if (error) throw error;
+}
+
+// Admin: Parameter Group Management
+export async function createParameterGroup(group: {
+  name: string;
+  internal_name?: string;
+  description?: string;
+}): Promise<ParameterGroup> {
+  const { data, error } = await supabase
+    .from('parameter_groups')
+    .insert({
+      name: group.name,
+      internal_name: group.internal_name || group.name,
+      description: group.description || null,
+    } as any)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as ParameterGroup;
+}
+
+export async function updateParameterGroup(
+  groupId: number,
+  updates: {
+    name?: string;
+    internal_name?: string;
+    description?: string;
+  }
+): Promise<ParameterGroup> {
+  const { data, error } = await (supabase as any)
+    .from('parameter_groups')
+    .update(updates)
+    .eq('id', groupId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as ParameterGroup;
+}
+
+export async function deleteParameterGroup(groupId: number): Promise<void> {
+  // First delete all parameters in this group
+  await supabase
+    .from('parameters')
+    .delete()
+    .eq('parameter_group_id', groupId);
+
+  // Delete all product_parameter_groups entries
+  await supabase
+    .from('product_parameter_groups')
+    .delete()
+    .eq('parameter_group_id', groupId);
+
+  // Then delete the group
+  const { error } = await supabase
+    .from('parameter_groups')
+    .delete()
+    .eq('id', groupId);
+
+  if (error) throw error;
+}
+
+export async function cloneParameterGroup(groupId: number): Promise<ParameterGroup> {
+  // Get the original group
+  const { data: originalGroup, error: groupError } = await supabase
+    .from('parameter_groups')
+    .select('*')
+    .eq('id', groupId)
+    .single();
+
+  if (groupError) throw groupError;
+  if (!originalGroup) throw new Error('Parameter group not found');
+
+  // Get all parameters in the group
+  const { data: parameters, error: paramsError } = await supabase
+    .from('parameters')
+    .select('*')
+    .eq('parameter_group_id', groupId);
+
+  if (paramsError) throw paramsError;
+
+  // Create new group with "(Copy)" suffix
+  const newGroupName = `${originalGroup.name} (Copy)`;
+  const newInternalName = `${originalGroup.internal_name || originalGroup.name} (Copy)`;
+
+  const { data: newGroup, error: newGroupError } = await supabase
+    .from('parameter_groups')
+    .insert({
+      name: newGroupName,
+      internal_name: newInternalName,
+      description: originalGroup.description,
+    } as any)
+    .select()
+    .single();
+
+  if (newGroupError) throw newGroupError;
+
+  // Clone all parameters
+  if (parameters && parameters.length > 0) {
+    const newParameters = parameters.map((param: any) => ({
+      parameter_group_id: newGroup.id,
+      name: param.name,
+      description: param.description,
+      price_modifier: param.price_modifier,
+      picture_url: param.picture_url,
+    }));
+
+    await supabase
+      .from('parameters')
+      .insert(newParameters as any);
+  }
+
+  return newGroup as ParameterGroup;
+}
+
+// Admin: Parameter Management
+export async function createParameter(parameter: {
+  parameter_group_id: number;
+  name: string;
+  description?: string;
+  price_modifier?: number;
+  picture_url?: string;
+}): Promise<Parameter> {
+  const { data, error } = await supabase
+    .from('parameters')
+    .insert({
+      parameter_group_id: parameter.parameter_group_id,
+      name: parameter.name,
+      description: parameter.description || null,
+      price_modifier: parameter.price_modifier || 0,
+      picture_url: parameter.picture_url || null,
+    } as any)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as Parameter;
+}
+
+export async function updateParameter(
+  parameterId: number,
+  updates: {
+    name?: string;
+    description?: string;
+    price_modifier?: number;
+    picture_url?: string;
+  }
+): Promise<Parameter> {
+  const { data, error } = await (supabase as any)
+    .from('parameters')
+    .update(updates)
+    .eq('id', parameterId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as Parameter;
+}
+
+export async function deleteParameter(parameterId: number): Promise<void> {
+  const { error } = await supabase
+    .from('parameters')
+    .delete()
+    .eq('id', parameterId);
+
+  if (error) throw error;
+}
+
+// Admin: Product-Parameter Group Management
+export async function addParameterGroupToProduct(
+  productId: number,
+  parameterGroupId: number,
+  defaultParameterId?: number
+): Promise<void> {
+  const { error } = await supabase
+    .from('product_parameter_groups')
+    .insert({
+      product_id: productId,
+      parameter_group_id: parameterGroupId,
+      default_parameter_id: defaultParameterId || null,
+    } as any);
+
+  if (error) throw error;
+}
+
+export async function removeParameterGroupFromProduct(
+  productId: number,
+  parameterGroupId: number
+): Promise<void> {
+  const { error } = await supabase
+    .from('product_parameter_groups')
+    .delete()
+    .eq('product_id', productId)
+    .eq('parameter_group_id', parameterGroupId);
+
+  if (error) throw error;
+}
+
+export async function getProductsUsingParameterGroup(groupId: number): Promise<Product[]> {
+  const { data, error } = await supabase
+    .from('product_parameter_groups')
+    .select('product:products(*)')
+    .eq('parameter_group_id', groupId);
+
+  if (error) throw error;
+
+  // Extract products from the nested structure
+  return (data || []).map((item: any) => item.product).filter((p: any) => p !== null);
 }

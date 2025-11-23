@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useState, useMemo } from 'react';
+import { Suspense, useEffect, useState, useMemo, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -41,6 +41,9 @@ function ProductsContent() {
     quantity: number;
   }>>({});
 
+  // Track which product has been auto-added to prevent duplicates
+  const autoAddedProductRef = useRef<number | null>(null);
+
   useEffect(() => {
     async function loadData() {
       try {
@@ -62,6 +65,7 @@ function ProductsContent() {
         // Set initial selections from URL params
         const categoryParam = searchParams.get('category');
         const productParam = searchParams.get('product');
+        const autoAddParam = searchParams.get('autoAdd');
 
         if (categoryParam) {
           const catId = parseInt(categoryParam);
@@ -77,6 +81,46 @@ function ProductsContent() {
             setSelectedCategoryId(product.category_id);
             const categoryProducts = prods.filter((p) => p.category_id === product.category_id);
             initializeProductConfigs(categoryProducts);
+          }
+        }
+
+        // Handle autoAdd parameter - add product to cart automatically
+        if (autoAddParam) {
+          const prodId = parseInt(autoAddParam);
+
+          // Check if we've already auto-added this product
+          if (autoAddedProductRef.current === prodId) {
+            return;
+          }
+
+          const product = prods.find((p) => p.id === prodId);
+          if (product) {
+            setSelectedCategoryId(product.category_id);
+            const categoryProducts = prods.filter((p) => p.category_id === product.category_id);
+            initializeProductConfigs(categoryProducts);
+
+            // Mark this product as being auto-added
+            autoAddedProductRef.current = prodId;
+
+            // Wait a bit for configs to be set, then add to cart
+            setTimeout(async () => {
+              const defaults: ParameterSelection = {};
+              product.parameter_groups?.forEach((pg) => {
+                if (pg.default_parameter_id) {
+                  defaults[pg.parameter_group_id] = pg.default_parameter_id;
+                }
+              });
+
+              try {
+                await addToCart(prodId, 1, defaults);
+                // Remove autoAdd param from URL
+                const newParams = new URLSearchParams(searchParams.toString());
+                newParams.delete('autoAdd');
+                router.replace(`/products?${newParams.toString()}`);
+              } catch (error) {
+                console.error('Error auto-adding to cart:', error);
+              }
+            }, 100);
           }
         }
       } catch (error) {

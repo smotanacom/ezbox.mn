@@ -17,13 +17,6 @@ function getDatabaseUrl() {
     process.exit(1);
   }
 
-  // Check if it's local development
-  if (supabaseUrl.includes('localhost') || supabaseUrl.includes('127.0.0.1')) {
-    // For local development, use default local credentials
-    return 'postgresql://ezbox:ezbox123@localhost:5432/ezbox';
-  }
-
-  // For Supabase production
   if (!supabasePassword) {
     console.error('Error: SUPABASE_PASSWORD not found in environment');
     console.error('Please add it to your .env file');
@@ -42,9 +35,8 @@ function getDatabaseUrl() {
 
   const projectRef = match[1];
 
-  // Try direct connection first (new Supabase format)
+  // Supabase direct connection format
   // Format: postgresql://postgres.[project-ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres
-  // But we'll use the simpler direct connection format
   const databaseUrl = `postgresql://postgres.${projectRef}:${supabasePassword}@aws-0-us-east-1.pooler.supabase.com:6543/postgres`;
 
   return databaseUrl;

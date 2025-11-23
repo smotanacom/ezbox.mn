@@ -2,17 +2,16 @@
 
 A modern e-commerce platform for modular kitchen products in Mongolia, built with Next.js, Supabase, and Tailwind CSS.
 
-## 🚀 Quick Start (2 minutes, no Supabase needed!)
+## 🚀 Quick Start
 
 ```bash
 npm install
-npm run setup:local  # Starts database, runs migrations, sets up everything
 npm run dev          # Start the app
 ```
 
-Visit **http://localhost:3000** - Done! 🎉
+Visit **http://localhost:3000**
 
-See [QUICKSTART.md](QUICKSTART.md) for detailed local setup guide.
+**Note:** You need to set up Supabase first (see Setup Instructions below).
 
 ## Features
 
@@ -26,7 +25,7 @@ See [QUICKSTART.md](QUICKSTART.md) for detailed local setup guide.
 
 ## Tech Stack
 
-- **Frontend**: Next.js 14+ (App Router), React, TypeScript, Tailwind CSS
+- **Frontend**: Next.js 14+ (App Router), React 19, TypeScript, Tailwind CSS v4
 - **Backend**: Supabase (PostgreSQL)
 - **Authentication**: Custom phone-based auth with bcrypt password hashing
 - **Deployment**: Vercel
@@ -73,37 +72,7 @@ ezbox/
 - **specials**: Pre-configured product bundles at discounts
 - **special_items**: Products included in specials
 
-## Quick Start - Local Development (No Supabase Required!)
-
-### Option 1: Automated Setup with Docker (Easiest)
-
-```bash
-# Install dependencies
-npm install
-
-# Run the automated setup script
-./scripts/setup-local.sh
-
-# Start the development server
-npm run dev
-```
-
-That's it! Visit http://localhost:3000
-
-The script will:
-- Start a PostgreSQL database in Docker
-- Run all migrations automatically
-- Create your .env file
-- Set up sample data
-
-### Option 2: Manual Local Setup
-
-See [LOCAL_SETUP.md](LOCAL_SETUP.md) for detailed instructions on setting up with:
-- Local PostgreSQL installation
-- Docker manual setup
-- Custom configurations
-
-## Setup Instructions for Production (Supabase + Vercel)
+## Setup Instructions (Supabase + Vercel)
 
 ### 1. Clone and Install
 
@@ -125,19 +94,26 @@ cp .env.example .env
 
 Edit `.env` and add your Supabase credentials:
 
-```
+```env
 NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+SUPABASE_PASSWORD=your-database-password
 ```
 
 ### 4. Run Migrations
 
 Run the database migrations to set up the schema and seed data:
 
+**Option 1: Using the migration script (automated)**
+```bash
+npm run migrate:run
+```
+
+**Option 2: Manual (via Supabase SQL Editor)**
 ```bash
 npm run migrate
 ```
-
 This will display the SQL migrations. Copy and paste them into the Supabase SQL Editor.
 
 ### 5. Development Server
@@ -156,7 +132,10 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 - `npm run build` - Build for production
 - `npm start` - Start production server
 - `npm run lint` - Run ESLint
-- `npm run migrate` - Run database migrations
+- `npm run migrate` - Display database migrations
+- `npm run migrate:run` - Run database migrations (requires Supabase credentials)
+- `npm run deploy` - Deploy to Vercel production
+- `npm run deploy:preview` - Deploy to Vercel preview
 
 ## Migration System
 

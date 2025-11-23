@@ -25,8 +25,6 @@ SUPABASE_PASSWORD=your-database-password
 
 Get the `SUPABASE_PASSWORD` from: **Supabase Dashboard → Project Settings → Database → Database Password**
 
-For local development, just use `http://localhost:3000` as the URL and the script will automatically use local credentials.
-
 ### 2. Run pending migrations
 
 ```bash
@@ -52,12 +50,7 @@ The script handles everything automatically. No manual SQL copying needed.
    ```sql
    INSERT INTO schema_migrations (version) VALUES ('000X_description');
    ```
-4. Test locally first (if using local Docker):
-   ```bash
-   npm run db:start
-   docker exec -i ezbox-postgres psql -U ezbox -d ezbox < supabase/migrations/000X_description.sql
-   ```
-5. Apply to production:
+4. Apply to Supabase:
    ```bash
    npm run migrate:run
    ```
@@ -73,10 +66,9 @@ SELECT * FROM schema_migrations ORDER BY applied_at;
 ## Important Rules
 
 1. **Never modify applied migrations** - Create a new migration instead
-2. **Always test locally first**
-3. **Migrations are forward-only** - No rollback scripts
-4. **Keep migrations atomic** - Each should be a single logical change
-5. **Add version tracking** - Always insert into `schema_migrations`
+2. **Migrations are forward-only** - No rollback scripts
+3. **Keep migrations atomic** - Each should be a single logical change
+4. **Add version tracking** - Always insert into `schema_migrations`
 
 ## Applying the Quantity Parameter Group Removal
 

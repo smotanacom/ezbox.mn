@@ -1,0 +1,175 @@
+import { supabase } from './supabase';
+import type { Admin } from '@/types/database';
+import bcrypt from 'bcryptjs';
+
+const ADMIN_SESSION_KEY = 'ezbox_admin_session';
+
+export interface AdminAuthSession {
+  admin: Admin;
+  sessionId: string;
+}
+
+// Hash password
+export async function hashPassword(password: string): Promise<string> {
+  return bcrypt.hash(password, 10);
+}
+
+// Verify password
+async function verifyPassword(password: string, hash: string): Promise<boolean> {
+  return bcrypt.compare(password, hash);
+}
+
+// Create new admin (used by CLI script)
+export async function createAdmin(
+  username: string,
+  password: string
+): Promise<Admin> {
+  // Validate username (alphanumeric, 3-50 chars)
+  if (!/^[a-zA-Z0-9_]{3,50}$/.test(username)) {
+    throw new Error('Username must be 3-50 alphanumeric characters or underscores');
+  }
+
+  // Check if admin already exists
+  const { data: existingAdmin } = await supabase
+    .from('admins')
+    .select('*')
+    .eq('username', username)
+    .maybeSingle();
+
+  if (existingAdmin) {
+    throw new Error('Admin with this username already exists');
+  }
+
+  // Hash password
+  const password_hash = await hashPassword(password);
+
+  // Create admin
+  const { data, error } = await supabase
+    .from('admins')
+    .insert({
+      username,
+      password_hash,
+    } as any)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as Admin;
+}
+
+// Admin login
+export async function adminLogin(username: string, password: string): Promise<Admin> {
+  // Get admin
+  const { data: admin, error } = await supabase
+    .from('admins')
+    .select('*')
+    .eq('username', username)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!admin) {
+    throw new Error('Invalid username or password');
+  }
+
+  // Verify password
+  const isValid = await verifyPassword(password, (admin as any).password_hash);
+  if (!isValid) {
+    throw new Error('Invalid username or password');
+  }
+
+  return admin as Admin;
+}
+
+// Session management (client-side)
+export function saveAdminSession(admin: Admin): void {
+  const sessionId = Math.random().toString(36).substring(2);
+  const session: AdminAuthSession = { admin, sessionId };
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify(session));
+    // Dispatch event to notify of auth change
+    window.dispatchEvent(new Event('admin-auth-change'));
+  }
+}
+
+export function getAdminSession(): AdminAuthSession | null {
+  if (typeof window === 'undefined') return null;
+
+  const sessionStr = localStorage.getItem(ADMIN_SESSION_KEY);
+  if (!sessionStr) return null;
+
+  try {
+    return JSON.parse(sessionStr);
+  } catch {
+    return null;
+  }
+}
+
+export function clearAdminSession(): void {
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem(ADMIN_SESSION_KEY);
+    // Dispatch event to notify of auth change
+    window.dispatchEvent(new Event('admin-auth-change'));
+  }
+}
+
+export function getCurrentAdmin(): Admin | null {
+  const session = getAdminSession();
+  return session?.admin || null;
+}
+
+// Change admin password
+export async function changeAdminPassword(
+  adminId: number,
+  currentPassword: string,
+  newPassword: string
+): Promise<void> {
+  // Get admin to verify current password
+  const { data: admin, error: fetchError } = await supabase
+    .from('admins')
+    .select('password_hash')
+    .eq('id', adminId)
+    .single();
+
+  if (fetchError) throw fetchError;
+
+  // Verify current password
+  const isValid = await verifyPassword(currentPassword, (admin as any).password_hash);
+  if (!isValid) {
+    throw new Error('Current password is incorrect');
+  }
+
+  // Hash new password
+  const newPasswordHash = await hashPassword(newPassword);
+
+  // Update password
+  const { error: updateError } = await (supabase as any)
+    .from('admins')
+    .update({
+      password_hash: newPasswordHash,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', adminId);
+
+  if (updateError) throw updateError;
+}
+
+// List all admins (admin management)
+export async function listAdmins(): Promise<Admin[]> {
+  const { data, error } = await supabase
+    .from('admins')
+    .select('*')
+    .order('username');
+
+  if (error) throw error;
+  return data as Admin[];
+}
+
+// Delete admin (admin management)
+export async function deleteAdmin(adminId: number): Promise<void> {
+  const { error } = await supabase
+    .from('admins')
+    .delete()
+    .eq('id', adminId);
+
+  if (error) throw error;
+}

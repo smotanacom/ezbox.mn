@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 import { getCached, setCache } from '@/lib/cache';
 import { getAllProductsWithDetails } from '@/lib/api';
 
@@ -6,11 +7,18 @@ import { getAllProductsWithDetails } from '@/lib/api';
 export const revalidate = 300;
 
 const CACHE_KEY = 'products-data';
+const CACHE_KEY_ALL = 'products-data-all';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    // Check if we should include inactive products
+    const searchParams = request.nextUrl.searchParams;
+    const includeInactive = searchParams.get('includeInactive') === 'true';
+
+    const cacheKey = includeInactive ? CACHE_KEY_ALL : CACHE_KEY;
+
     // Check if cache is still valid
-    const cachedData = getCached(CACHE_KEY);
+    const cachedData = getCached(cacheKey);
     if (cachedData) {
       return NextResponse.json(cachedData, {
         headers: {
@@ -22,11 +30,11 @@ export async function GET() {
 
     // Fetch all products with full details
     // This will use the internal DB query since we're on the server
-    const products = await getAllProductsWithDetails();
+    const products = await getAllProductsWithDetails(includeInactive);
 
     // Cache the data
     const data = { products };
-    setCache(CACHE_KEY, data);
+    setCache(cacheKey, data);
 
     // Return with cache headers
     return NextResponse.json(data, {
