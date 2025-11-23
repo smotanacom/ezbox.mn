@@ -3,8 +3,10 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/contexts/CartContext';
+import { useTranslation } from '@/contexts/LanguageContext';
 import { getCurrentUser, login, register, saveSession } from '@/lib/auth';
-import { getUserByPhone, createOrder } from '@/lib/api';
+import { getUserByPhone } from '@/lib/api';
+import { createOrder } from '@/app/actions/orders';
 import { PageContainer, PageTitle, EmptyState } from '@/components/layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,6 +22,7 @@ type CheckoutStep = 'phone' | 'login' | 'register' | 'details';
 export default function CheckoutPage() {
   const router = useRouter();
   const { cart, items, total, refreshCart } = useCart();
+  const { t } = useTranslation();
 
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [step, setStep] = useState<CheckoutStep>('phone');
@@ -52,7 +55,7 @@ export default function CheckoutPage() {
 
     // Validate phone number
     if (!/^\d{8}$/.test(phone)) {
-      setError('Phone number must be exactly 8 digits');
+      setError(t('checkout.phone-invalid'));
       return;
     }
 
@@ -68,7 +71,7 @@ export default function CheckoutPage() {
         setStep('register');
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to check phone number');
+      setError(err.message || t('checkout.failed-check-phone'));
     } finally {
       setLoading(false);
     }
@@ -90,7 +93,7 @@ export default function CheckoutPage() {
 
       setStep('details');
     } catch (err: any) {
-      setError(err.message || 'Login failed');
+      setError(err.message || t('checkout.login-failed'));
     } finally {
       setLoading(false);
     }
@@ -101,19 +104,19 @@ export default function CheckoutPage() {
 
     // Validate required fields
     if (!name.trim()) {
-      setError('Name is required');
+      setError(t('checkout.name-required'));
       return;
     }
     if (!address.trim()) {
-      setError('Delivery address is required');
+      setError(t('checkout.address-required'));
       return;
     }
     if (!password) {
-      setError('Password is required');
+      setError(t('checkout.password-required'));
       return;
     }
     if (!cart) {
-      setError('No active cart found');
+      setError(t('checkout.no-cart'));
       return;
     }
 
@@ -134,13 +137,16 @@ export default function CheckoutPage() {
         secondaryPhone || undefined
       );
 
+      // Notify that an order was created
+      window.dispatchEvent(new Event('order-created'));
+
       // Refresh cart to clear it
       await refreshCart();
 
       // Redirect to order detail page
       router.push(`/orders/${order.id}`);
     } catch (err: any) {
-      setError(err.message || 'Registration or checkout failed');
+      setError(err.message || t('checkout.registration-failed'));
     } finally {
       setLoading(false);
     }
@@ -151,15 +157,15 @@ export default function CheckoutPage() {
 
     // Validate required fields
     if (!name.trim()) {
-      setError('Name is required');
+      setError(t('checkout.name-required'));
       return;
     }
     if (!address.trim()) {
-      setError('Delivery address is required');
+      setError(t('checkout.address-required'));
       return;
     }
     if (!cart) {
-      setError('No active cart found');
+      setError(t('checkout.no-cart'));
       return;
     }
 
@@ -175,13 +181,16 @@ export default function CheckoutPage() {
         secondaryPhone || undefined
       );
 
+      // Notify that an order was created
+      window.dispatchEvent(new Event('order-created'));
+
       // Refresh cart to clear it
       await refreshCart();
 
       // Redirect to order detail page
       router.push(`/orders/${order.id}`);
     } catch (err: any) {
-      setError(err.message || 'Failed to create order');
+      setError(err.message || t('checkout.order-failed'));
     } finally {
       setLoading(false);
     }
@@ -192,11 +201,11 @@ export default function CheckoutPage() {
       <PageContainer>
         <EmptyState
           icon={ShoppingBag}
-          title="Your cart is empty"
-          description="Add some products to your cart before checking out"
+          title={t('checkout.cart-empty')}
+          description={t('checkout.cart-empty-description')}
           action={
             <Button onClick={() => router.push('/products')} size="lg">
-              Continue Shopping
+              {t('checkout.continue-shopping')}
             </Button>
           }
         />
@@ -210,15 +219,15 @@ export default function CheckoutPage() {
   return (
     <>
       <PageContainer>
-        <PageTitle icon={Package}>Checkout</PageTitle>
+        <PageTitle icon={Package}>{t('checkout.title')}</PageTitle>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Left Column: Order Summary */}
           <div>
             <Card>
               <CardHeader>
-                <CardTitle>Order Summary</CardTitle>
-                <CardDescription>Review your items before placing the order</CardDescription>
+                <CardTitle>{t('checkout.order-summary')}</CardTitle>
+                <CardDescription>{t('checkout.order-summary-description')}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4 max-h-[600px] overflow-y-auto">
@@ -265,7 +274,7 @@ export default function CheckoutPage() {
                             )}
 
                             <p className="text-xs text-muted-foreground mt-2">
-                              Quantity: {item.quantity}
+                              {t('checkout.quantity')}: {item.quantity}
                             </p>
                           </div>
 
@@ -295,8 +304,8 @@ export default function CheckoutPage() {
             {/* Section 1: Login/User Information */}
             <Card>
               <CardHeader>
-                <CardTitle>Contact Information</CardTitle>
-                <CardDescription>Enter your contact details</CardDescription>
+                <CardTitle>{t('checkout.contact-info')}</CardTitle>
+                <CardDescription>{t('checkout.contact-info-description')}</CardDescription>
               </CardHeader>
               <CardContent>
 
@@ -304,17 +313,17 @@ export default function CheckoutPage() {
                 {step === 'phone' && (
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="phone">Phone Number</Label>
+                      <Label htmlFor="phone">{t('checkout.phone')}</Label>
                       <Input
                         type="tel"
                         id="phone"
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
-                        placeholder="8 digits"
+                        placeholder={t('checkout.phone-placeholder')}
                         maxLength={8}
                         required
                       />
-                      <p className="text-xs text-muted-foreground">Enter your 8-digit phone number</p>
+                      <p className="text-xs text-muted-foreground">{t('checkout.phone-help')}</p>
                     </div>
 
                     <Button
@@ -323,7 +332,7 @@ export default function CheckoutPage() {
                       className="w-full"
                       size="lg"
                     >
-                      {loading ? 'Checking...' : 'Continue'}
+                      {loading ? t('checkout.checking') : t('checkout.continue')}
                     </Button>
                   </div>
                 )}
@@ -332,7 +341,7 @@ export default function CheckoutPage() {
                 {step === 'login' && (
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <Label>Phone Number</Label>
+                      <Label>{t('checkout.phone')}</Label>
                       <div className="px-3 py-2 bg-muted border rounded-md">
                         {phone}
                       </div>
@@ -342,18 +351,18 @@ export default function CheckoutPage() {
                         variant="link"
                         className="p-0 h-auto text-sm"
                       >
-                        Change phone number
+                        {t('checkout.change-phone')}
                       </Button>
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="password">Password</Label>
+                      <Label htmlFor="password">{t('auth.password')}</Label>
                       <Input
                         type="password"
                         id="password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        placeholder="Enter your password"
+                        placeholder={t('checkout.password-enter')}
                         required
                       />
                     </div>
@@ -364,7 +373,7 @@ export default function CheckoutPage() {
                       className="w-full"
                       size="lg"
                     >
-                      {loading ? 'Logging in...' : 'Login'}
+                      {loading ? t('auth.logging-in') : t('auth.login-button')}
                     </Button>
                   </div>
                 )}
@@ -373,7 +382,7 @@ export default function CheckoutPage() {
                 {step === 'register' && (
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <Label>Phone Number</Label>
+                      <Label>{t('checkout.phone')}</Label>
                       <div className="px-3 py-2 bg-muted border rounded-md">
                         {phone}
                       </div>
@@ -383,48 +392,48 @@ export default function CheckoutPage() {
                         variant="link"
                         className="p-0 h-auto text-sm"
                       >
-                        Change phone number
+                        {t('checkout.change-phone')}
                       </Button>
                     </div>
 
                     <div className="space-y-2">
                       <Label htmlFor="name">
-                        Full Name <span className="text-destructive">*</span>
+                        {t('checkout.full-name')} <span className="text-destructive">*</span>
                       </Label>
                       <Input
                         type="text"
                         id="name"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        placeholder="Enter your full name"
+                        placeholder={t('checkout.full-name-placeholder')}
                         required
                       />
                     </div>
 
                     <div className="space-y-2">
                       <Label htmlFor="secondaryPhone">
-                        Secondary Phone Number (Optional)
+                        {t('checkout.secondary-phone')}
                       </Label>
                       <Input
                         type="tel"
                         id="secondaryPhone"
                         value={secondaryPhone}
                         onChange={(e) => setSecondaryPhone(e.target.value)}
-                        placeholder="8 digits"
+                        placeholder={t('checkout.phone-placeholder')}
                         maxLength={8}
                       />
                     </div>
 
                     <div className="space-y-2">
                       <Label htmlFor="regPassword">
-                        Create Password <span className="text-destructive">*</span>
+                        {t('checkout.create-password')} <span className="text-destructive">*</span>
                       </Label>
                       <Input
                         type="password"
                         id="regPassword"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        placeholder="Create a password"
+                        placeholder={t('checkout.create-password-placeholder')}
                         required
                       />
                     </div>
@@ -435,7 +444,7 @@ export default function CheckoutPage() {
                 {step === 'details' && (
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <Label>Phone Number</Label>
+                      <Label>{t('checkout.phone')}</Label>
                       <div className="px-3 py-2 bg-muted border rounded-md">
                         {phone}
                       </div>
@@ -443,28 +452,28 @@ export default function CheckoutPage() {
 
                     <div className="space-y-2">
                       <Label htmlFor="detailsName">
-                        Full Name <span className="text-destructive">*</span>
+                        {t('checkout.full-name')} <span className="text-destructive">*</span>
                       </Label>
                       <Input
                         type="text"
                         id="detailsName"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        placeholder="Enter your full name"
+                        placeholder={t('checkout.full-name-placeholder')}
                         required
                       />
                     </div>
 
                     <div className="space-y-2">
                       <Label htmlFor="detailsSecondaryPhone">
-                        Secondary Phone Number (Optional)
+                        {t('checkout.secondary-phone')}
                       </Label>
                       <Input
                         type="tel"
                         id="detailsSecondaryPhone"
                         value={secondaryPhone}
                         onChange={(e) => setSecondaryPhone(e.target.value)}
-                        placeholder="8 digits"
+                        placeholder={t('checkout.phone-placeholder')}
                         maxLength={8}
                       />
                     </div>
@@ -477,19 +486,19 @@ export default function CheckoutPage() {
             {(step === 'details' || step === 'register') && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Delivery Address</CardTitle>
-                  <CardDescription>Where should we deliver your order?</CardDescription>
+                  <CardTitle>{t('checkout.delivery-address')}</CardTitle>
+                  <CardDescription>{t('checkout.address-question')}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
                     <Label htmlFor="address">
-                      Address <span className="text-destructive">*</span>
+                      {t('checkout.address')} <span className="text-destructive">*</span>
                     </Label>
                     <Input
                       id="address"
                       value={address}
                       onChange={(e) => setAddress(e.target.value)}
-                      placeholder="Enter your delivery address"
+                      placeholder={t('checkout.address-placeholder')}
                       required
                     />
                   </div>
@@ -501,21 +510,21 @@ export default function CheckoutPage() {
             {(step === 'details' || step === 'register') && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Order Total</CardTitle>
+                  <CardTitle>{t('checkout.order-total')}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Subtotal ({items.length} {items.length === 1 ? 'item' : 'items'})</span>
+                      <span className="text-muted-foreground">{t('checkout.subtotal')} ({items.length} {items.length === 1 ? t('checkout.item') : t('checkout.items')})</span>
                       <span className="font-medium">{total.toLocaleString()}₮</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Delivery Fee</span>
+                      <span className="text-muted-foreground">{t('checkout.delivery-fee')}</span>
                       <span className="font-medium">{deliveryFee.toLocaleString()}₮</span>
                     </div>
                     <Separator />
                     <div className="flex justify-between pt-2">
-                      <span className="text-lg font-bold">Total</span>
+                      <span className="text-lg font-bold">{t('checkout.total')}</span>
                       <span className="text-lg font-bold">{grandTotal.toLocaleString()}₮</span>
                     </div>
                   </div>
@@ -526,7 +535,7 @@ export default function CheckoutPage() {
                     className="w-full mt-6 bg-secondary hover:bg-secondary/90"
                     size="lg"
                   >
-                    {loading ? 'Processing...' : step === 'register' ? 'Create Account & Place Order' : 'Place Order'}
+                    {loading ? t('checkout.processing') : step === 'register' ? t('checkout.create-account-and-order') : t('checkout.place-order')}
                   </Button>
                 </CardContent>
               </Card>
