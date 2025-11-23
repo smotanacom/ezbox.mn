@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import AdminRouteGuard from '@/components/AdminRouteGuard';
@@ -8,7 +8,7 @@ import AdminNav from '@/components/AdminNav';
 import { getAllProductsWithDetails, getCategories, updateProduct, deleteProduct } from '@/lib/api';
 import type { ProductWithDetails, Category } from '@/types/database';
 
-export default function AdminProductsPage() {
+function AdminProductsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const filterGroupId = searchParams?.get('group');
@@ -302,5 +302,25 @@ export default function AdminProductsPage() {
         </div>
       </div>
     </AdminRouteGuard>
+  );
+}
+
+export default function AdminProductsPage() {
+  return (
+    <Suspense fallback={
+      <AdminRouteGuard>
+        <div className="min-h-screen bg-gray-50">
+          <AdminNav />
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div className="text-center py-12">
+              <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+              <p className="mt-4 text-gray-600">Loading products...</p>
+            </div>
+          </div>
+        </div>
+      </AdminRouteGuard>
+    }>
+      <AdminProductsContent />
+    </Suspense>
   );
 }
