@@ -126,8 +126,6 @@ export default function Header() {
           </div>
 
           <nav className="flex items-center gap-4">
-            <LanguageSwitcher />
-
             {user && hasOrders && (
               <Button variant="ghost" asChild className="relative">
                 <Link href="/orders">
@@ -196,6 +194,8 @@ export default function Header() {
                 </Button>
               </div>
             )}
+
+            <LanguageSwitcher />
           </nav>
         </div>
       </div>
