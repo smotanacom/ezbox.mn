@@ -4,9 +4,11 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/contexts/CartContext';
 import { calculateProductPrice } from '@/lib/api';
+import { getFirstImageUrl } from '@/lib/storage-client';
 import ProductConfigRow from '@/components/ProductConfigRow';
 import ProductCard from '@/components/ProductCard';
 import Image from '@/components/Image';
+import ImageCarousel from '@/components/ImageCarousel';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -269,12 +271,13 @@ export default function Cart({ showCheckoutButton = true, compact = false, stick
                         {bundleItems.map((item) => (
                           <div key={item.id} className="flex items-center gap-3 text-sm">
                             <div className="relative w-20 h-20 rounded-md overflow-hidden bg-white flex-shrink-0">
-                              <Image
-                                src={item.product?.picture_url}
-                                alt={item.product?.name || 'Product'}
-                                className="object-cover w-full h-full"
+                              <ImageCarousel
+                                images={item.product?.images || []}
+                                productName={item.product?.name || 'Product'}
+                                model={item.product?.model}
+                                className="w-full h-full"
                               />
-                              <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/20 to-transparent"></div>
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/20 to-transparent pointer-events-none"></div>
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="font-medium text-sm line-clamp-1">

@@ -2,6 +2,7 @@
 
 import { ReactNode } from 'react';
 import Image from '@/components/Image';
+import ImageCarousel from '@/components/ImageCarousel';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -11,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { getFirstImageUrl } from '@/lib/storage-client';
 import type { ProductWithDetails, ParameterSelection } from '@/types/database';
 
 interface ProductConfigRowProps {
@@ -49,23 +51,13 @@ export default function ProductConfigRow({
   return (
     <div className={`flex gap-4 p-4 mb-4 bg-muted/50 rounded-lg ${disabled ? 'opacity-50' : ''} ${className}`}>
       {/* Product Image & Name */}
-      <div className="relative flex-shrink-0 w-40 h-40 bg-white rounded-md overflow-hidden border">
-        <Image
-          src={product.picture_url}
-          alt={product.name}
-          className="w-full h-full object-cover"
+      <div className="relative flex-shrink-0 w-55 h-55 bg-white rounded-md overflow-hidden border">
+        <ImageCarousel
+          images={product.images || []}
+          productName={product.name}
+          model={product.model}
+          className="rounded-md"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent"></div>
-        <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
-          <div className={`${compact ? 'text-xs' : 'text-sm'} font-medium drop-shadow-lg`}>
-            {product.name}
-          </div>
-          {showBasePrice && (
-            <div className="text-xs text-white/90 drop-shadow-lg">
-              Base: ₮{product.base_price.toLocaleString()}
-            </div>
-          )}
-        </div>
       </div>
 
       {/* Configuration Section */}

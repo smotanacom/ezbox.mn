@@ -5,23 +5,38 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="05251fdd-fde1-4284-8085-e91806d67fa1" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.env.example" beforeDir="false" afterPath="$PROJECT_DIR$/.env.example" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.claude/CLAUDE.md" beforeDir="false" afterPath="$PROJECT_DIR$/.claude/CLAUDE.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/LOCAL_SETUP.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/QUICKSTART.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/admin/dashboard/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/admin/dashboard/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/admin/orders/[id]/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/admin/orders/[id]/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/admin/products/[id]/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/admin/products/[id]/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/admin/products/new/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/admin/products/new/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/api/cart/route.ts" beforeDir="false" afterPath="$PROJECT_DIR$/app/api/cart/route.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/api/home/route.ts" beforeDir="false" afterPath="$PROJECT_DIR$/app/api/home/route.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/api/products/route.ts" beforeDir="false" afterPath="$PROJECT_DIR$/app/api/products/route.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/checkout/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/checkout/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/layout.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/orders/[id]/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/orders/[id]/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/page.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/products/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/products/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/specials/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/specials/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/AdminNav.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/AdminNav.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/Cart.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/Cart.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/CategoryProductGrid.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/CategoryProductGrid.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/CategoryScroller.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/CategoryScroller.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/Footer.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/Footer.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/Header.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/Header.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/components/KitchenTetris.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/KitchenTetris.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docker-compose.yml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/ProductCarousel.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/ProductCarousel.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/ProductConfigRow.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/ProductConfigRow.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/SpecialOffersCarousel.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/SpecialOffersCarousel.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/contexts/CartContext.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/contexts/CartContext.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/lib/api.ts" beforeDir="false" afterPath="$PROJECT_DIR$/lib/api.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/db.ts" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/package-lock.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/scripts/run-migrations.js" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/run-migrations.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/scripts/setup-local.sh" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/scripts/test-db.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/supabase/migrations/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/supabase/migrations/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/translations/en.ts" beforeDir="false" afterPath="$PROJECT_DIR$/translations/en.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/translations/mn.ts" beforeDir="false" afterPath="$PROJECT_DIR$/translations/mn.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/types/database.ts" beforeDir="false" afterPath="$PROJECT_DIR$/types/database.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -95,7 +110,7 @@
       <updated>1756859335705</updated>
       <workItem from="1756859336792" duration="29377000" />
       <workItem from="1759340633810" duration="3651000" />
-      <workItem from="1763397544787" duration="20534000" />
+      <workItem from="1763397544787" duration="22895000" />
     </task>
     <servers />
   </component>

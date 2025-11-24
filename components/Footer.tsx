@@ -42,36 +42,26 @@ export default function Footer() {
                   {t('footer.custom-design')}
                 </Link>
               </li>
+            </ul>
+          </div>
+
+          {/* Account */}
+          <div>
+            <h3 className="font-semibold text-sm mb-4">{t('footer.account')}</h3>
+            <ul className="space-y-2 text-sm text-muted-foreground">
+              <li>
+                <Link href="/cart" className="hover:text-foreground transition-colors">
+                  {t('footer.cart')}
+                </Link>
+              </li>
               <li>
                 <Link href="/orders" className="hover:text-foreground transition-colors">
                   {t('footer.orders')}
                 </Link>
               </li>
-            </ul>
-          </div>
-
-          {/* Customer Service */}
-          <div>
-            <h3 className="font-semibold text-sm mb-4">{t('footer.customer-service')}</h3>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li>
-                <Link href="/about" className="hover:text-foreground transition-colors">
-                  {t('footer.about-us')}
-                </Link>
-              </li>
-              <li>
-                <Link href="/contact" className="hover:text-foreground transition-colors">
-                  {t('footer.contact')}
-                </Link>
-              </li>
               <li>
                 <Link href="/account" className="hover:text-foreground transition-colors">
                   {t('footer.my-account')}
-                </Link>
-              </li>
-              <li>
-                <Link href="/shipping" className="hover:text-foreground transition-colors">
-                  {t('footer.shipping')}
                 </Link>
               </li>
             </ul>

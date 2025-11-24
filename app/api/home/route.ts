@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getCached, setCache } from '@/lib/cache';
-import { getCategories, getProducts, getSpecials, calculateSpecialOriginalPrice } from '@/lib/api';
+import { getCategories, getAllProductsWithDetails, getSpecials, calculateSpecialOriginalPrice } from '@/lib/api';
 
 // Cache for 5 minutes (300 seconds)
 export const revalidate = 300;
@@ -23,7 +23,7 @@ export async function GET() {
     // Fetch all home page data in parallel using lib/api functions
     const [categories, products, specials] = await Promise.all([
       getCategories(),
-      getProducts(),
+      getAllProductsWithDetails(),
       getSpecials('available'),
     ]);
 

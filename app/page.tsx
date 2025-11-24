@@ -11,6 +11,7 @@ import SpecialOffersCarousel from '@/components/SpecialOffersCarousel';
 import { LoadingState } from '@/components/layout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Package } from 'lucide-react';
 import type { Category, Product, SpecialWithItems } from '@/types/database';
 
 export default function Home() {
@@ -122,10 +123,10 @@ export default function Home() {
             <div className="text-center space-y-6 max-w-4xl mx-auto">
               {/* Logo/Brand */}
               <div className="inline-block">
-                <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent mb-2">
-                  EzBox.mn
+                <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight mb-2 flex items-center justify-center gap-4">
+                  <Package className="h-16 w-16 sm:h-20 sm:w-20 lg:h-24 lg:w-24 text-primary" />
+                  <span>EzBox<span className="text-primary">.mn</span></span>
                 </h1>
-                <div className="h-1 bg-gradient-to-r from-primary to-secondary rounded-full"></div>
               </div>
 
               {/*/!* Main Tagline *!/*/}
@@ -157,21 +158,11 @@ export default function Home() {
 
               {/* CTA Buttons */}
               <div className="flex flex-col sm:flex-row gap-4 justify-center pt-6">
-                <Link href="/products">
-                  <Button size="lg" className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-white px-8 py-6 text-lg shadow-lg hover:shadow-xl transition-all">
+                <Button asChild size="lg" className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-white px-8 py-6 text-lg transition-all">
+                  <Link href="/products">
                     {t('home.browse-products')}
-                  </Button>
-                </Link>
-                <Link href="/products">
-                  <Button size="lg" variant="outline" className="w-full sm:w-auto px-8 py-6 text-lg border-2 bg-white/80 backdrop-blur-sm hover:bg-white transition-all">
-                    {t('home.view-specials')}
-                  </Button>
-                </Link>
-              </div>
-
-              {/* Trust Indicators */}
-              <div className="pt-8 text-sm text-gray-500 drop-shadow-sm">
-                <p>🏆 {t('home.trusted-choice')}</p>
+                  </Link>
+                </Button>
               </div>
             </div>
           </div>
@@ -245,11 +236,11 @@ export default function Home() {
               </div>
 
               <div className="pt-4">
-                <Link href="/custom">
-                  <Button size="lg" className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-white px-8 py-6 text-lg shadow-lg hover:shadow-xl transition-all">
+                <Button asChild size="lg" className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-white px-8 py-6 text-lg shadow-lg hover:shadow-xl transition-all">
+                  <Link href="/custom">
                     {t('home.custom.cta')}
-                  </Button>
-                </Link>
+                  </Link>
+                </Button>
               </div>
             </div>
           </div>

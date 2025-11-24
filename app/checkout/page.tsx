@@ -6,6 +6,7 @@ import { useCart } from '@/contexts/CartContext';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { getCurrentUser, login, register, saveSession } from '@/lib/auth';
 import { getUserByPhone } from '@/lib/api';
+import { getFirstImageUrl } from '@/lib/storage-client';
 import { createOrder } from '@/app/actions/orders';
 import { PageContainer, PageTitle, EmptyState } from '@/components/layout';
 import { Button } from '@/components/ui/button';
@@ -236,7 +237,7 @@ export default function CheckoutPage() {
                       {/* Product Image */}
                       <div className="relative flex-shrink-0 w-20 h-20 bg-white rounded-md overflow-hidden border">
                         <Image
-                          src={item.product?.picture_url}
+                          src={getFirstImageUrl(item.product?.images || [])}
                           alt={item.product?.name || 'Product'}
                           className="w-full h-full object-cover"
                         />

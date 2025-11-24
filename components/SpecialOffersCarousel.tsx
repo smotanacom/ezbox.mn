@@ -49,7 +49,7 @@ export default function SpecialOffersCarousel({
 
   return (
     <section
-      className="relative h-[600px] w-full overflow-hidden"
+      className="relative h-full min-h-[600px] w-full overflow-hidden"
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
     >
@@ -136,7 +136,7 @@ export default function SpecialOffersCarousel({
 
       {/* Navigation Dots */}
       {specials.length > 1 && (
-        <div className="absolute bottom-8 left-0 right-0 z-20 flex justify-center gap-3">
+        <div className="absolute bottom-4 left-0 right-0 z-20 flex justify-center gap-3">
           {specials.map((_, index) => (
             <button
               key={index}

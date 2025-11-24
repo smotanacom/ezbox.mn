@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { adminLogin, saveAdminSession, getAdminSession } from '@/lib/adminAuth';
+import { saveAdminSession, getAdminSession } from '@/lib/adminAuth';
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -12,12 +12,22 @@ export default function AdminLoginPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // Redirect if already logged in
-    const session = getAdminSession();
-    if (session) {
-      router.push('/admin/dashboard');
+    // Check if already logged in via API
+    checkAuth();
+  }, []);
+
+  const checkAuth = async () => {
+    try {
+      const response = await fetch('/api/auth/admin/me');
+      const data = await response.json();
+
+      if (response.ok && data.admin) {
+        router.push('/admin/dashboard');
+      }
+    } catch (err) {
+      // Not logged in, stay on login page
     }
-  }, [router]);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,8 +35,25 @@ export default function AdminLoginPage() {
     setLoading(true);
 
     try {
-      const admin = await adminLogin(username, password);
-      saveAdminSession(admin);
+      const response = await fetch('/api/auth/admin/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Login failed');
+      }
+
+      // Also save to localStorage for client-side checks (optional)
+      if (data.admin) {
+        saveAdminSession(data.admin);
+      }
+
       router.push('/admin/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');

@@ -2,8 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { getCurrentUser, clearSession } from '@/lib/auth';
-import { getUserOrders } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import {
@@ -18,72 +16,39 @@ import { Badge } from '@/components/ui/badge';
 import { ShoppingCart, User, LogOut, Package, Settings } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
 import { useTranslation } from '@/contexts/LanguageContext';
+import { useAuth } from '@/hooks/useAuth';
+import { orderAPI } from '@/lib/api-client';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
-import type { User as UserType } from '@/types/database';
 
 export default function Header() {
   const router = useRouter();
   const { items } = useCart();
   const { t } = useTranslation();
-  const [user, setUser] = useState<UserType | null>(null);
+  const { user, logout } = useAuth();
   const [hasOrders, setHasOrders] = useState(false);
   const [orderCount, setOrderCount] = useState(0);
 
   useEffect(() => {
-    // Check for user on mount
-    const currentUser = getCurrentUser();
-    setUser(currentUser);
-
     // Check if user has orders
-    if (currentUser) {
-      getUserOrders(currentUser.id).then(orders => {
+    if (user) {
+      orderAPI.getAll().then(({ orders }) => {
         setHasOrders(orders.length > 0);
         setOrderCount(orders.length);
+      }).catch(() => {
+        setHasOrders(false);
+        setOrderCount(0);
       });
     } else {
       setHasOrders(false);
       setOrderCount(0);
     }
+  }, [user]);
 
-    // Listen for storage changes (login/logout in other tabs)
-    const handleStorageChange = () => {
-      const updatedUser = getCurrentUser();
-      setUser(updatedUser);
-      if (updatedUser) {
-        getUserOrders(updatedUser.id).then(orders => {
-          setHasOrders(orders.length > 0);
-          setOrderCount(orders.length);
-        });
-      } else {
-        setHasOrders(false);
-        setOrderCount(0);
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-
-    // Custom event for login/logout in same tab
-    const handleAuthChange = () => {
-      const updatedUser = getCurrentUser();
-      setUser(updatedUser);
-      if (updatedUser) {
-        getUserOrders(updatedUser.id).then(orders => {
-          setHasOrders(orders.length > 0);
-          setOrderCount(orders.length);
-        });
-      } else {
-        setHasOrders(false);
-        setOrderCount(0);
-      }
-    };
-
-    window.addEventListener('auth-change', handleAuthChange);
-
-    // Listen for order creation events
+  // Listen for order creation events
+  useEffect(() => {
     const handleOrderCreated = () => {
-      const updatedUser = getCurrentUser();
-      if (updatedUser) {
-        getUserOrders(updatedUser.id).then(orders => {
+      if (user) {
+        orderAPI.getAll().then(({ orders }) => {
           setHasOrders(orders.length > 0);
           setOrderCount(orders.length);
         });
@@ -91,20 +56,15 @@ export default function Header() {
     };
 
     window.addEventListener('order-created', handleOrderCreated);
-
     return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('auth-change', handleAuthChange);
       window.removeEventListener('order-created', handleOrderCreated);
     };
-  }, []);
+  }, [user]);
 
-  const handleLogout = () => {
-    clearSession();
-    setUser(null);
+  const handleLogout = async () => {
+    await logout();
     setHasOrders(false);
     setOrderCount(0);
-    window.dispatchEvent(new Event('auth-change'));
     router.push('/');
   };
 

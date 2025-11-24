@@ -9,14 +9,20 @@ import { supabase } from '@/lib/supabase';
 interface DashboardStats {
   totalOrders: number;
   pendingOrders: number;
+  processingOrders: number;
+  shippedOrders: number;
   completedOrders: number;
+  cancelledOrders: number;
 }
 
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState<DashboardStats>({
     totalOrders: 0,
     pendingOrders: 0,
+    processingOrders: 0,
+    shippedOrders: 0,
     completedOrders: 0,
+    cancelledOrders: 0,
   });
   const [loading, setLoading] = useState(true);
 
@@ -34,12 +40,18 @@ export default function AdminDashboardPage() {
 
       const totalOrders = orders?.length || 0;
       const pendingOrders = orders?.filter((o: any) => o.status === 'pending').length || 0;
+      const processingOrders = orders?.filter((o: any) => o.status === 'processing').length || 0;
+      const shippedOrders = orders?.filter((o: any) => o.status === 'shipped').length || 0;
       const completedOrders = orders?.filter((o: any) => o.status === 'completed').length || 0;
+      const cancelledOrders = orders?.filter((o: any) => o.status === 'cancelled').length || 0;
 
       setStats({
         totalOrders,
         pendingOrders,
+        processingOrders,
+        shippedOrders,
         completedOrders,
+        cancelledOrders,
       });
     } catch (error) {
       console.error('Error fetching stats:', error);
@@ -66,20 +78,33 @@ export default function AdminDashboardPage() {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                <div className="bg-white rounded-lg shadow-md p-6">
-                  <div className="text-sm font-medium text-gray-600 mb-2">Total Orders</div>
-                  <div className="text-3xl font-bold text-gray-900">{stats.totalOrders}</div>
-                </div>
-
-                <div className="bg-white rounded-lg shadow-md p-6">
-                  <div className="text-sm font-medium text-gray-600 mb-2">Pending Orders</div>
-                  <div className="text-3xl font-bold text-orange-600">{stats.pendingOrders}</div>
-                </div>
-
-                <div className="bg-white rounded-lg shadow-md p-6">
-                  <div className="text-sm font-medium text-gray-600 mb-2">Completed Orders</div>
-                  <div className="text-3xl font-bold text-green-600">{stats.completedOrders}</div>
+              <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+                <h2 className="text-lg font-bold text-gray-900 mb-4">Order Statistics</h2>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                  <div>
+                    <div className="text-xs font-medium text-gray-600 mb-1">Total</div>
+                    <div className="text-2xl font-bold text-gray-900">{stats.totalOrders}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs font-medium text-gray-600 mb-1">Pending</div>
+                    <div className="text-2xl font-bold text-yellow-600">{stats.pendingOrders}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs font-medium text-gray-600 mb-1">Processing</div>
+                    <div className="text-2xl font-bold text-blue-600">{stats.processingOrders}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs font-medium text-gray-600 mb-1">Shipped</div>
+                    <div className="text-2xl font-bold text-purple-600">{stats.shippedOrders}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs font-medium text-gray-600 mb-1">Completed</div>
+                    <div className="text-2xl font-bold text-green-600">{stats.completedOrders}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs font-medium text-gray-600 mb-1">Cancelled</div>
+                    <div className="text-2xl font-bold text-red-600">{stats.cancelledOrders}</div>
+                  </div>
                 </div>
               </div>
 
@@ -130,6 +155,29 @@ export default function AdminDashboardPage() {
                     </svg>
                   </div>
                   <p className="text-gray-600">Manage products, categories, and parameter groups.</p>
+                </Link>
+
+                <Link
+                  href="/admin/categories"
+                  className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition group"
+                >
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-xl font-bold text-gray-900">Categories</h2>
+                    <svg
+                      className="w-8 h-8 text-blue-600 group-hover:text-blue-700"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
+                      />
+                    </svg>
+                  </div>
+                  <p className="text-gray-600">Manage product categories and organization.</p>
                 </Link>
 
                 <Link

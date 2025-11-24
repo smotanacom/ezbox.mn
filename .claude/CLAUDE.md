@@ -157,7 +157,140 @@ When you need to include dynamic values (like counts), use string replacement:
 
 **Language Switcher**: Flag-based toggle in header (🇬🇧/🇲🇳), positioned rightmost in navigation. Shows opposite language flag (when Mongolian is active, shows UK flag to switch to English).
 
-## Database Schema (11 Tables)
+### 6. History Tracking System
+
+**CRITICAL: All changes to orders, products, and other entities MUST be recorded in the history table.**
+
+#### When to Record History
+
+You MUST create a history record whenever:
+- **Orders**: Status changes, address updates, contact information changes
+- **Products**: Price changes, status changes, name/description updates
+- **Specials**: Status changes, price changes
+- **Any other entity**: Any field that affects business operations or customer experience
+
+#### How to Record History
+
+**Step 1**: Import the history function
+```typescript
+import { createHistoryRecord } from '@/lib/api';
+```
+
+**Step 2**: Before updating an entity, get the current value
+```typescript
+// Example: Before updating order status
+const { data: currentOrder } = await supabase
+  .from('orders')
+  .select('status')
+  .eq('id', orderId)
+  .single();
+
+const oldStatus = currentOrder?.status;
+```
+
+**Step 3**: Perform the update
+```typescript
+const { data, error } = await supabase
+  .from('orders')
+  .update({ status: newStatus })
+  .eq('id', orderId)
+  .select()
+  .single();
+```
+
+**Step 4**: Record the change in history
+```typescript
+await createHistoryRecord({
+  entity_type: 'order',           // 'order', 'product', 'special', etc.
+  entity_id: orderId,              // ID of the entity that changed
+  action: 'status_changed',        // 'created', 'updated', 'status_changed', 'deleted', etc.
+  field_name: 'status',            // Optional: specific field that changed
+  old_value: oldStatus,            // Optional: previous value
+  new_value: newStatus,            // Optional: new value
+  changed_by_admin_id: adminId,    // If changed by admin
+  changed_by_user_id: userId,      // If changed by user
+  notes: 'Additional context',     // Optional: any additional notes
+});
+```
+
+#### History Actions
+
+Use these standard action names:
+- `'created'` - Entity was created
+- `'updated'` - General update (when field_name is specified)
+- `'status_changed'` - Status field changed
+- `'deleted'` - Entity was deleted (soft delete)
+- `'note_added'` - Note or comment was added
+
+#### Who Changed It
+
+Always track who made the change:
+- **Admin changes**: Pass `changed_by_admin_id` (from `requireAdmin()` result)
+- **User changes**: Pass `changed_by_user_id` (from user session)
+- **System changes**: Omit both IDs and add a note like "Automated system update"
+
+#### Example: Complete Order Status Update
+
+```typescript
+export async function updateOrderStatus(
+  orderId: number,
+  status: string,
+  changedByAdminId?: number
+): Promise<Order> {
+  // 1. Get current state
+  const { data: currentOrder } = await supabase
+    .from('orders')
+    .select('status')
+    .eq('id', orderId)
+    .single();
+
+  const oldStatus = currentOrder?.status;
+
+  // 2. Perform update
+  const { data, error } = await supabase
+    .from('orders')
+    .update({ status, updated_at: new Date().toISOString() })
+    .eq('id', orderId)
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  // 3. Record history (only if status actually changed)
+  if (oldStatus && oldStatus !== status) {
+    await createHistoryRecord({
+      entity_type: 'order',
+      entity_id: orderId,
+      action: 'status_changed',
+      field_name: 'status',
+      old_value: oldStatus,
+      new_value: status,
+      changed_by_admin_id: changedByAdminId,
+    });
+  }
+
+  return data as Order;
+}
+```
+
+#### History API Functions
+
+Available in `lib/api.ts`:
+- `createHistoryRecord(record)` - Create a new history entry
+- `getHistoryForEntity(entity_type, entity_id)` - Get all history for an entity
+- `getRecentHistory(limit)` - Get recent history across all entities
+
+#### Viewing History
+
+History is automatically displayed in the admin order detail page (`app/admin/orders/[id]/page.tsx`). It shows:
+- What action was performed
+- What changed (field name, old → new values)
+- Who made the change (admin username or user phone)
+- When it happened (formatted timestamp)
+
+**Remember**: History tracking is NOT optional - it's a critical audit trail for business operations. Always add history tracking when implementing new update endpoints or functions.
+
+## Database Schema (12 Tables)
 
 ### Core Tables
 
@@ -197,6 +330,15 @@ When you need to include dynamic values (like counts), use string replacement:
 
 **special_items** - Products in specials
 - `id`, `special_id`, `product_id`, `quantity`, `selected_parameters` (JSONB)
+
+### History Tracking
+
+**history** - Audit trail for all entity changes
+- `id`, `entity_type`, `entity_id`, `action`, `field_name`, `old_value`, `new_value`
+- `changed_by_user_id`, `changed_by_admin_id`, `notes`, `created_at`
+- Tracks all changes to orders, products, and other entities
+- Linked to both `users` (for customer changes) and `admins` (for admin changes)
+- See "History Tracking System" section above for usage guidelines
 
 ## Important Functions & APIs
 

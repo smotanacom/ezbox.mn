@@ -59,7 +59,6 @@ export interface Database {
           name: string
           description: string | null
           base_price: number
-          picture_url: string | null
           status: string
           created_at: string
           updated_at: string
@@ -70,7 +69,6 @@ export interface Database {
           name: string
           description?: string | null
           base_price?: number
-          picture_url?: string | null
           status?: string
           created_at?: string
           updated_at?: string
@@ -81,7 +79,6 @@ export interface Database {
           name?: string
           description?: string | null
           base_price?: number
-          picture_url?: string | null
           status?: string
           created_at?: string
           updated_at?: string
@@ -377,6 +374,105 @@ export interface Database {
           updated_at?: string
         }
       }
+      product_images: {
+        Row: {
+          id: string
+          product_id: number
+          storage_path: string
+          thumbnail_path: string
+          medium_path: string
+          display_order: number
+          alt_text: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          product_id: number
+          storage_path: string
+          thumbnail_path: string
+          medium_path: string
+          display_order?: number
+          alt_text?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          product_id?: number
+          storage_path?: string
+          thumbnail_path?: string
+          medium_path?: string
+          display_order?: number
+          alt_text?: string | null
+          created_at?: string
+        }
+      }
+      product_models: {
+        Row: {
+          id: string
+          product_id: number
+          storage_path: string
+          file_size: number
+          file_format: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          product_id: number
+          storage_path: string
+          file_size: number
+          file_format: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          product_id?: number
+          storage_path?: string
+          file_size?: number
+          file_format?: string
+          created_at?: string
+        }
+      }
+      history: {
+        Row: {
+          id: number
+          entity_type: string
+          entity_id: number
+          action: string
+          field_name: string | null
+          old_value: string | null
+          new_value: string | null
+          changed_by_user_id: number | null
+          changed_by_admin_id: number | null
+          notes: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: number
+          entity_type: string
+          entity_id: number
+          action: string
+          field_name?: string | null
+          old_value?: string | null
+          new_value?: string | null
+          changed_by_user_id?: number | null
+          changed_by_admin_id?: number | null
+          notes?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: number
+          entity_type?: string
+          entity_id?: number
+          action?: string
+          field_name?: string | null
+          old_value?: string | null
+          new_value?: string | null
+          changed_by_user_id?: number | null
+          changed_by_admin_id?: number | null
+          notes?: string | null
+          created_at?: string
+        }
+      }
     }
   }
 }
@@ -394,6 +490,9 @@ export type Order = Database['public']['Tables']['orders']['Row']
 export type Special = Database['public']['Tables']['specials']['Row']
 export type SpecialItem = Database['public']['Tables']['special_items']['Row']
 export type Admin = Database['public']['Tables']['admins']['Row']
+export type ProductImage = Database['public']['Tables']['product_images']['Row']
+export type ProductModel = Database['public']['Tables']['product_models']['Row']
+export type History = Database['public']['Tables']['history']['Row']
 
 // Extended types for frontend use
 export interface ProductWithDetails extends Product {
@@ -403,6 +502,8 @@ export interface ProductWithDetails extends Product {
     default_parameter?: Parameter
     parameters?: Parameter[]
   })[]
+  images?: ProductImage[]
+  model?: ProductModel | null
 }
 
 export interface CartItemWithDetails extends ProductInCart {
@@ -416,5 +517,10 @@ export interface SpecialWithItems extends Special {
 }
 
 export interface ParameterSelection {
-  [parameterGroupId: number]: number // parameter_group_id -> parameter_id
+  [parameterGroupId: string]: number // parameter_group_id -> parameter_id (keys are strings in JS)
+}
+
+export interface HistoryWithUser extends History {
+  changed_by?: Pick<User, 'id' | 'phone' | 'is_admin'>
+  changed_by_admin?: Pick<Admin, 'id' | 'username'>
 }

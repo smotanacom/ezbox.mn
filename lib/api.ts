@@ -14,6 +14,8 @@ import type {
   ParameterSelection,
   Order,
   User,
+  History,
+  HistoryWithUser,
 } from '@/types/database';
 
 // Categories
@@ -59,17 +61,35 @@ export async function getProductWithDetails(productId: number): Promise<ProductW
   if (productError) throw productError;
   if (!product) return null;
 
-  // Get parameter groups for this product
-  const { data: paramGroups, error: paramGroupsError } = await supabase
-    .from('product_parameter_groups')
-    .select(`
-      *,
-      parameter_group:parameter_groups(*),
-      default_parameter:parameters(*)
-    `)
-    .eq('product_id', productId);
+  // Get parameter groups, images, and model in parallel
+  const [
+    { data: paramGroups, error: paramGroupsError },
+    { data: images, error: imagesError },
+    { data: model, error: modelError }
+  ] = await Promise.all([
+    supabase
+      .from('product_parameter_groups')
+      .select(`
+        *,
+        parameter_group:parameter_groups(*),
+        default_parameter:parameters(*)
+      `)
+      .eq('product_id', productId),
+    supabase
+      .from('product_images')
+      .select('*')
+      .eq('product_id', productId)
+      .order('display_order', { ascending: true }),
+    supabase
+      .from('product_models')
+      .select('*')
+      .eq('product_id', productId)
+      .single()
+  ]);
 
   if (paramGroupsError) throw paramGroupsError;
+  if (imagesError) throw imagesError;
+  // modelError is OK if no model exists (PGRST116 = no rows)
 
   // Get all parameters for each parameter group
   const parameterGroupsWithParams = await Promise.all(
@@ -89,6 +109,8 @@ export async function getProductWithDetails(productId: number): Promise<ProductW
   return {
     ...(product as any),
     parameter_groups: parameterGroupsWithParams,
+    images: images || [],
+    model: (modelError?.code === 'PGRST116') ? null : (model || null),
   };
 }
 
@@ -101,6 +123,8 @@ async function _getAllProductsWithDetailsFromDB(includeInactive = false): Promis
     { data: productParamGroups, error: ppgError },
     { data: parameterGroups, error: pgError },
     { data: parameters, error: paramsError },
+    { data: images, error: imagesError },
+    { data: models, error: modelsError },
   ] = await Promise.all([
     includeInactive
       ? supabase.from('products').select('*').order('id')
@@ -109,6 +133,8 @@ async function _getAllProductsWithDetailsFromDB(includeInactive = false): Promis
     supabase.from('product_parameter_groups').select('*'),
     supabase.from('parameter_groups').select('*').order('id'),
     supabase.from('parameters').select('*').order('id'),
+    supabase.from('product_images').select('*').order('display_order', { ascending: true }),
+    supabase.from('product_models').select('*'),
   ]);
 
   if (productsError) throw productsError;
@@ -116,6 +142,8 @@ async function _getAllProductsWithDetailsFromDB(includeInactive = false): Promis
   if (ppgError) throw ppgError;
   if (pgError) throw pgError;
   if (paramsError) throw paramsError;
+  if (imagesError) throw imagesError;
+  if (modelsError) throw modelsError;
 
   if (!products) return [];
 
@@ -139,6 +167,18 @@ async function _getAllProductsWithDetailsFromDB(includeInactive = false): Promis
     return acc;
   }, {} as Record<number, any[]>);
 
+  // Group images by product_id
+  const imagesByProductId = (images || []).reduce((acc: any, img: any) => {
+    if (!acc[img.product_id]) {
+      acc[img.product_id] = [];
+    }
+    acc[img.product_id].push(img);
+    return acc;
+  }, {} as Record<number, any[]>);
+
+  // Group models by product_id
+  const modelsByProductId = new Map(models?.map((m: any) => [m.product_id, m]) || []);
+
   // Assemble the complete product details
   return products.map((product: any) => {
     const category = categoryMap.get(product.category_id);
@@ -161,6 +201,8 @@ async function _getAllProductsWithDetailsFromDB(includeInactive = false): Promis
       ...product,
       category,
       parameter_groups: parameterGroupsWithParams,
+      images: imagesByProductId[product.id] || [],
+      model: modelsByProductId.get(product.id) || null,
     };
   });
 }
@@ -456,6 +498,157 @@ export async function addSpecialToCart(
   }
 }
 
+// Admin: Special Management
+export async function createSpecial(special: {
+  name: string;
+  description?: string;
+  discounted_price: number;
+  status?: string;
+  picture_url?: string;
+}): Promise<Special> {
+  const { data, error } = await supabase
+    .from('specials')
+    .insert({
+      name: special.name,
+      description: special.description || null,
+      discounted_price: special.discounted_price,
+      status: special.status || 'draft',
+      picture_url: special.picture_url || null,
+    } as any)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Supabase error details:', {
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      code: error.code,
+    });
+    throw new Error(error.message || 'Failed to create special');
+  }
+  return data as Special;
+}
+
+export async function updateSpecial(
+  specialId: number,
+  updates: {
+    name?: string;
+    description?: string;
+    discounted_price?: number;
+    status?: string;
+    picture_url?: string;
+  }
+): Promise<Special> {
+  const { data, error } = await (supabase as any)
+    .from('specials')
+    .update({
+      ...updates,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', specialId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as Special;
+}
+
+export async function deleteSpecial(specialId: number): Promise<void> {
+  // First delete all special_items entries
+  await supabase
+    .from('special_items')
+    .delete()
+    .eq('special_id', specialId);
+
+  // Then delete the special
+  const { error } = await supabase
+    .from('specials')
+    .delete()
+    .eq('id', specialId);
+
+  if (error) throw error;
+}
+
+export async function getSpecialWithDetails(specialId: number): Promise<SpecialWithItems | null> {
+  const { data: special, error: specialError } = await supabase
+    .from('specials')
+    .select('*')
+    .eq('id', specialId)
+    .single();
+
+  if (specialError) throw specialError;
+  if (!special) return null;
+
+  // Get items for this special
+  const { data: items, error: itemsError } = await supabase
+    .from('special_items')
+    .select(`
+      *,
+      product:products(*)
+    `)
+    .eq('special_id', specialId);
+
+  if (itemsError) throw itemsError;
+
+  return {
+    ...special,
+    items: items || [],
+  } as SpecialWithItems;
+}
+
+export async function addItemToSpecial(
+  specialId: number,
+  productId: number,
+  quantity: number,
+  selectedParameters?: ParameterSelection
+): Promise<SpecialItem> {
+  const { data, error } = await supabase
+    .from('special_items')
+    .insert({
+      special_id: specialId,
+      product_id: productId,
+      quantity,
+      selected_parameters: selectedParameters || null,
+    } as any)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as SpecialItem;
+}
+
+export async function updateSpecialItem(
+  itemId: number,
+  quantity?: number,
+  selectedParameters?: ParameterSelection
+): Promise<SpecialItem> {
+  const updates: any = {};
+  if (quantity !== undefined) updates.quantity = quantity;
+  if (selectedParameters !== undefined) {
+    updates.selected_parameters = selectedParameters;
+  }
+
+  const { data, error } = await (supabase as any)
+    .from('special_items')
+    .update(updates)
+    .eq('id', itemId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as SpecialItem;
+}
+
+export async function removeItemFromSpecial(itemId: number): Promise<void> {
+  const { error } = await supabase
+    .from('special_items')
+    .delete()
+    .eq('id', itemId);
+
+  if (error) throw error;
+}
+
 // Calculate product price with parameters
 export function calculateProductPrice(
   product: ProductWithDetails,
@@ -513,6 +706,21 @@ export async function createOrder(
     .eq('id', cartId) as any);
 
   const order = data as Order;
+
+  // Record order creation in history
+  try {
+    await createHistoryRecord({
+      entity_type: 'order',
+      entity_id: order.id,
+      action: 'created',
+      new_value: 'pending',
+      changed_by_user_id: userId || undefined,
+      notes: `Order created by ${name} (${phone})`,
+    });
+  } catch (historyError) {
+    console.error('Failed to record order creation in history:', historyError);
+    // Continue - don't fail the order if history fails
+  }
 
   // Send order notification email (non-blocking, don't fail order if email fails)
   try {
@@ -600,7 +808,17 @@ export async function getAllOrders(filters?: {
 }
 
 // Admin: Update order status
-export async function updateOrderStatus(orderId: number, status: string): Promise<Order> {
+export async function updateOrderStatus(orderId: number, status: string, changedByAdminId?: number): Promise<Order> {
+  // Get current order to track old status
+  const { data: currentOrder, error: fetchError } = await supabase
+    .from('orders')
+    .select('status')
+    .eq('id', orderId)
+    .single();
+
+  const oldStatus = (currentOrder as any)?.status || null;
+
+  // Update order status
   const { data, error } = await (supabase as any)
     .from('orders')
     .update({
@@ -612,6 +830,20 @@ export async function updateOrderStatus(orderId: number, status: string): Promis
     .single();
 
   if (error) throw error;
+
+  // Record history if status changed
+  if (oldStatus && oldStatus !== status) {
+    await createHistoryRecord({
+      entity_type: 'order',
+      entity_id: orderId,
+      action: 'status_changed',
+      field_name: 'status',
+      old_value: oldStatus,
+      new_value: status,
+      changed_by_admin_id: changedByAdminId,
+    });
+  }
+
   return data as Order;
 }
 
@@ -656,7 +888,6 @@ export async function createProduct(product: {
   category_id?: number | null;
   description?: string;
   base_price: number;
-  picture_url?: string;
   status?: string;
 }): Promise<Product> {
   const { data, error } = await supabase
@@ -666,7 +897,6 @@ export async function createProduct(product: {
       category_id: product.category_id || null,
       description: product.description || null,
       base_price: product.base_price,
-      picture_url: product.picture_url || null,
       status: product.status || 'active',
     } as any)
     .select()
@@ -691,7 +921,6 @@ export async function updateProduct(
     category_id?: number | null;
     description?: string;
     base_price?: number;
-    picture_url?: string;
     status?: string;
   }
 ): Promise<Product> {
@@ -786,7 +1015,7 @@ export async function deleteParameterGroup(groupId: number): Promise<void> {
   if (error) throw error;
 }
 
-export async function cloneParameterGroup(groupId: number): Promise<ParameterGroup> {
+export async function cloneParameterGroup(groupId: number, newName?: string): Promise<ParameterGroup> {
   // Get the original group
   const { data: originalGroup, error: groupError } = await supabase
     .from('parameter_groups')
@@ -805,9 +1034,9 @@ export async function cloneParameterGroup(groupId: number): Promise<ParameterGro
 
   if (paramsError) throw paramsError;
 
-  // Create new group with "(Copy)" suffix
-  const newGroupName = `${(originalGroup as any).name} (Copy)`;
-  const newInternalName = `${(originalGroup as any).internal_name || (originalGroup as any).name} (Copy)`;
+  // Create new group with custom name or "(Copy)" suffix
+  const newGroupName = newName || `${(originalGroup as any).name} (Copy)`;
+  const newInternalName = newName || `${(originalGroup as any).internal_name || (originalGroup as any).name} (Copy)`;
 
   const { data: newGroup, error: newGroupError } = await supabase
     .from('parameter_groups')
@@ -981,4 +1210,156 @@ export async function deleteCategory(categoryId: number): Promise<void> {
     .eq('id', categoryId);
 
   if (error) throw error;
+}
+
+// History Tracking
+export async function createHistoryRecord(record: {
+  entity_type: string;
+  entity_id: number;
+  action: string;
+  field_name?: string;
+  old_value?: string;
+  new_value?: string;
+  changed_by_user_id?: number;
+  changed_by_admin_id?: number;
+  notes?: string;
+}): Promise<History> {
+  const { data, error } = await supabase
+    .from('history')
+    .insert({
+      entity_type: record.entity_type,
+      entity_id: record.entity_id,
+      action: record.action,
+      field_name: record.field_name || null,
+      old_value: record.old_value || null,
+      new_value: record.new_value || null,
+      changed_by_user_id: record.changed_by_user_id || null,
+      changed_by_admin_id: record.changed_by_admin_id || null,
+      notes: record.notes || null,
+    } as any)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as History;
+}
+
+export async function getHistoryForEntity(
+  entity_type: string,
+  entity_id: number
+): Promise<HistoryWithUser[]> {
+  // Fetch history records
+  const { data: historyData, error } = await supabase
+    .from('history')
+    .select('*')
+    .eq('entity_type', entity_type)
+    .eq('entity_id', entity_id)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching history:', error);
+    throw error;
+  }
+
+  if (!historyData || historyData.length === 0) {
+    return [];
+  }
+
+  // Manually fetch related users and admins
+  const userIds = historyData
+    .filter((h: any) => h.changed_by_user_id)
+    .map((h: any) => h.changed_by_user_id);
+
+  const adminIds = historyData
+    .filter((h: any) => h.changed_by_admin_id)
+    .map((h: any) => h.changed_by_admin_id);
+
+  // Fetch users
+  const usersMap = new Map();
+  if (userIds.length > 0) {
+    const { data: users } = await supabase
+      .from('users')
+      .select('id, phone, is_admin')
+      .in('id', userIds);
+
+    users?.forEach((user: any) => usersMap.set(user.id, user));
+  }
+
+  // Fetch admins
+  const adminsMap = new Map();
+  if (adminIds.length > 0) {
+    const { data: admins } = await supabase
+      .from('admins')
+      .select('id, username')
+      .in('id', adminIds);
+
+    admins?.forEach((admin: any) => adminsMap.set(admin.id, admin));
+  }
+
+  // Combine data
+  const result = historyData.map((h: any) => ({
+    ...h,
+    changed_by: h.changed_by_user_id ? usersMap.get(h.changed_by_user_id) : undefined,
+    changed_by_admin: h.changed_by_admin_id ? adminsMap.get(h.changed_by_admin_id) : undefined,
+  }));
+
+  return result as HistoryWithUser[];
+}
+
+export async function getRecentHistory(limit = 50): Promise<HistoryWithUser[]> {
+  // Fetch history records
+  const { data: historyData, error } = await supabase
+    .from('history')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    console.error('Error fetching recent history:', error);
+    throw error;
+  }
+
+  if (!historyData || historyData.length === 0) {
+    return [];
+  }
+
+  // Manually fetch related users and admins
+  const userIds = historyData
+    .filter((h: any) => h.changed_by_user_id)
+    .map((h: any) => h.changed_by_user_id);
+
+  const adminIds = historyData
+    .filter((h: any) => h.changed_by_admin_id)
+    .map((h: any) => h.changed_by_admin_id);
+
+  // Fetch users
+  const usersMap = new Map();
+  if (userIds.length > 0) {
+    const { data: users } = await supabase
+      .from('users')
+      .select('id, phone, is_admin')
+      .in('id', userIds);
+
+    users?.forEach((user: any) => usersMap.set(user.id, user));
+  }
+
+  // Fetch admins
+  const adminsMap = new Map();
+  if (adminIds.length > 0) {
+    const { data: admins } = await supabase
+      .from('admins')
+      .select('id, username')
+      .in('id', adminIds);
+
+    admins?.forEach((admin: any) => adminsMap.set(admin.id, admin));
+  }
+
+  // Combine data
+  const result = historyData.map((h: any) => ({
+    ...h,
+    changed_by: h.changed_by_user_id ? usersMap.get(h.changed_by_user_id) : undefined,
+    changed_by_admin: h.changed_by_admin_id ? adminsMap.get(h.changed_by_admin_id) : undefined,
+  }));
+
+  return result as HistoryWithUser[];
 }

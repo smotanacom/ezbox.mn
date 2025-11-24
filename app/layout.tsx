@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
+import Script from 'next/script';
 import './globals.css';
 import { CartProvider } from '@/contexts/CartContext';
 import { LanguageProvider } from '@/contexts/LanguageContext';
@@ -47,6 +48,16 @@ export default function RootLayout({
   return (
     <html lang="mn">
       <body className={`${inter.className} flex flex-col min-h-screen`}>
+        {/* Configure meshopt decoder for model-viewer */}
+        <Script id="meshopt-config" strategy="beforeInteractive">
+          {`
+            // Configure model-viewer to use local meshopt decoder
+            window.ModelViewerElement = window.ModelViewerElement || {};
+            window.ModelViewerElement.meshoptDecoderLocation = '/meshopt_decoder.js';
+
+            console.log('✓ Meshopt decoder configured to use local file');
+          `}
+        </Script>
         <LanguageProvider>
           <CartProvider>
             <Header />

@@ -4,11 +4,12 @@ import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import ProductCard from '@/components/ProductCard';
-import type { Category, Product } from '@/types/database';
+import { getFirstImageUrl } from '@/lib/storage-client';
+import type { Category, ProductWithDetails } from '@/types/database';
 
 interface CategoryScrollerProps {
   category: Category;
-  products: Product[];
+  products: ProductWithDetails[];
 }
 
 export default function CategoryScroller({ category, products }: CategoryScrollerProps) {
@@ -114,7 +115,7 @@ export default function CategoryScroller({ category, products }: CategoryScrolle
                 </Link>
               );
             } else {
-              const product = item.data as Product;
+              const product = item.data as ProductWithDetails;
               return (
                 <Link
                   key={`product-${product.id}`}
@@ -122,7 +123,7 @@ export default function CategoryScroller({ category, products }: CategoryScrolle
                   className="flex-shrink-0 w-[45vw] sm:w-[30vw] md:w-[23vw] lg:w-[18vw] xl:w-[15vw]"
                 >
                   <ProductCard
-                    imageUrl={product.picture_url}
+                    imageUrl={getFirstImageUrl(product.images || [])}
                     title={product.name}
                     price={product.base_price}
                   />

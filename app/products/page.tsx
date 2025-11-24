@@ -11,7 +11,7 @@ import { useCart } from '@/contexts/CartContext';
 import ProductCard from '@/components/ProductCard';
 import ProductConfigRow from '@/components/ProductConfigRow';
 import Cart from '@/components/Cart';
-import HorizontalScroller from '@/components/HorizontalScroller';
+import CategorySelector from '@/components/CategorySelector';
 import { PageContainer, PageTitle, SectionHeader, LoadingState } from '@/components/layout';
 import { Button } from '@/components/ui/button';
 import { ShoppingCart, Check } from 'lucide-react';
@@ -30,6 +30,7 @@ function ProductsContent() {
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<ProductWithDetails[]>([]);
+  const [productsByCategory, setProductsByCategory] = useState<Record<number, ProductWithDetails[]>>({});
   const [loading, setLoading] = useState(true);
   const [addingToCart, setAddingToCart] = useState<Set<number>>(new Set());
   const [cartErrors, setCartErrors] = useState<Record<number, string>>({});
@@ -61,8 +62,20 @@ function ProductsContent() {
         });
         const cats = Array.from(categoryMap.values()).sort((a, b) => a.id - b.id);
 
+        // Group products by category
+        const grouped: Record<number, ProductWithDetails[]> = {};
+        for (const product of prods) {
+          if (product.category_id) {
+            if (!grouped[product.category_id]) {
+              grouped[product.category_id] = [];
+            }
+            grouped[product.category_id].push(product);
+          }
+        }
+
         setCategories(cats);
         setProducts(prods);
+        setProductsByCategory(grouped);
 
         // Set initial selections from URL params
         const categoryParam = searchParams.get('category');
@@ -238,87 +251,88 @@ function ProductsContent() {
     return <LoadingState />;
   }
 
+  const renderProductConfiguration = () => {
+    if (filteredProducts.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center text-muted-foreground py-12">
+          {selectedCategoryId
+            ? t('products.no-products')
+            : t('products.select-category')}
+        </div>
+      );
+    }
+
+    return (
+      <div>
+        {filteredProducts.map((product, productIndex) => {
+          const config = productConfigs[product.id] || { parameters: {}, quantity: 1 };
+          const price = getProductPrice(product);
+          const totalPrice = price * config.quantity;
+
+          const isAdding = addingToCart.has(product.id);
+          const isAdded = addedToCart.has(product.id);
+          const error = cartErrors[product.id];
+
+          return (
+            <ProductConfigRow
+              key={product.id}
+              product={product}
+              selectedParameters={config.parameters}
+              quantity={config.quantity}
+              onParameterChange={(paramGroupId, paramId) =>
+                handleParameterChange(product.id, paramGroupId, paramId)
+              }
+              onQuantityChange={(newQuantity) =>
+                handleQuantityChange(product.id, newQuantity)
+              }
+              price={price}
+              totalPrice={totalPrice}
+              disabled={isAdding}
+              actions={
+                <div className="flex flex-col gap-2">
+                  <Button
+                    onClick={() => handleAddToCart(product.id)}
+                    disabled={isAdding || isAdded}
+                    size="sm"
+                    className="bg-secondary hover:bg-secondary/90"
+                  >
+                    {isAdded && <Check className="mr-2 h-4 w-4" />}
+                    {!isAdded && !isAdding && <ShoppingCart className="mr-2 h-4 w-4" />}
+                    {isAdding ? t('products.adding') : isAdded ? t('products.added') : t('products.add')}
+                  </Button>
+                  {error && (
+                    <p className="text-xs text-destructive">{error}</p>
+                  )}
+                </div>
+              }
+            />
+          );
+        })}
+      </div>
+    );
+  };
+
   return (
     <>
       <PageContainer className="pb-[calc(40vh+2rem)]">
-      {/* Categories Section - Netflix Style Scroller */}
-      <section className="mb-12 -mx-4 sm:-mx-6 lg:-mx-12">
-        <SectionHeader className="px-4 sm:px-6 lg:px-12">{t('home.categories.title')}</SectionHeader>
-          <HorizontalScroller>
-            {categories.map((cat) => (
-              <div key={cat.id} className="flex-shrink-0 w-[45vw] sm:w-[30vw] md:w-[23vw] lg:w-[18vw] xl:w-[15vw]">
-                <ProductCard
-                  imageUrl={cat.picture_url}
-                  title={cat.name}
-                  selected={selectedCategoryId === cat.id}
-                  onClick={() => {
-                    setSelectedCategoryId(cat.id);
-                    const categoryProducts = products.filter((p) => p.category_id === cat.id);
-                    initializeProductConfigs(categoryProducts);
-                    router.push(`/products?category=${cat.id}`);
-                  }}
-                />
-              </div>
-            ))}
-          </HorizontalScroller>
-        </section>
-
-      {/* Product Configuration Section */}
-      <section>
-        {filteredProducts.length > 0 ? (
-          <div>
-            {filteredProducts.map((product, productIndex) => {
-              const config = productConfigs[product.id] || { parameters: {}, quantity: 1 };
-              const price = getProductPrice(product);
-              const totalPrice = price * config.quantity;
-
-              const isAdding = addingToCart.has(product.id);
-              const isAdded = addedToCart.has(product.id);
-              const error = cartErrors[product.id];
-
-              return (
-                <ProductConfigRow
-                  key={product.id}
-                  product={product}
-                  selectedParameters={config.parameters}
-                  quantity={config.quantity}
-                  onParameterChange={(paramGroupId, paramId) =>
-                    handleParameterChange(product.id, paramGroupId, paramId)
-                  }
-                  onQuantityChange={(newQuantity) =>
-                    handleQuantityChange(product.id, newQuantity)
-                  }
-                  price={price}
-                  totalPrice={totalPrice}
-                  disabled={isAdding}
-                  actions={
-                    <div className="flex flex-col gap-2">
-                      <Button
-                        onClick={() => handleAddToCart(product.id)}
-                        disabled={isAdding || isAdded}
-                        size="sm"
-                        className="bg-secondary hover:bg-secondary/90"
-                      >
-                        {isAdded && <Check className="mr-2 h-4 w-4" />}
-                        {!isAdded && !isAdding && <ShoppingCart className="mr-2 h-4 w-4" />}
-                        {isAdding ? t('products.adding') : isAdded ? t('products.added') : t('products.add')}
-                      </Button>
-                      {error && (
-                        <p className="text-xs text-destructive">{error}</p>
-                      )}
-                    </div>
-                  }
-                />
-              );
-            })}
-          </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center text-muted-foreground py-12">
-            {selectedCategoryId
-              ? t('products.no-products')
-              : t('products.select-category')}
-          </div>
-        )}
+      {/* Categories Section with Product Configuration */}
+      <section className="bg-gray-50 -mx-4 sm:-mx-6 lg:-mx-12 px-4 sm:px-6 lg:px-8 py-12">
+        <div className="max-w-7xl mx-auto">
+          <CategorySelector
+            categories={categories}
+            productsByCategory={productsByCategory}
+            selectedCategory={selectedCategoryId}
+            onCategorySelect={(categoryId) => {
+              setSelectedCategoryId(categoryId);
+              if (categoryId) {
+                const categoryProducts = products.filter((p) => p.category_id === categoryId);
+                initializeProductConfigs(categoryProducts);
+                router.push(`/products?category=${categoryId}`);
+              }
+            }}
+            renderDesktopContent={() => renderProductConfiguration()}
+          />
+        </div>
       </section>
       </PageContainer>
 

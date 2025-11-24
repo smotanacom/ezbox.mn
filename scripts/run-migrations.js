@@ -37,7 +37,7 @@ function getDatabaseUrl() {
 
   // Supabase direct connection format
   // Format: postgresql://postgres.[project-ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres
-  const databaseUrl = `postgresql://postgres.${projectRef}:${supabasePassword}@aws-0-us-east-1.pooler.supabase.com:6543/postgres`;
+  const databaseUrl = `postgresql://postgres.${projectRef}:${supabasePassword}@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres`;
 
   return databaseUrl;
 }

@@ -19,18 +19,29 @@ export default function AdminNav() {
     }
   }, []);
 
-  const handleLogout = () => {
-    clearAdminSession();
-    router.push('/admin');
+  const handleLogout = async () => {
+    try {
+      // Call logout API to clear httpOnly cookie
+      await fetch('/api/auth/admin/logout', {
+        method: 'POST',
+      });
+      // Also clear localStorage
+      clearAdminSession();
+    } catch (err) {
+      console.error('Logout error:', err);
+    } finally {
+      router.push('/admin');
+    }
   };
 
   const navItems = [
-    { href: '/admin/dashboard', label: t('admin.nav.dashboard') },
     { href: '/admin/products', label: t('admin.nav.products') },
     { href: '/admin/categories', label: t('admin.categories.title') },
     { href: '/admin/orders', label: t('admin.nav.orders') },
+    { href: '/admin/specials', label: t('admin.nav.specials') },
     { href: '/admin/parameter-groups', label: t('admin.nav.parameters') },
     { href: '/admin/admins', label: t('admin.nav.admins') },
+    { href: '/admin/export', label: t('admin.nav.export') },
   ];
 
   return (

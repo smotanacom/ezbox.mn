@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getOrCreateCart, getCartItems } from '@/lib/api';
+import { getOrCreateCart, getCartItems, calculateCartTotal } from '@/lib/api';
 
 export async function GET(request: NextRequest) {
   try {
@@ -20,9 +20,13 @@ export async function GET(request: NextRequest) {
     // Fetch cart items with all related data using lib/api function
     const items = await getCartItems(cart.id);
 
+    // Calculate total
+    const total = await calculateCartTotal(cart.id);
+
     return NextResponse.json({
       cart,
       items,
+      total,
     });
   } catch (error) {
     console.error('Error fetching cart:', error);

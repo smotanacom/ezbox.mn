@@ -3,13 +3,14 @@
 import { useRef, useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from '@/components/Image';
+import { getFirstImageUrl } from '@/lib/storage-client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import type { Product } from '@/types/database';
+import type { ProductWithDetails } from '@/types/database';
 
 interface ProductCarouselProps {
-  products: Product[];
+  products: ProductWithDetails[];
 }
 
 export default function ProductCarousel({ products }: ProductCarouselProps) {
@@ -98,7 +99,7 @@ export default function ProductCarousel({ products }: ProductCarouselProps) {
             <Card className="overflow-hidden hover:shadow-xl hover:scale-[1.02] transition-all duration-200 h-full border-gray-200">
               <div className="aspect-square relative overflow-hidden bg-gray-100">
                 <Image
-                  src={product.picture_url}
+                  src={getFirstImageUrl(product.images || [])}
                   alt={product.name}
                   className="object-cover w-full h-full hover:scale-110 transition-transform duration-300"
                 />

@@ -23,7 +23,6 @@ export default function NewProductPage() {
     base_price: 0,
     category_id: null as number | null,
     status: 'draft' as string,
-    picture_url: '',
   });
 
   useEffect(() => {
@@ -60,10 +59,9 @@ export default function NewProductPage() {
         base_price: formData.base_price,
         category_id: formData.category_id,
         status: formData.status,
-        picture_url: formData.picture_url,
       });
 
-      alert('Product created successfully!');
+      alert('Product created successfully! You can now upload images and 3D models.');
       router.push(`/admin/products/${newProduct.id}`);
     } catch (error) {
       console.error('Error creating product:', error);
@@ -191,21 +189,7 @@ export default function NewProductPage() {
                 </p>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Picture URL
-                </label>
-                <input
-                  type="text"
-                  value={formData.picture_url}
-                  onChange={(e) => setFormData({ ...formData, picture_url: e.target.value })}
-                  placeholder="https://example.com/image.jpg"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-                <p className="mt-1 text-sm text-gray-500">
-                  Optional: URL to product image
-                </p>
-              </div>
+              {/* Picture URL field removed - images are now uploaded after product creation */}
 
               <div className="pt-6 border-t border-gray-200">
                 <div className="flex gap-4">

@@ -5,6 +5,8 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import AdminRouteGuard from '@/components/AdminRouteGuard';
 import AdminNav from '@/components/AdminNav';
+import ImageUpload from '@/components/admin/ImageUpload';
+import ModelUpload from '@/components/admin/ModelUpload';
 import {
   getProductWithDetails,
   getCategories,
@@ -35,7 +37,6 @@ export default function AdminProductDetailPage() {
     base_price: 0,
     category_id: null as number | null,
     status: 'active',
-    picture_url: '',
   });
 
   useEffect(() => {
@@ -66,7 +67,6 @@ export default function AdminProductDetailPage() {
         base_price: productData.base_price,
         category_id: productData.category_id,
         status: productData.status,
-        picture_url: productData.picture_url || '',
       });
 
       // Fetch parameters for all groups
@@ -261,16 +261,19 @@ export default function AdminProductDetailPage() {
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Picture URL
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.picture_url}
-                      onChange={(e) => setFormData({ ...formData, picture_url: e.target.value })}
-                      placeholder="https://..."
-                      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  {/* Images and 3D Model Upload */}
+                  <div className="col-span-2 space-y-6 border-t pt-6 mt-6">
+                    <ImageUpload
+                      productId={productId}
+                      existingImages={product?.images || []}
+                      onImagesChange={fetchData}
+                    />
+
+                    <ModelUpload
+                      productId={productId}
+                      existingModel={product?.model || null}
+                      productName={product?.name || 'Product'}
+                      onModelChange={fetchData}
                     />
                   </div>
                 </div>

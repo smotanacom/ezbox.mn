@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getAdminSession } from '@/lib/adminAuth';
 
 export default function AdminRouteGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -10,14 +9,26 @@ export default function AdminRouteGuard({ children }: { children: React.ReactNod
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const session = getAdminSession();
-    if (!session) {
-      router.push('/admin');
-    } else {
-      setIsAuthenticated(true);
-    }
-    setIsLoading(false);
+    checkAuth();
   }, [router]);
+
+  const checkAuth = async () => {
+    try {
+      const response = await fetch('/api/auth/admin/me');
+      const data = await response.json();
+
+      if (response.ok && data.admin) {
+        setIsAuthenticated(true);
+      } else {
+        router.push('/admin');
+      }
+    } catch (err) {
+      console.error('Auth check failed:', err);
+      router.push('/admin');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   if (isLoading) {
     return (

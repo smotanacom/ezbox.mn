@@ -5,8 +5,8 @@ import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import AdminRouteGuard from '@/components/AdminRouteGuard';
 import AdminNav from '@/components/AdminNav';
-import { getOrderById, getOrderItems, updateOrderStatus } from '@/lib/api';
-import type { Order, CartItemWithDetails } from '@/types/database';
+import { getOrderById, getOrderItems, updateOrderStatus, getHistoryForEntity } from '@/lib/api';
+import type { Order, CartItemWithDetails, HistoryWithUser } from '@/types/database';
 
 export default function AdminOrderDetailPage() {
   const router = useRouter();
@@ -15,6 +15,7 @@ export default function AdminOrderDetailPage() {
 
   const [order, setOrder] = useState<Order | null>(null);
   const [items, setItems] = useState<CartItemWithDetails[]>([]);
+  const [history, setHistory] = useState<HistoryWithUser[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Print font size constants
@@ -36,10 +37,19 @@ export default function AdminOrderDetailPage() {
       }
       setOrder(orderData);
 
+      // Fetch order items and history in parallel
+      const promises = [];
       if (orderData.cart_id) {
-        const orderItems = await getOrderItems(orderData.cart_id);
-        setItems(orderItems);
+        promises.push(getOrderItems(orderData.cart_id).then(setItems));
       }
+      promises.push(
+        getHistoryForEntity('order', orderId).then((historyData) => {
+          console.log('History data received:', historyData);
+          setHistory(historyData);
+        })
+      );
+
+      await Promise.all(promises);
     } catch (error) {
       console.error('Error fetching order:', error);
       alert('Failed to load order details');
@@ -86,6 +96,27 @@ export default function AdminOrderDetailPage() {
       day: 'numeric',
       year: '2-digit',
     });
+  };
+
+  const formatDateTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  const getActionLabel = (action: string) => {
+    const labels: Record<string, string> = {
+      'created': 'Order Created',
+      'status_changed': 'Status Changed',
+      'updated': 'Order Updated',
+      'note_added': 'Note Added',
+    };
+    return labels[action] || action;
   };
 
   const calculateItemPrice = (item: CartItemWithDetails) => {
@@ -304,7 +335,7 @@ export default function AdminOrderDetailPage() {
             </div>
 
             {/* Total - Compact */}
-            <div className="flex justify-end">
+            <div className="flex justify-end mb-4 pb-4 border-b border-gray-300">
               <div className="w-48">
                 <div className="flex justify-between text-xs py-1">
                   <span className="text-gray-600">Subtotal:</span>
@@ -319,6 +350,75 @@ export default function AdminOrderDetailPage() {
                   <span>₮{order.total_price.toLocaleString()}</span>
                 </div>
               </div>
+            </div>
+
+            {/* History - Compact */}
+            <div>
+              <h2 className="text-sm font-bold text-gray-900 mb-2">History</h2>
+              {history.length === 0 ? (
+                <p className="text-xs text-gray-600">No history recorded</p>
+              ) : (
+                <div className="space-y-2">
+                  {history.map((entry) => (
+                    <div key={entry.id} className="border-l-2 border-blue-500 pl-3 py-1">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="text-xs font-semibold text-gray-900">
+                            {getActionLabel(entry.action)}
+                          </div>
+                          {entry.field_name && (
+                            <div className="text-xs text-gray-600 mt-0.5">
+                              {entry.field_name}:
+                              {entry.old_value && (
+                                <span className="text-red-600"> {entry.old_value}</span>
+                              )}
+                              {entry.old_value && entry.new_value && ' → '}
+                              {entry.new_value && (
+                                <span className="text-green-600"> {entry.new_value}</span>
+                              )}
+                            </div>
+                          )}
+                          {entry.notes && (
+                            <div className="text-xs text-gray-600 mt-0.5 italic">
+                              {entry.notes}
+                            </div>
+                          )}
+                        </div>
+                        <div className="text-right ml-3">
+                          <div className="text-xs text-gray-500">
+                            {formatDateTime(entry.created_at)}
+                          </div>
+                          {entry.changed_by_admin && (
+                            <div className="text-xs text-blue-600 font-medium">
+                              Admin: {entry.changed_by_admin.username}
+                            </div>
+                          )}
+                          {!entry.changed_by_admin && entry.changed_by && (
+                            <div className="text-xs text-gray-600 font-medium">
+                              Customer: {entry.changed_by.phone}
+                            </div>
+                          )}
+                          {!entry.changed_by_admin && !entry.changed_by && entry.changed_by_admin_id && (
+                            <div className="text-xs text-blue-600 font-medium">
+                              Admin ID: {entry.changed_by_admin_id}
+                            </div>
+                          )}
+                          {!entry.changed_by_admin && !entry.changed_by && entry.changed_by_user_id && (
+                            <div className="text-xs text-gray-600 font-medium">
+                              User ID: {entry.changed_by_user_id}
+                            </div>
+                          )}
+                          {!entry.changed_by_admin && !entry.changed_by && !entry.changed_by_admin_id && !entry.changed_by_user_id && (
+                            <div className="text-xs text-gray-500 italic">
+                              System
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { getCurrentUser } from '@/lib/auth';
 import { getOrderById, getOrderItems, calculateProductPrice } from '@/lib/api';
+import { getFirstImageUrl } from '@/lib/storage-client';
 import Image from '@/components/Image';
 import { PageContainer, LoadingState } from '@/components/layout';
 import { Button } from '@/components/ui/button';
@@ -181,7 +182,7 @@ export default function OrderDetailPage() {
                           <div className="flex items-center gap-3">
                             <div className="relative w-16 h-16 rounded-md overflow-hidden">
                               <Image
-                                src={item.product?.picture_url}
+                                src={getFirstImageUrl(item.product?.images || [])}
                                 alt={item.product?.name || 'Product'}
                                 className="object-cover w-full h-full"
                               />

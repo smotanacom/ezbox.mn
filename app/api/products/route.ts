@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { getCached, setCache } from '@/lib/cache';
-import { getAllProductsWithDetails } from '@/lib/api';
+import { getCached, setCache, clearCache } from '@/lib/cache';
+import { getAllProductsWithDetails, createProduct } from '@/lib/api';
+import { requireAdmin } from '@/lib/auth-server';
 
 // Cache for 5 minutes (300 seconds)
 export const revalidate = 300;
@@ -49,6 +50,28 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       { error: 'Failed to fetch products', details: errorMessage },
       { status: 500 }
+    );
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    await requireAdmin();
+
+    const data = await request.json();
+    const product = await createProduct(data);
+
+    // Clear products cache
+    clearCache(CACHE_KEY);
+    clearCache(CACHE_KEY_ALL);
+    clearCache('home-page-data');
+
+    return NextResponse.json({ product });
+  } catch (error: any) {
+    console.error('Error creating product:', error);
+    return NextResponse.json(
+      { error: error.message || 'Failed to create product' },
+      { status: error.message?.includes('Unauthorized') ? 401 : 500 }
     );
   }
 }
