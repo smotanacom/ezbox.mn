@@ -934,3 +934,51 @@ export async function getProductsUsingParameterGroup(groupId: number): Promise<P
   // Extract products from the nested structure
   return (data || []).map((item: any) => item.product).filter((p: any) => p !== null);
 }
+
+// Admin: Category Management
+export async function createCategory(category: {
+  name: string;
+  description?: string;
+  picture_url?: string;
+}): Promise<Category> {
+  const { data, error } = await supabase
+    .from('categories')
+    .insert({
+      name: category.name,
+      description: category.description || null,
+      picture_url: category.picture_url || null,
+    } as any)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as Category;
+}
+
+export async function updateCategory(
+  categoryId: number,
+  updates: {
+    name?: string;
+    description?: string;
+    picture_url?: string;
+  }
+): Promise<Category> {
+  const { data, error } = await (supabase as any)
+    .from('categories')
+    .update(updates)
+    .eq('id', categoryId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as Category;
+}
+
+export async function deleteCategory(categoryId: number): Promise<void> {
+  const { error } = await supabase
+    .from('categories')
+    .delete()
+    .eq('id', categoryId);
+
+  if (error) throw error;
+}

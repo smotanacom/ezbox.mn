@@ -4,10 +4,12 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { clearAdminSession, getCurrentAdmin } from '@/lib/adminAuth';
+import { useTranslation } from '@/contexts/LanguageContext';
 
 export default function AdminNav() {
   const pathname = usePathname();
   const router = useRouter();
+  const { t } = useTranslation();
   const [adminUsername, setAdminUsername] = useState('');
 
   useEffect(() => {
@@ -23,9 +25,12 @@ export default function AdminNav() {
   };
 
   const navItems = [
-    { href: '/admin/dashboard', label: 'Dashboard' },
-    { href: '/admin/orders', label: 'Orders' },
-    { href: '/admin/admins', label: 'Admins' },
+    { href: '/admin/dashboard', label: t('admin.nav.dashboard') },
+    { href: '/admin/products', label: t('admin.nav.products') },
+    { href: '/admin/categories', label: t('admin.categories.title') },
+    { href: '/admin/orders', label: t('admin.nav.orders') },
+    { href: '/admin/parameter-groups', label: t('admin.nav.parameters') },
+    { href: '/admin/admins', label: t('admin.nav.admins') },
   ];
 
   return (
@@ -64,7 +69,7 @@ export default function AdminNav() {
               onClick={handleLogout}
               className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-md text-sm font-medium transition"
             >
-              Logout
+              {t('admin.logout')}
             </button>
           </div>
         </div>

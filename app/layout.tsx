@@ -11,6 +11,32 @@ const inter = Inter({ subsets: ['latin'] });
 export const metadata: Metadata = {
   title: 'EzBox.mn - Modular Kitchen Store',
   description: 'Premium modular kitchen solutions for Mongolia',
+  applicationName: 'EzBox.mn',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'EzBox.mn',
+  },
+  formatDetection: {
+    telephone: false,
+  },
+  icons: {
+    icon: [
+      { url: '/icon-192x192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icon-512x512.png', sizes: '512x512', type: 'image/png' },
+    ],
+    apple: [
+      { url: '/apple-icon-180x180.png', sizes: '180x180', type: 'image/png' },
+    ],
+  },
+  manifest: '/manifest.webmanifest',
+  themeColor: '#2563eb',
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 5,
+    userScalable: true,
+  },
 };
 
 export default function RootLayout({
