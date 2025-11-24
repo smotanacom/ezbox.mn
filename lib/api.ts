@@ -11,6 +11,7 @@ import type {
   CartItemWithDetails,
   Special,
   SpecialWithItems,
+  SpecialItem,
   ParameterSelection,
   Order,
   User,
@@ -592,7 +593,7 @@ export async function getSpecialWithDetails(specialId: number): Promise<SpecialW
   if (itemsError) throw itemsError;
 
   return {
-    ...special,
+    ...(special as any),
     items: items || [],
   } as SpecialWithItems;
 }
