@@ -208,7 +208,7 @@ export default function ExportPage() {
                     className="w-4 h-4 text-blue-600 focus:ring-blue-500 rounded"
                   />
                   <span className="ml-3 text-sm text-gray-700">
-                    {t(table.translationKey)}
+                    {t(table.translationKey as any)}
                   </span>
                 </label>
               ))}
