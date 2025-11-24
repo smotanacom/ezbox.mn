@@ -93,7 +93,6 @@ export const translations = {
   'cart.item-total': 'Барааны нийт',
   'cart.total': 'Нийт дүн',
   'cart.checkout': 'Төлбөр төлөх',
-  'cart.remove': 'Устгах',
   'cart.update': 'Шинэчлэх',
   'cart.quantity': 'Тоо ширхэг',
 

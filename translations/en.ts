@@ -93,7 +93,6 @@ export const translations = {
   'cart.item-total': 'Item Total',
   'cart.total': 'Total',
   'cart.checkout': 'Proceed to Checkout',
-  'cart.remove': 'Remove',
   'cart.update': 'Update',
   'cart.quantity': 'Quantity',
 
