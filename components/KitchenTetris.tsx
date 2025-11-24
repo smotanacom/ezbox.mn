@@ -7,7 +7,7 @@ import type { Product } from '@/types/database';
 interface Block {
   id: number;
   type: 'cabinet' | 'drawer' | 'counter' | 'shelf';
-  color: string;
+  gradient: string;
   width: number;
   height: number;
   x: number;
@@ -19,10 +19,30 @@ interface Block {
 }
 
 const blockTypes = [
-  { type: 'cabinet' as const, color: 'bg-primary/20', width: 240, height: 300 },
-  { type: 'drawer' as const, color: 'bg-secondary/20', width: 300, height: 180 },
-  { type: 'counter' as const, color: 'bg-primary/30', width: 360, height: 150 },
-  { type: 'shelf' as const, color: 'bg-secondary/30', width: 270, height: 210 },
+  {
+    type: 'cabinet' as const,
+    width: 120,
+    height: 120,
+    gradient: 'from-blue-400/30 to-blue-600/20'
+  },
+  {
+    type: 'drawer' as const,
+    width: 150,
+    height: 90,
+    gradient: 'from-purple-400/30 to-purple-600/20'
+  },
+  {
+    type: 'counter' as const,
+    width: 180,
+    height: 80,
+    gradient: 'from-indigo-400/30 to-indigo-600/20'
+  },
+  {
+    type: 'shelf' as const,
+    width: 140,
+    height: 100,
+    gradient: 'from-violet-400/30 to-violet-600/20'
+  },
 ];
 
 export default function KitchenTetris() {
@@ -66,8 +86,6 @@ export default function KitchenTetris() {
         const width = rect.width;
         const height = rect.height;
 
-        console.log('Container dimensions:', { width, height });
-
         // Ensure we have valid dimensions
         if (width > 0) setContainerWidth(width);
         if (height > 0) setContainerHeight(height);
@@ -90,20 +108,17 @@ export default function KitchenTetris() {
     // Wait for products to load before creating blocks
     if (products.length === 0) return;
 
-    console.log('Initializing blocks with dimensions:', { containerWidth, containerHeight });
-
-    // Adjust number of paths based on screen width
-    const numPaths = containerWidth < 640 ? 2 : containerWidth < 1024 ? 3 : 5;
+    // Adjust number of initial blocks based on screen width
+    const numInitial = containerWidth < 640 ? 3 : containerWidth < 1024 ? 5 : 8;
 
     // Spawn multiple initial blocks across the width
     const initialBlocks: Block[] = [];
-    for (let i = 0; i < numPaths; i++) {
+    for (let i = 0; i < numInitial; i++) {
       const blockType = blockTypes[Math.floor(Math.random() * blockTypes.length)];
       const product = getRandomProduct();
       const maxX = Math.max(0, containerWidth - blockType.width);
       const x = Math.floor(Math.random() * maxX);
       const targetY = Math.max(0, containerHeight - blockType.height);
-      console.log(`Creating initial block ${i}:`, { blockType: blockType.type, x, targetY, containerHeight });
       initialBlocks.push({
         id: nextIdRef.current++,
         ...blockType,
@@ -111,14 +126,13 @@ export default function KitchenTetris() {
         productName: product.name,
         productImage: product.picture_url,
         x: x,
-        y: -blockType.height - Math.random() * 300 - 100, // Spawn higher above
+        y: -blockType.height - Math.random() * 400 - 100, // Spawn higher above
         targetY: targetY,
       });
     }
     setBlocks(initialBlocks);
-    console.log('Initial blocks created:', initialBlocks.length);
 
-    // Add a new block every 0.6 seconds (2.5x more frequent)
+    // Add a new block every 0.4 seconds (faster with smaller blocks)
     const addBlockInterval = setInterval(() => {
       setBlocks(currentBlocks => {
         // Filter to only settled blocks (blocks that have reached their target position)
@@ -126,18 +140,13 @@ export default function KitchenTetris() {
           Math.abs(block.y - block.targetY) < 5
         );
 
-        console.log(`Spawn check: ${currentBlocks.length} total blocks, ${settledBlocks.length} settled`);
-
         // Check if the container is getting full based on settled blocks' actual positions
         if (settledBlocks.length > 0) {
           const topMostSettledY = settledBlocks.reduce((min, block) =>
             Math.min(min, block.y), containerHeight);
 
-          console.log(`Top settled block Y: ${topMostSettledY}, threshold: ${containerHeight * 0.05}`);
-
-          // Stop spawning if settled blocks have filled up to 5% of the container height
-          if (topMostSettledY < containerHeight * 0.05) {
-            console.log('Container full, stopping spawn');
+          // Stop spawning if settled blocks have filled up to 2% of the container height (nearly full)
+          if (topMostSettledY < containerHeight * 0.02) {
             return currentBlocks;
           }
         }
@@ -164,11 +173,8 @@ export default function KitchenTetris() {
 
         // Don't spawn if target position would be above container
         if (targetY < 0) {
-          console.log('Target Y would be negative, skipping spawn');
           return currentBlocks;
         }
-
-        console.log(`Spawning new block: type=${blockType.type}, x=${randomX}, targetY=${targetY}`);
 
         const newBlock: Block = {
           id: nextIdRef.current++,
@@ -177,21 +183,21 @@ export default function KitchenTetris() {
           productName: product.name,
           productImage: product.picture_url,
           x: randomX,
-          y: -blockType.height - Math.random() * 300 - 100, // Spawn higher above
+          y: -blockType.height - Math.random() * 400 - 100, // Spawn higher above
           targetY: targetY,
         };
 
         return [...currentBlocks, newBlock];
       });
-    }, 600);
+    }, 400);
 
     // Animate blocks falling
     const animationInterval = setInterval(() => {
       setBlocks(currentBlocks =>
         currentBlocks.map(block => {
           if (block.y < block.targetY) {
-            // Move block down by 6px per frame, but don't exceed targetY
-            const newY = Math.min(block.y + 6, block.targetY);
+            // Move block down by 4px per frame (slightly slower for better visual effect)
+            const newY = Math.min(block.y + 4, block.targetY);
             return { ...block, y: newY };
           }
           return block;
@@ -212,7 +218,7 @@ export default function KitchenTetris() {
         {blocks.map(block => (
           <div
             key={block.id}
-            className={`absolute rounded-lg shadow-md border border-white/20 overflow-hidden backdrop-blur-sm relative`}
+            className={`absolute rounded-lg shadow-lg border border-white/30 overflow-hidden backdrop-blur-sm bg-gradient-to-br ${block.gradient}`}
             style={{
               left: `${block.x}px`,
               top: `${block.y}px`,
@@ -220,13 +226,12 @@ export default function KitchenTetris() {
               height: `${block.height}px`,
             }}
           >
-            <img
-              src={block.productImage || `https://picsum.photos/seed/product${block.productId}/200/200`}
-              alt={block.productName}
-              className="w-full h-full object-cover opacity-50"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent flex items-end justify-center p-2">
-              <span className="text-xs font-semibold text-white text-center drop-shadow-lg line-clamp-2">
+            {/* Subtle pattern overlay */}
+            <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-black/10"></div>
+
+            {/* Product name */}
+            <div className="absolute inset-0 flex items-center justify-center p-2">
+              <span className="text-xs font-bold text-white text-center drop-shadow-lg line-clamp-3">
                 {block.productName}
               </span>
             </div>

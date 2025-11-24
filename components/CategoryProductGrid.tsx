@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Image from '@/components/Image';
 import { ChevronDown, MoreHorizontal } from 'lucide-react';
+import { useTranslation } from '@/contexts/LanguageContext';
 import type { Category, Product } from '@/types/database';
 
 interface CategoryProductGridProps {
@@ -15,6 +16,7 @@ export default function CategoryProductGrid({
   categories,
   productsByCategory
 }: CategoryProductGridProps) {
+  const { t } = useTranslation();
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
 
   const handleCategoryClick = (categoryId: number) => {
@@ -54,10 +56,10 @@ export default function CategoryProductGrid({
                     {category.name}
                   </h3>
                   <p className="text-sm text-gray-600 mb-3 flex-1">
-                    {category.description || `Browse ${products.length} products`}
+                    {category.description || t('category.browse-products').replace('{count}', products.length.toString())}
                   </p>
                   <div className="flex items-center justify-center gap-2 text-primary font-semibold">
-                    <span>{isSelected ? 'Hide' : 'View'} Products</span>
+                    <span>{isSelected ? t('category.hide') : t('category.view')} {t('category.products-text')}</span>
                     <ChevronDown
                       className={`h-5 w-5 transition-transform ${
                         isSelected ? 'rotate-180' : ''
@@ -108,7 +110,7 @@ export default function CategoryProductGrid({
                         >
                           <div className="flex items-center justify-center gap-2 text-primary font-semibold">
                             <MoreHorizontal className="h-5 w-5" />
-                            <span>View all {products.length} products</span>
+                            <span>{t('category.view-all').replace('{count}', products.length.toString())}</span>
                           </div>
                         </Link>
                       )}
@@ -135,7 +137,7 @@ export default function CategoryProductGrid({
                 <div className="mt-8 pt-8 border-t-2 border-primary/20">
                   <div className="mb-6">
                     <h3 className="text-2xl font-bold text-gray-900">
-                      {category.name} Products
+                      {category.name} {t('category.products-text')}
                     </h3>
                   </div>
 
@@ -175,10 +177,10 @@ export default function CategoryProductGrid({
                         <MoreHorizontal className="h-12 w-12 text-primary group-hover:scale-110 transition-transform" />
                         <div className="text-center">
                           <p className="text-lg font-bold text-gray-900 mb-1">
-                            {products.length - 4} More
+                            {t('category.more').replace('{count}', (products.length - 4).toString())}
                           </p>
                           <p className="text-sm text-gray-600">
-                            View all products
+                            {t('category.view-all-products')}
                           </p>
                         </div>
                       </Link>

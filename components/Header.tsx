@@ -118,11 +118,23 @@ export default function Header() {
               <span>EzBox<span className="text-primary">.mn</span></span>
             </Link>
 
-            <Button variant="ghost" asChild>
-              <Link href="/products">
-                {t('nav.products')}
-              </Link>
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" asChild>
+                <Link href="/specials">
+                  {t('nav.specials')}
+                </Link>
+              </Button>
+              <Button variant="ghost" asChild>
+                <Link href="/products">
+                  {t('nav.products')}
+                </Link>
+              </Button>
+              <Button variant="ghost" asChild>
+                <Link href="/custom">
+                  {t('nav.custom-design')}
+                </Link>
+              </Button>
+            </div>
           </div>
 
           <nav className="flex items-center gap-4">

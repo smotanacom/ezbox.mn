@@ -74,37 +74,88 @@ ezbox/
 ### 5. Bilingual Support (Mongolian/English)
 - **Default language**: Mongolian (`mn`)
 - **Fallback language**: English (`en`)
-- All user-facing text MUST use the translation system
+- **ALL user-facing text MUST use the translation system** - no exceptions
 - Translation files: `translations/mn.ts` (Mongolian), `translations/en.ts` (English)
 - Language context: `contexts/LanguageContext.tsx` provides `useTranslation()` hook
 - Translation hook usage: `const { t } = useTranslation()` then `t('translation.key')`
+- **Language preference**: Stored in localStorage, persists across sessions
 
-**CRITICAL RULE**: When adding ANY user-facing text to the application:
-1. ✅ **DO**: Use translation keys via `t('key.name')`
-2. ❌ **DON'T**: Hardcode English or Mongolian text directly in components
-3. **Process**:
-   - Add the translation key to both `translations/en.ts` and `translations/mn.ts`
-   - Use kebab-case for keys (e.g., `'home.browse-products'`, `'cart.checkout'`)
-   - Group keys by feature/page (e.g., `'home.*'`, `'cart.*'`, `'products.*'`)
-   - Use the translation hook in your component: `{t('translation.key')}`
+**CRITICAL RULES - MUST FOLLOW**:
+
+1. **NEVER hardcode user-facing text** - buttons, labels, messages, placeholders, titles, descriptions, etc.
+2. **ALWAYS add translation keys to BOTH files** - `translations/en.ts` AND `translations/mn.ts`
+3. **ALWAYS use the translation hook** - import and use `useTranslation()` in every component with user-facing text
+
+**Step-by-Step Process for Adding New Text**:
+
+1. **Identify the text** - Any text that users will see needs translation
+2. **Create a translation key**:
+   - Use kebab-case: `'feature.description'`
+   - Group by feature/page: `'home.*'`, `'cart.*'`, `'products.*'`, `'checkout.*'`
+   - Be descriptive: `'cart.empty-message'` not `'cart.msg1'`
+3. **Add to both translation files**:
+   ```typescript
+   // translations/en.ts
+   'cart.empty-message': 'Your cart is empty',
+
+   // translations/mn.ts
+   'cart.empty-message': 'Таны сагс хоосон байна',
+   ```
+4. **Use in component**:
+   ```typescript
+   import { useTranslation } from '@/contexts/LanguageContext';
+
+   export default function MyComponent() {
+     const { t } = useTranslation();
+     return <p>{t('cart.empty-message')}</p>;
+   }
+   ```
 
 **Examples**:
+
 ```typescript
 // ❌ WRONG - Hardcoded text
 <button>Add to Cart</button>
+<h1>Shopping Cart</h1>
+<p>Your cart is empty</p>
+<input placeholder="Enter your phone number" />
 
 // ✅ CORRECT - Using translation system
 const { t } = useTranslation();
 <button>{t('products.add-to-cart')}</button>
-
-// translations/en.ts
-'products.add-to-cart': 'Add to Cart'
-
-// translations/mn.ts
-'products.add-to-cart': 'Сагсанд нэмэх'
+<h1>{t('cart.title')}</h1>
+<p>{t('cart.empty')}</p>
+<input placeholder={t('checkout.phone-placeholder')} />
 ```
 
-**Language Switcher**: Available in header, allows users to toggle between Mongolian and English. Preference is stored in localStorage.
+**Dynamic Text with Variables**:
+When you need to include dynamic values (like counts), use string replacement:
+```typescript
+// In translations/en.ts
+'category.view-all': 'View all {count} products',
+
+// In component
+<span>{t('category.view-all').replace('{count}', products.length.toString())}</span>
+```
+
+**Conditional Text**:
+```typescript
+// In translations
+'cart.item-count': 'item',
+'cart.items-count': 'items',
+
+// In component
+{items.length} {items.length === 1 ? t('cart.item-count') : t('cart.items-count')}
+```
+
+**Common Patterns**:
+- Buttons: `'feature.action'` (e.g., `'cart.checkout'`, `'products.add'`)
+- Status messages: `'feature.status'` (e.g., `'cart.loading'`, `'products.added'`)
+- Empty states: `'feature.empty-message'` (e.g., `'cart.empty-message'`)
+- Form labels: `'feature.field-name'` (e.g., `'checkout.phone'`, `'account.name'`)
+- Error messages: `'feature.error-description'` (e.g., `'cart.failed-update'`)
+
+**Language Switcher**: Flag-based toggle in header (🇬🇧/🇲🇳), positioned rightmost in navigation. Shows opposite language flag (when Mongolian is active, shows UK flag to switch to English).
 
 ## Database Schema (11 Tables)
 
@@ -357,6 +408,86 @@ Currently no automated tests. For manual testing:
 Migrations are forward-only. For rollback:
 1. Create new migration that reverses changes
 2. Or restore from database backup
+
+## Supabase CLI Usage
+
+This project is linked to Supabase CLI for database management and queries.
+
+### Setup Status
+- **CLI Installed**: ✅ via Homebrew
+- **Project Linked**: ✅ `fektlcibbblleeglyjgy` (EzBox)
+- **Authentication**: Logged in globally
+
+### Common CLI Commands
+
+**Database Queries:**
+```bash
+# Query via Node.js (using existing supabase client)
+node -e "
+const { createClient } = require('@supabase/supabase-js');
+require('dotenv').config();
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+);
+(async () => {
+  const { data, error } = await supabase.from('categories').select('*');
+  console.log(data);
+})();
+"
+```
+
+**Migration Management:**
+```bash
+# List all migrations and their status
+supabase migration list
+
+# Create a new migration
+supabase migration new my_migration_name
+
+# Push migrations to remote database
+supabase db push
+
+# Pull schema changes from remote
+supabase db pull
+
+# Repair migration history (if migrations were run manually)
+supabase migration repair --status applied 0001
+```
+
+**Type Generation:**
+```bash
+# Generate TypeScript types from database schema
+supabase gen types typescript --linked > types/database.ts
+```
+
+**Project Management:**
+```bash
+# View linked projects
+supabase projects list
+
+# Check current project status
+supabase status
+
+# Dump database schema
+supabase db dump --schema public -f backup.sql
+
+# Dump data only
+supabase db dump --data-only --schema public -f data.sql
+```
+
+### Database Connection Details
+- **Project Reference**: `fektlcibbblleeglyjgy`
+- **Region**: Southeast Asia (Singapore)
+- **Direct Connection**: Use credentials from `.env` file
+- **Pooler**: `aws-0-ap-southeast-1.pooler.supabase.com:6543`
+
+### When Running Queries
+**Prefer using the Supabase CLI or Node.js client for database operations:**
+1. For quick queries: Use Node.js with the existing `@supabase/supabase-js` client
+2. For schema changes: Create a new migration file
+3. For data inspection: Use the Supabase Dashboard SQL Editor
+4. For bulk operations: Use the CLI commands above
 
 ## Useful SQL Queries
 

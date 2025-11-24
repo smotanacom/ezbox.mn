@@ -3,6 +3,8 @@ export const translations = {
   // Navigation
   'nav.home': 'Нүүр',
   'nav.products': 'Бүтээгдэхүүн',
+  'nav.specials': 'Тусгай санал',
+  'nav.custom-design': 'Захиалгат дизайн',
   'nav.cart': 'Сагс',
   'nav.login': 'Нэвтрэх',
   'nav.register': 'Бүртгүүлэх',
@@ -21,6 +23,21 @@ export const translations = {
   'home.browse-products': 'Бүтээгдэхүүн үзэх',
   'home.view-specials': 'Тусгай санал үзэх',
   'home.trusted-choice': 'Монголын модуль гал тогооны итгэмжлэгдсэн сонголт',
+
+  // Specials page
+  'specials.title': 'Тусгай Санал',
+  'specials.subtitle': 'Онцгой багц санал олж, их хэмнээрэй',
+  'specials.loading': 'Тусгай санал ачаалж байна...',
+  'specials.no-specials': 'Одоогоор тусгай санал байхгүй байна.',
+  'specials.no-specials-description': 'Онцгой санал болон багцуудыг харахын тулд дахин хандана уу.',
+  'specials.original-price': 'Анхны үнэ',
+  'specials.you-save': 'Та хэмнэнэ',
+  'specials.add-to-cart': 'Сагсанд нэмэх',
+  'specials.adding': 'Нэмж байна...',
+  'specials.added': 'Сагсанд нэмэгдлээ',
+  'specials.includes': 'Энэ багцад багтана',
+  'specials.view-details': 'Дэлгэрэнгүй үзэх',
+  'specials.browse-products': 'Бүтээгдэхүүн үзэх',
   'home.custom.badge': 'Захиалгат Шийдэл',
   'home.custom.title': 'Захиалгат Гал тогоо хүсч байна уу?',
   'home.custom.description': 'Манай мэргэжлийн дизайны баг таны орон зай, хэв маяг, төсөвт бүрэн тохирсон бүрэн хувийн гал тогоо бүтээж чадна. Анхны зөвлөгөөнөөс эхлээд эцсийн суурилуулалт хүртэл бид таны төсөөллийг амьдруулна.',
@@ -45,6 +62,29 @@ export const translations = {
   'products.cart-empty': 'Таны сагс хоосон байна',
   'products.cart-total': 'Нийт',
   'products.view-cart': 'Сагс үзэх',
+
+  // Cart component
+  'cart.shopping-cart': 'Худалдан авалтын сагс',
+  'cart.items-count': 'бараа',
+  'cart.item-count': 'бараа',
+  'cart.checkout-button': 'Төлбөр төлөх',
+  'cart.expand': 'Сагс нээх',
+  'cart.minimize': 'Сагс хураах',
+  'cart.loading': 'Сагс ачаалж байна...',
+  'cart.empty-message': 'Таны сагс хоосон байна',
+  'cart.empty-add-products': 'Эхлэхийн тулд бараа нэмнэ үү',
+  'cart.special-bundle': 'Тусгай Багц',
+  'cart.cannot-edit': 'Засах боломжгүй',
+  'cart.remove-bundle': 'Багц устгах',
+  'cart.bundle-total': 'Багцын нийт:',
+  'cart.removing': 'Устгаж байна...',
+  'cart.remove': 'Устгах',
+  'cart.remove-item': 'Бараа устгах',
+  'cart.failed-update': 'Бараа шинэчлэхэд алдаа гарлаа',
+  'cart.failed-remove': 'Бараа устгахад алдаа гарлаа',
+  'cart.cart-total': 'Сагсны нийт',
+  'cart.preconfigured-bundle': 'Урьдчилан тохируулсан багц (Засах боломжгүй)',
+  'cart.qty': 'Тоо:',
 
   // Cart page
   'cart.title': 'Худалдан авалтын сагс',
@@ -113,6 +153,15 @@ export const translations = {
   'admin.specials': 'Тусгай Санал',
   'admin.parameters': 'Параметр',
   'admin.logout': 'Гарах',
+
+  // Category grid
+  'category.browse-products': '{count} бүтээгдэхүүн үзэх',
+  'category.hide': 'Нуух',
+  'category.view': 'Үзэх',
+  'category.products-text': 'Бүтээгдэхүүн',
+  'category.view-all': 'Бүх {count} бүтээгдэхүүн үзэх',
+  'category.more': 'Өөр {count}',
+  'category.view-all-products': 'Бүх бүтээгдэхүүн үзэх',
 
   // Common
   'common.loading': 'Уншиж байна...',

@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { ChevronDown, ChevronUp, ShoppingCart, Trash2 } from 'lucide-react';
+import { useTranslation } from '@/contexts/LanguageContext';
 import type { ParameterSelection } from '@/types/database';
 
 interface CartProps {
@@ -29,6 +30,7 @@ interface CartProps {
 }
 
 export default function Cart({ showCheckoutButton = true, compact = false, sticky = false }: CartProps) {
+  const { t } = useTranslation();
   const router = useRouter();
   const { items, total, updateCartItem, removeFromCart, removeSpecialFromCart, loading } = useCart();
   const [updatingItems, setUpdatingItems] = useState<Set<number>>(new Set());
@@ -107,7 +109,7 @@ export default function Cart({ showCheckoutButton = true, compact = false, stick
       console.error('Error updating cart item:', error);
       setItemErrors(prev => ({
         ...prev,
-        [itemId]: 'Failed to update item'
+        [itemId]: t('cart.failed-update')
       }));
     } finally {
       setUpdatingItems(prev => {
@@ -132,7 +134,7 @@ export default function Cart({ showCheckoutButton = true, compact = false, stick
       console.error('Error removing from cart:', error);
       setItemErrors(prev => ({
         ...prev,
-        [itemId]: 'Failed to remove item'
+        [itemId]: t('cart.failed-remove')
       }));
     } finally {
       setUpdatingItems(prev => {
@@ -172,11 +174,11 @@ export default function Cart({ showCheckoutButton = true, compact = false, stick
               </div>
               <div>
                 <h3 className="font-semibold text-gray-900">
-                  Shopping Cart
+                  {t('cart.shopping-cart')}
                 </h3>
                 {items.length > 0 && (
                   <p className="text-xs text-gray-500">
-                    {items.length} {items.length === 1 ? 'item' : 'items'}
+                    {items.length} {items.length === 1 ? t('cart.item-count') : t('cart.items-count')}
                   </p>
                 )}
               </div>
@@ -200,7 +202,7 @@ export default function Cart({ showCheckoutButton = true, compact = false, stick
                 size="lg"
                 className="bg-secondary hover:bg-secondary/90"
               >
-                Checkout
+                {t('cart.checkout-button')}
               </Button>
             )}
             <Button
@@ -210,7 +212,7 @@ export default function Cart({ showCheckoutButton = true, compact = false, stick
               }}
               size="icon"
               variant="ghost"
-              aria-label={isMinimized ? 'Expand cart' : 'Minimize cart'}
+              aria-label={isMinimized ? t('cart.expand') : t('cart.minimize')}
             >
               {isMinimized ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
             </Button>
@@ -223,13 +225,13 @@ export default function Cart({ showCheckoutButton = true, compact = false, stick
             {loading ? (
               <div className="flex flex-col items-center justify-center h-full text-gray-400">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-3"></div>
-                <p className="text-sm">Loading cart...</p>
+                <p className="text-sm">{t('cart.loading')}</p>
               </div>
             ) : items.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-gray-400">
                 <ShoppingCart className="h-16 w-16 mb-3 opacity-20" />
-                <p className="text-sm">Your cart is empty</p>
-                <p className="text-xs mt-1">Add some products to get started</p>
+                <p className="text-sm">{t('cart.empty-message')}</p>
+                <p className="text-xs mt-1">{t('cart.empty-add-products')}</p>
               </div>
             ) : (
               <div className="p-4 space-y-3">
@@ -248,8 +250,8 @@ export default function Cart({ showCheckoutButton = true, compact = false, stick
                     >
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex items-center gap-2">
-                          <Badge className="bg-secondary text-white">Special Bundle</Badge>
-                          <span className="text-xs text-muted-foreground">Cannot be edited</span>
+                          <Badge className="bg-secondary text-white">{t('cart.special-bundle')}</Badge>
+                          <span className="text-xs text-muted-foreground">{t('cart.cannot-edit')}</span>
                         </div>
                         <Button
                           onClick={() => handleRemoveSpecial(Number(specialId))}
@@ -257,7 +259,7 @@ export default function Cart({ showCheckoutButton = true, compact = false, stick
                           size="icon"
                           variant="ghost"
                           className="h-8 w-8 flex-shrink-0 hover:bg-red-50 hover:text-red-600"
-                          title="Remove bundle"
+                          title={t('cart.remove-bundle')}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -278,14 +280,14 @@ export default function Cart({ showCheckoutButton = true, compact = false, stick
                               <p className="font-medium text-sm line-clamp-1">
                                 {item.product?.name}
                               </p>
-                              <p className="text-xs text-muted-foreground">Qty: {item.quantity}</p>
+                              <p className="text-xs text-muted-foreground">{t('cart.qty')} {item.quantity}</p>
                             </div>
                           </div>
                         ))}
                       </div>
 
                       <div className="flex items-center justify-between pt-2 border-t">
-                        <span className="text-sm font-medium">Bundle Total:</span>
+                        <span className="text-sm font-medium">{t('cart.bundle-total')}</span>
                         <span className="text-lg font-bold text-secondary">
                           ₮{bundlePrice.toLocaleString()}
                         </span>
@@ -333,7 +335,7 @@ export default function Cart({ showCheckoutButton = true, compact = false, stick
                                 size="icon"
                                 variant="ghost"
                                 className="h-8 w-8 hover:bg-red-50 hover:text-red-600"
-                                title="Remove item"
+                                title={t('cart.remove-item')}
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
                               </Button>
@@ -361,7 +363,7 @@ export default function Cart({ showCheckoutButton = true, compact = false, stick
       <Card className="p-8">
         <div className="flex flex-col items-center justify-center text-muted-foreground">
           <ShoppingCart className="h-16 w-16 mb-4 opacity-20" />
-          <p>Your cart is empty</p>
+          <p>{t('cart.empty-message')}</p>
         </div>
       </Card>
     );
@@ -378,8 +380,8 @@ export default function Cart({ showCheckoutButton = true, compact = false, stick
           <Card key={`special-${specialId}`} className="overflow-hidden border-2 border-secondary/30">
             <div className="bg-gradient-to-r from-secondary/10 to-white p-4 border-b flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <Badge className="bg-secondary text-white">Special Bundle</Badge>
-                <span className="font-semibold">Pre-configured bundle (Cannot be edited)</span>
+                <Badge className="bg-secondary text-white">{t('cart.special-bundle')}</Badge>
+                <span className="font-semibold">{t('cart.preconfigured-bundle')}</span>
               </div>
               <Button
                 onClick={() => handleRemoveSpecial(Number(specialId))}
@@ -388,7 +390,7 @@ export default function Cart({ showCheckoutButton = true, compact = false, stick
                 variant="destructive"
               >
                 <Trash2 className="mr-2 h-4 w-4" />
-                {isRemoving ? 'Removing...' : 'Remove Bundle'}
+                {isRemoving ? t('cart.removing') : t('cart.remove-bundle')}
               </Button>
             </div>
             <div>
@@ -411,7 +413,7 @@ export default function Cart({ showCheckoutButton = true, compact = false, stick
                 );
               })}
               <div className="flex justify-between items-center p-4 bg-secondary/20 rounded-lg font-semibold mt-2">
-                <span className="text-lg">Bundle Total:</span>
+                <span className="text-lg">{t('cart.bundle-total')}</span>
                 <span className="text-xl font-bold text-secondary">
                   ₮{bundlePrice.toLocaleString()}
                 </span>
@@ -459,7 +461,7 @@ export default function Cart({ showCheckoutButton = true, compact = false, stick
                       variant="destructive"
                     >
                       <Trash2 className="mr-2 h-4 w-4" />
-                      {isUpdating ? 'Removing...' : 'Remove'}
+                      {isUpdating ? t('cart.removing') : t('cart.remove')}
                     </Button>
                     {error && (
                       <p className="text-xs text-destructive">{error}</p>
@@ -476,7 +478,7 @@ export default function Cart({ showCheckoutButton = true, compact = false, stick
       <Card className="bg-gradient-to-r from-primary/5 to-white">
         <div className="p-6 flex items-center justify-between">
           <div>
-            <p className="text-sm text-muted-foreground mb-1">Cart Total</p>
+            <p className="text-sm text-muted-foreground mb-1">{t('cart.cart-total')}</p>
             <div className="text-3xl font-bold">
               ₮{total.toLocaleString()}
             </div>
@@ -487,7 +489,7 @@ export default function Cart({ showCheckoutButton = true, compact = false, stick
               size="lg"
               className="bg-secondary hover:bg-secondary/90"
             >
-              Proceed to Checkout
+              {t('cart.checkout')}
             </Button>
           )}
         </div>

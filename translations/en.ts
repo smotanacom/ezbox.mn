@@ -3,6 +3,8 @@ export const translations = {
   // Navigation
   'nav.home': 'Home',
   'nav.products': 'Products',
+  'nav.specials': 'Special Offers',
+  'nav.custom-design': 'Custom Design',
   'nav.cart': 'Cart',
   'nav.login': 'Login',
   'nav.register': 'Register',
@@ -21,6 +23,21 @@ export const translations = {
   'home.browse-products': 'Browse Products',
   'home.view-specials': 'View Special Offers',
   'home.trusted-choice': "Mongolia's trusted choice for modular kitchens",
+
+  // Specials page
+  'specials.title': 'Special Offers',
+  'specials.subtitle': 'Discover our exclusive bundle deals and save big',
+  'specials.loading': 'Loading special offers...',
+  'specials.no-specials': 'No special offers available at the moment.',
+  'specials.no-specials-description': 'Check back later for exclusive deals and bundles.',
+  'specials.original-price': 'Original Price',
+  'specials.you-save': 'You Save',
+  'specials.add-to-cart': 'Add to Cart',
+  'specials.adding': 'Adding...',
+  'specials.added': 'Added to Cart',
+  'specials.includes': 'This bundle includes',
+  'specials.view-details': 'View Details',
+  'specials.browse-products': 'Browse Products',
   'home.custom.badge': 'Tailored Solutions',
   'home.custom.title': 'Dream of a Custom Kitchen?',
   'home.custom.description': "Our expert design team can create a completely personalized kitchen that perfectly matches your space, style, and budget. From initial consultation to final installation, we'll bring your vision to life.",
@@ -45,6 +62,29 @@ export const translations = {
   'products.cart-empty': 'Your cart is empty',
   'products.cart-total': 'Total',
   'products.view-cart': 'View Cart',
+
+  // Cart component
+  'cart.shopping-cart': 'Shopping Cart',
+  'cart.items-count': 'items',
+  'cart.item-count': 'item',
+  'cart.checkout-button': 'Checkout',
+  'cart.expand': 'Expand cart',
+  'cart.minimize': 'Minimize cart',
+  'cart.loading': 'Loading cart...',
+  'cart.empty-message': 'Your cart is empty',
+  'cart.empty-add-products': 'Add some products to get started',
+  'cart.special-bundle': 'Special Bundle',
+  'cart.cannot-edit': 'Cannot be edited',
+  'cart.remove-bundle': 'Remove bundle',
+  'cart.bundle-total': 'Bundle Total:',
+  'cart.removing': 'Removing...',
+  'cart.remove': 'Remove',
+  'cart.remove-item': 'Remove item',
+  'cart.failed-update': 'Failed to update item',
+  'cart.failed-remove': 'Failed to remove item',
+  'cart.cart-total': 'Cart Total',
+  'cart.preconfigured-bundle': 'Pre-configured bundle (Cannot be edited)',
+  'cart.qty': 'Qty:',
 
   // Cart page
   'cart.title': 'Shopping Cart',
@@ -113,6 +153,15 @@ export const translations = {
   'admin.specials': 'Special Offers',
   'admin.parameters': 'Parameters',
   'admin.logout': 'Logout',
+
+  // Category grid
+  'category.browse-products': 'Browse {count} products',
+  'category.hide': 'Hide',
+  'category.view': 'View',
+  'category.products-text': 'Products',
+  'category.view-all': 'View all {count} products',
+  'category.more': '{count} More',
+  'category.view-all-products': 'View all products',
 
   // Common
   'common.loading': 'Loading...',
