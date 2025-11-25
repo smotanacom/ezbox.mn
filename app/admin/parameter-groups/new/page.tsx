@@ -62,7 +62,7 @@ export default function NewParameterGroupPage() {
         },
         validParams
       );
-      router.push(`/admin/parameter-groups/${newGroup.id}`);
+      router.push(`/admin/parameter-groups/${newGroup.group.id}`);
     } catch (error) {
       console.error('Error creating parameter group:', error);
       alert('Failed to create parameter group');
