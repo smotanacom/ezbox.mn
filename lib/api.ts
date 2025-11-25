@@ -961,7 +961,7 @@ export async function getOrderItems(orderId: number): Promise<OrderItem[]> {
 
   // If order has snapshot data, return items from snapshot
   if (order.snapshot_data) {
-    const snapshot = order.snapshot_data as OrderSnapshot;
+    const snapshot = order.snapshot_data as unknown as OrderSnapshot;
     return snapshot.items || [];
   }
 
