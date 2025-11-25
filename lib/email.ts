@@ -138,6 +138,10 @@ function generateOrderEmailHTML(order: Order, items: CartItemWithDetails[]): str
         </div>
 
         <div style="background-color: #f9fafb; padding: 20px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
+          <div style="text-align: center; margin-bottom: 20px;">
+            <a href="https://ezbox.mn/admin/orders/${order.id}" style="display: inline-block; background-color: #2563eb; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 16px;">View Order in Admin</a>
+          </div>
+
           <div style="background-color: white; padding: 20px; border-radius: 6px; margin-bottom: 20px;">
             <h2 style="margin-top: 0; color: #1f2937; font-size: 18px;">Order Details</h2>
             <table style="width: 100%; border-collapse: collapse;">
