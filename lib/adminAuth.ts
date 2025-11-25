@@ -19,62 +19,28 @@ async function verifyPassword(password: string, hash: string): Promise<boolean> 
   return bcrypt.compare(password, hash);
 }
 
-// Create new admin (used by CLI script)
+// Create new admin (used by admin portal)
 export async function createAdmin(
   username: string,
   password: string,
   email?: string
 ): Promise<Admin> {
-  // Validate username (alphanumeric, 3-50 chars)
-  if (!/^[a-zA-Z0-9_]{3,50}$/.test(username)) {
-    throw new Error('Username must be 3-50 alphanumeric characters or underscores');
+  const response = await fetch('/api/admins', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include',
+    body: JSON.stringify({ username, password, email }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to create admin');
   }
 
-  // Validate email if provided
-  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    throw new Error('Invalid email address');
-  }
-
-  // Check if admin already exists
-  const { data: existingAdmin } = await supabase
-    .from('admins')
-    .select('*')
-    .eq('username', username)
-    .maybeSingle();
-
-  if (existingAdmin) {
-    throw new Error('Admin with this username already exists');
-  }
-
-  // Check if email already exists (if email provided)
-  if (email) {
-    const { data: existingEmail } = await supabase
-      .from('admins')
-      .select('*')
-      .eq('email', email)
-      .maybeSingle();
-
-    if (existingEmail) {
-      throw new Error('Admin with this email already exists');
-    }
-  }
-
-  // Hash password
-  const password_hash = await hashPassword(password);
-
-  // Create admin
-  const { data, error } = await supabase
-    .from('admins')
-    .insert({
-      username,
-      password_hash,
-      email: email || null,
-    } as any)
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data as Admin;
+  const { admin } = await response.json();
+  return admin;
 }
 
 // Admin login
@@ -175,21 +141,29 @@ export async function changeAdminPassword(
 
 // List all admins (admin management)
 export async function listAdmins(): Promise<Admin[]> {
-  const { data, error } = await supabase
-    .from('admins')
-    .select('*')
-    .order('username');
+  const response = await fetch('/api/admins', {
+    method: 'GET',
+    credentials: 'include',
+  });
 
-  if (error) throw error;
-  return data as Admin[];
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to fetch admins');
+  }
+
+  const { admins } = await response.json();
+  return admins;
 }
 
 // Delete admin (admin management)
 export async function deleteAdmin(adminId: number): Promise<void> {
-  const { error } = await supabase
-    .from('admins')
-    .delete()
-    .eq('id', adminId);
+  const response = await fetch(`/api/admins/${adminId}`, {
+    method: 'DELETE',
+    credentials: 'include',
+  });
 
-  if (error) throw error;
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to delete admin');
+  }
 }
