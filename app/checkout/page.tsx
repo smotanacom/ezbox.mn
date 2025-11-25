@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useCart } from '@/contexts/CartContext';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
+import { authAPI } from '@/lib/api-client';
 import { getFirstImageUrl } from '@/lib/storage-client';
 import { createOrder } from '@/app/actions/orders';
 import { PageContainer, PageTitle, EmptyState, LoadingState } from '@/components/layout';
@@ -60,9 +61,15 @@ export default function CheckoutPage() {
 
     setLoading(true);
     try {
-      // Proceed to register/login step
-      // User can choose to login if they have an account
-      setStep('register');
+      const { exists } = await authAPI.checkPhone(phone);
+
+      if (exists) {
+        // User exists, ask for password
+        setStep('login');
+      } else {
+        // New user, proceed to registration
+        setStep('register');
+      }
     } catch (err: any) {
       setError(err.message || t('checkout.failed-check-phone'));
     } finally {

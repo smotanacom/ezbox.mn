@@ -106,6 +106,12 @@ export const authAPI = {
       body: JSON.stringify({ currentPassword, newPassword }),
     }),
 
+  checkPhone: (phone: string) =>
+    apiRequest<{ exists: boolean }>('/api/auth/check-phone', {
+      method: 'POST',
+      body: JSON.stringify({ phone }),
+    }),
+
   // Admin authentication
   adminLogin: (username: string, password: string) =>
     apiRequest<AdminAuthResponse>('/api/auth/admin/login', {
