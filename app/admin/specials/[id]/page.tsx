@@ -95,7 +95,7 @@ export default function AdminSpecialDetailPage() {
   };
 
   const handleDelete = async () => {
-    if (!confirm(\`Are you sure you want to delete "${special?.name}"? This action cannot be undone.\`)) {
+    if (!confirm(`Are you sure you want to delete "${special?.name}"? This action cannot be undone.`)) {
       return;
     }
 
