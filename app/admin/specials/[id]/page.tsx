@@ -65,7 +65,7 @@ export default function AdminSpecialDetailPage() {
         name: specialData.name,
         description: specialData.description || '',
         discounted_price: specialData.discounted_price,
-        status: specialData.status,
+        status: specialData.status as 'draft' | 'available' | 'hidden',
       });
     } catch (error) {
       console.error('Error fetching special:', error);
