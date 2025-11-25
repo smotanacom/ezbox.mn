@@ -1980,20 +1980,21 @@ export async function archiveProduct(
   adminId?: number
 ): Promise<Product> {
   // Get current product for history
-  const { data: current } = await supabase
+  const { data: current } = (await supabase
     .from('products')
     .select('status, name')
     .eq('id', productId)
-    .single();
+    .single()) as { data: { status: string; name: string } | null };
 
   // Update status to inactive
   const updateData: Record<string, any> = { status: 'inactive', updated_at: new Date().toISOString() };
-  const { data, error } = await supabase
+  const { data, error } = await (supabase
     .from('products')
-    .update(updateData as any)
+    // @ts-ignore - Supabase type inference issue
+    .update(updateData)
     .eq('id', productId)
     .select()
-    .single();
+    .single() as any);
 
   if (error) throw error;
 
@@ -2022,19 +2023,20 @@ export async function restoreProduct(
   adminId?: number
 ): Promise<Product> {
   // Get current product for history
-  const { data: current } = await supabase
+  const { data: current } = (await supabase
     .from('products')
     .select('status, name')
     .eq('id', productId)
-    .single();
+    .single()) as { data: { status: string; name: string } | null };
 
   // Update status to active
-  const { data, error } = await supabase
+  const { data, error } = await (supabase
     .from('products')
+    // @ts-ignore - Supabase type inference issue
     .update({ status: 'active', updated_at: new Date().toISOString() })
     .eq('id', productId)
     .select()
-    .single();
+    .single() as any);
 
   if (error) throw error;
 
@@ -2063,19 +2065,20 @@ export async function archiveCategory(
   adminId?: number
 ): Promise<Category> {
   // Get current category for history
-  const { data: current } = await supabase
+  const { data: current } = (await supabase
     .from('categories')
     .select('status, name')
     .eq('id', categoryId)
-    .single();
+    .single()) as { data: { status: string; name: string } | null };
 
   // Update status to inactive
-  const { data, error } = await supabase
+  const { data, error } = await (supabase
     .from('categories')
+    // @ts-ignore - Supabase type inference issue
     .update({ status: 'inactive', updated_at: new Date().toISOString() })
     .eq('id', categoryId)
     .select()
-    .single();
+    .single() as any);
 
   if (error) throw error;
 
@@ -2104,19 +2107,20 @@ export async function restoreCategory(
   adminId?: number
 ): Promise<Category> {
   // Get current category for history
-  const { data: current } = await supabase
+  const { data: current } = (await supabase
     .from('categories')
     .select('status, name')
     .eq('id', categoryId)
-    .single();
+    .single()) as { data: { status: string; name: string } | null };
 
   // Update status to active
-  const { data, error } = await supabase
+  const { data, error } = await (supabase
     .from('categories')
+    // @ts-ignore - Supabase type inference issue
     .update({ status: 'active', updated_at: new Date().toISOString() })
     .eq('id', categoryId)
     .select()
-    .single();
+    .single() as any);
 
   if (error) throw error;
 
@@ -2145,19 +2149,20 @@ export async function archiveParameterGroup(
   adminId?: number
 ): Promise<ParameterGroup> {
   // Get current parameter group for history
-  const { data: current } = await supabase
+  const { data: current } = (await supabase
     .from('parameter_groups')
     .select('status, name')
     .eq('id', parameterGroupId)
-    .single();
+    .single()) as { data: { status: string; name: string } | null };
 
   // Update status to inactive
-  const { data, error } = await supabase
+  const { data, error } = await (supabase
     .from('parameter_groups')
+    // @ts-ignore - Supabase type inference issue
     .update({ status: 'inactive' })
     .eq('id', parameterGroupId)
     .select()
-    .single();
+    .single() as any);
 
   if (error) throw error;
 
@@ -2186,19 +2191,20 @@ export async function restoreParameterGroup(
   adminId?: number
 ): Promise<ParameterGroup> {
   // Get current parameter group for history
-  const { data: current } = await supabase
+  const { data: current } = (await supabase
     .from('parameter_groups')
     .select('status, name')
     .eq('id', parameterGroupId)
-    .single();
+    .single()) as { data: { status: string; name: string } | null };
 
   // Update status to active
-  const { data, error } = await supabase
+  const { data, error } = await (supabase
     .from('parameter_groups')
+    // @ts-ignore - Supabase type inference issue
     .update({ status: 'active' })
     .eq('id', parameterGroupId)
     .select()
-    .single();
+    .single() as any);
 
   if (error) throw error;
 
@@ -2227,19 +2233,20 @@ export async function archiveParameter(
   adminId?: number
 ): Promise<Parameter> {
   // Get current parameter for history
-  const { data: current } = await supabase
+  const { data: current } = (await supabase
     .from('parameters')
     .select('status, name')
     .eq('id', parameterId)
-    .single();
+    .single()) as { data: { status: string; name: string } | null };
 
   // Update status to inactive
-  const { data, error } = await supabase
+  const { data, error } = await (supabase
     .from('parameters')
+    // @ts-ignore - Supabase type inference issue
     .update({ status: 'inactive' })
     .eq('id', parameterId)
     .select()
-    .single();
+    .single() as any);
 
   if (error) throw error;
 
@@ -2268,19 +2275,20 @@ export async function restoreParameter(
   adminId?: number
 ): Promise<Parameter> {
   // Get current parameter for history
-  const { data: current } = await supabase
+  const { data: current } = (await supabase
     .from('parameters')
     .select('status, name')
     .eq('id', parameterId)
-    .single();
+    .single()) as { data: { status: string; name: string } | null };
 
   // Update status to active
-  const { data, error } = await supabase
+  const { data, error } = await (supabase
     .from('parameters')
+    // @ts-ignore - Supabase type inference issue
     .update({ status: 'active' })
     .eq('id', parameterId)
     .select()
-    .single();
+    .single() as any);
 
   if (error) throw error;
 
@@ -2309,19 +2317,20 @@ export async function archiveSpecial(
   adminId?: number
 ): Promise<Special> {
   // Get current special for history
-  const { data: current } = await supabase
+  const { data: current } = (await supabase
     .from('specials')
     .select('status, name')
     .eq('id', specialId)
-    .single();
+    .single()) as { data: { status: string; name: string } | null };
 
   // Update status to hidden (or inactive, depending on business logic)
-  const { data, error } = await supabase
+  const { data, error } = await (supabase
     .from('specials')
+    // @ts-ignore - Supabase type inference issue
     .update({ status: 'hidden', updated_at: new Date().toISOString() })
     .eq('id', specialId)
     .select()
-    .single();
+    .single() as any);
 
   if (error) throw error;
 
@@ -2350,19 +2359,20 @@ export async function restoreSpecial(
   adminId?: number
 ): Promise<Special> {
   // Get current special for history
-  const { data: current } = await supabase
+  const { data: current } = (await supabase
     .from('specials')
     .select('status, name')
     .eq('id', specialId)
-    .single();
+    .single()) as { data: { status: string; name: string } | null };
 
   // Update status to available
-  const { data, error } = await supabase
+  const { data, error } = await (supabase
     .from('specials')
+    // @ts-ignore - Supabase type inference issue
     .update({ status: 'available', updated_at: new Date().toISOString() })
     .eq('id', specialId)
     .select()
-    .single();
+    .single() as any);
 
   if (error) throw error;
 

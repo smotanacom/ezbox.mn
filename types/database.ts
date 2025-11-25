@@ -580,6 +580,6 @@ export interface OrderSnapshot {
 }
 
 // Extended order type with parsed snapshot
-export interface OrderWithSnapshot extends Order {
+export interface OrderWithSnapshot extends Omit<Order, 'snapshot_data'> {
   snapshot_data: OrderSnapshot | null
 }

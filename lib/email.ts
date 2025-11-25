@@ -29,7 +29,7 @@ async function getAdminEmails(): Promise<string[]> {
     }
 
     // Filter out any null emails and return only valid email strings
-    return admins
+    return (admins as { email: string | null }[])
       .map((admin) => admin.email)
       .filter((email): email is string => email !== null && email.length > 0);
   } catch (error) {
@@ -275,6 +275,8 @@ export async function sendOrderNotificationEmail(
           Text: {
             Data: `
 New Order Received - Order #${order.id}
+
+View Order in Admin: https://ezbox.mn/admin/orders/${order.id}
 
 Order Details:
 --------------

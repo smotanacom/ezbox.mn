@@ -5,13 +5,14 @@ import type { ParameterSelection } from '@/types/database';
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string; itemId: string } }
+  { params }: { params: Promise<{ id: string; itemId: string }> }
 ) {
   try {
     // Require admin authentication
     await requireAdmin();
 
-    const itemId = parseInt(params.itemId);
+    const resolvedParams = await params;
+    const itemId = parseInt(resolvedParams.itemId);
     if (isNaN(itemId)) {
       return NextResponse.json(
         { error: 'Invalid item ID' },
@@ -47,13 +48,14 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string; itemId: string } }
+  { params }: { params: Promise<{ id: string; itemId: string }> }
 ) {
   try {
     // Require admin authentication
     await requireAdmin();
 
-    const itemId = parseInt(params.itemId);
+    const resolvedParams = await params;
+    const itemId = parseInt(resolvedParams.itemId);
     if (isNaN(itemId)) {
       return NextResponse.json(
         { error: 'Invalid item ID' },

@@ -6,7 +6,6 @@ import Link from 'next/link';
 import AdminRouteGuard from '@/components/AdminRouteGuard';
 import AdminNav from '@/components/AdminNav';
 import { productAPI, categoryAPI, parameterAPI } from '@/lib/api-client';
-import { parameterAPI, productAPI } from "@/lib/api-client";
 import type { Category, ParameterGroup, Parameter } from '@/types/database';
 
 interface InlineParameterGroup {

@@ -4,14 +4,15 @@ import { getHistoryForEntity } from '@/lib/api';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { entityType: string; entityId: string } }
+  { params }: { params: Promise<{ entityType: string; entityId: string }> }
 ) {
   try {
     // Require admin authentication
     await requireAdmin();
 
-    const entityType = params.entityType;
-    const entityId = parseInt(params.entityId);
+    const resolvedParams = await params;
+    const entityType = resolvedParams.entityType;
+    const entityId = parseInt(resolvedParams.entityId);
 
     if (isNaN(entityId)) {
       return NextResponse.json(

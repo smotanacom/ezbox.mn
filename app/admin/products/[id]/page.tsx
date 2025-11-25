@@ -8,7 +8,6 @@ import AdminNav from '@/components/AdminNav';
 import ImageUpload from '@/components/admin/ImageUpload';
 import ModelUpload from '@/components/admin/ModelUpload';
 import { productAPI, categoryAPI, parameterAPI } from '@/lib/api-client';
-import { parameterAPI, productAPI } from "@/lib/api-client";
 import type { ProductWithDetails, Category, ParameterGroup, Parameter } from '@/types/database';
 
 export default function AdminProductDetailPage() {
