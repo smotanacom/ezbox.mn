@@ -27,7 +27,7 @@ export default function OrdersPage() {
       if (authLoading) return;
 
       if (!user) {
-        router.push('/login');
+        router.replace('/login');
         return;
       }
 
@@ -44,7 +44,7 @@ export default function OrdersPage() {
     }
 
     loadOrders();
-  }, [user, authLoading, router, t]);
+  }, [user, authLoading, t]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {

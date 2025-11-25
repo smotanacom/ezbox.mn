@@ -4,17 +4,19 @@ import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import AdminRouteGuard from '@/components/AdminRouteGuard';
 import AdminNav from '@/components/AdminNav';
-import { getSpecials, updateSpecial, calculateSpecialOriginalPrice } from '@/lib/api';
-import type { SpecialWithItems } from '@/types/database';
+import { specialAPI } from '@/lib/api-client';
 import { useTranslation } from '@/contexts/LanguageContext';
+import type { SpecialWithItems } from '@/types/database';
 
 type SortField = 'id' | 'name' | 'discounted_price' | 'status' | 'items_count';
 
+// Extended type that includes both items and original_price
+type SpecialWithItemsAndPrice = SpecialWithItems & { original_price: number };
+
 export default function AdminSpecialsPage() {
   const { t } = useTranslation();
-  const [specials, setSpecials] = useState<SpecialWithItems[]>([]);
+  const [specials, setSpecials] = useState<SpecialWithItemsAndPrice[]>([]);
   const [loading, setLoading] = useState(true);
-  const [originalPrices, setOriginalPrices] = useState<Record<number, number>>({});
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -35,20 +37,18 @@ export default function AdminSpecialsPage() {
 
   const fetchData = async () => {
     try {
-      const specialsData = await getSpecials();
-      setSpecials(specialsData);
+      // The API returns specials + specialOriginalPrices separately
+      const response = await fetch('/api/specials');
+      const data = await response.json();
 
-      // Calculate original prices for all specials
-      const prices: Record<number, number> = {};
-      for (const special of specialsData) {
-        try {
-          prices[special.id] = await calculateSpecialOriginalPrice(special.id);
-        } catch (error) {
-          console.error(`Error calculating price for special ${special.id}:`, error);
-          prices[special.id] = 0;
-        }
-      }
-      setOriginalPrices(prices);
+      // Merge specials with their original prices
+      const specialsWithPrices: SpecialWithItemsAndPrice[] = data.specials.map(
+        (special: SpecialWithItems) => ({
+          ...special,
+          original_price: data.specialOriginalPrices?.[special.id] || 0,
+        })
+      );
+      setSpecials(specialsWithPrices);
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -67,7 +67,7 @@ export default function AdminSpecialsPage() {
 
   const handleStatusChange = async (specialId: number, newStatus: string) => {
     try {
-      await updateSpecial(specialId, { status: newStatus });
+      await specialAPI.update(specialId, { status: newStatus });
       await fetchData();
     } catch (error) {
       console.error('Error updating special status:', error);
@@ -224,7 +224,7 @@ export default function AdminSpecialsPage() {
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
                       {filteredAndSortedSpecials.map((special) => {
-                        const originalPrice = originalPrices[special.id] || 0;
+                        const originalPrice = special.original_price || 0;
                         const savings = originalPrice - special.discounted_price;
                         const savingsPercent = originalPrice > 0 ? Math.round((savings / originalPrice) * 100) : 0;
 

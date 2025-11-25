@@ -6,7 +6,7 @@ import Link from 'next/link';
 import AdminRouteGuard from '@/components/AdminRouteGuard';
 import AdminNav from '@/components/AdminNav';
 import { useTranslation } from '@/contexts/LanguageContext';
-import { createParameterGroupWithParameters } from '@/lib/api';
+import { parameterAPI } from '@/lib/api-client';
 
 export default function NewParameterGroupPage() {
   const { t } = useTranslation();
@@ -54,15 +54,13 @@ export default function NewParameterGroupPage() {
 
     setSaving(true);
     try {
-      const newGroup = await createParameterGroupWithParameters(
-        {
-          name: formData.name,
-          internal_name: formData.internal_name || formData.name,
-          description: formData.description,
-        },
-        validParams
-      );
-      router.push(`/admin/parameter-groups/${newGroup.group.id}`);
+      const newGroup = await parameterAPI.createGroupWithParameters({
+        name: formData.name,
+        internal_name: formData.internal_name || formData.name,
+        description: formData.description,
+        parameters: validParams
+      });
+      router.push(`/admin/parameter-groups/${newGroup.parameterGroup.id}`);
     } catch (error) {
       console.error('Error creating parameter group:', error);
       alert('Failed to create parameter group');

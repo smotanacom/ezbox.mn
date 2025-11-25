@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import AdminRouteGuard from '@/components/AdminRouteGuard';
 import AdminNav from '@/components/AdminNav';
-import { getAllProductsWithDetails, getCategories, updateProduct } from '@/lib/api';
+import { productAPI, categoryAPI } from '@/lib/api-client';
 import type { ProductWithDetails, Category } from '@/types/database';
 
 type SortField = 'id' | 'name' | 'category' | 'base_price' | 'status';
@@ -39,12 +39,12 @@ function AdminProductsContent() {
 
   const fetchData = async () => {
     try {
-      const [productsData, categoriesData] = await Promise.all([
-        getAllProductsWithDetails(),
-        getCategories(),
+      const [productsResponse, categoriesResponse] = await Promise.all([
+        productAPI.getAll(true), // includeInactive = true for admin view
+        categoryAPI.getAll(),
       ]);
-      setProducts(productsData);
-      setCategories(categoriesData);
+      setProducts(productsResponse.products);
+      setCategories(categoriesResponse.categories);
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -63,7 +63,8 @@ function AdminProductsContent() {
 
   const handleStatusChange = async (productId: number, newStatus: string) => {
     try {
-      await updateProduct(productId, { status: newStatus });
+      // The API accepts status but the TypeScript type doesn't include it
+      await productAPI.update(productId, { status: newStatus } as any);
       await fetchData();
     } catch (error) {
       console.error('Error updating product status:', error);

@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import AdminRouteGuard from '@/components/AdminRouteGuard';
 import AdminNav from '@/components/AdminNav';
-import { getOrderById, getOrderItems, updateOrderStatus, getHistoryForEntity } from '@/lib/api';
+import { orderAPI, historyAPI, type OrderWithItems } from '@/lib/api-client';
 import { useAdminAuth } from '@/hooks/useAuth';
 import type { Order, OrderItem, HistoryWithUser, OrderSnapshot } from '@/types/database';
 
@@ -15,8 +15,8 @@ export default function AdminOrderDetailPage() {
   const orderId = parseInt(params.id as string);
   const { admin } = useAdminAuth();
 
-  const [order, setOrder] = useState<Order | null>(null);
-  const [items, setItems] = useState<OrderItem[]>([]);
+  const [order, setOrder] = useState<OrderWithItems | null>(null);
+  const [items, setItems] = useState<OrderWithItems['items']>([]);
   const [history, setHistory] = useState<HistoryWithUser[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -31,24 +31,19 @@ export default function AdminOrderDetailPage() {
   const fetchOrderDetails = async () => {
     setLoading(true);
     try {
-      const orderData = await getOrderById(orderId);
+      const { order: orderData } = await orderAPI.getById(orderId);
       if (!orderData) {
         alert('Order not found');
         router.push('/admin/orders');
         return;
       }
       setOrder(orderData);
+      setItems(orderData.items);
 
-      // Fetch order items and history in parallel
-      const promises = [
-        getOrderItems(orderId).then(setItems),
-        getHistoryForEntity('order', orderId).then((historyData) => {
-          console.log('History data received:', historyData);
-          setHistory(historyData);
-        })
-      ];
-
-      await Promise.all(promises);
+      // Fetch history
+      const { history: historyData } = await historyAPI.getForEntity('order', orderId);
+      console.log('History data received:', historyData);
+      setHistory(historyData);
     } catch (error) {
       console.error('Error fetching order:', error);
       alert('Failed to load order details');
@@ -59,7 +54,7 @@ export default function AdminOrderDetailPage() {
 
   const handleStatusChange = async (newStatus: string) => {
     try {
-      await updateOrderStatus(orderId, newStatus, admin?.id);
+      await orderAPI.updateStatus(orderId, newStatus);
       fetchOrderDetails();
     } catch (error) {
       console.error('Error updating status:', error);
@@ -118,25 +113,25 @@ export default function AdminOrderDetailPage() {
     return labels[action] || action;
   };
 
-  const calculateItemPrice = (item: OrderItem) => {
-    // Use the pre-calculated line_total from snapshot
-    return item.line_total;
+  const calculateItemPrice = (item: OrderWithItems['items'][0]) => {
+    // Use the pre-calculated price_at_time
+    return item.price_at_time * item.quantity;
   };
 
-  const getParametersText = (item: OrderItem) => {
-    if (!item.parameters || item.parameters.length === 0) return '';
+  const getParametersText = (item: OrderWithItems['items'][0]) => {
+    if (!item.selected_parameters || Object.keys(item.selected_parameters).length === 0) return '';
 
-    // Format parameters as "Group: Name" pairs
-    return item.parameters.map(p => `${p.group}: ${p.name}`).join(', ');
+    // Format parameters as "Group: Value" pairs (simplified since we don't have group names)
+    return Object.entries(item.selected_parameters).map(([key, value]) => `${key}: ${value}`).join(', ');
   };
 
-  const getParametersForPrint = (item: OrderItem) => {
-    if (!item.parameters || item.parameters.length === 0) return [];
+  const getParametersForPrint = (item: OrderWithItems['items'][0]) => {
+    if (!item.selected_parameters || Object.keys(item.selected_parameters).length === 0) return [];
 
-    // Convert OrderItemParameter[] to print format
-    return item.parameters.map(p => ({
-      name: p.group,
-      value: p.name
+    // Convert selected_parameters to print format
+    return Object.entries(item.selected_parameters).map(([key, value]) => ({
+      name: key,
+      value: value.toString()
     }));
   };
 

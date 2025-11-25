@@ -6,7 +6,7 @@ import Link from 'next/link';
 import AdminRouteGuard from '@/components/AdminRouteGuard';
 import AdminNav from '@/components/AdminNav';
 import { useTranslation } from '@/contexts/LanguageContext';
-import { createCategory } from '@/lib/api';
+import { categoryAPI } from '@/lib/api-client';
 
 export default function NewCategoryPage() {
   const router = useRouter();
@@ -26,7 +26,7 @@ export default function NewCategoryPage() {
 
     setSaving(true);
     try {
-      const newCategory = await createCategory({
+      const { category: newCategory } = await categoryAPI.create({
         name: formData.name,
         description: formData.description,
       });

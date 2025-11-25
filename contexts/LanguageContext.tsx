@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { Language } from '@/types/translations';
 import { translations as enTranslations } from '@/translations/en';
 import { translations as mnTranslations } from '@/translations/mn';
@@ -34,14 +34,14 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   };
 
   // Translation function with fallback to English
-  const t = (key: keyof typeof enTranslations): string => {
+  const t = useCallback((key: keyof typeof enTranslations): string => {
     if (language === 'mn') {
       // Try Mongolian first, fallback to English if not found
       return mnTranslations[key] || enTranslations[key] || key;
     }
     // English
     return enTranslations[key] || key;
-  };
+  }, [language]);
 
   return (
     <LanguageContext.Provider value={{ language, setLanguage, t }}>

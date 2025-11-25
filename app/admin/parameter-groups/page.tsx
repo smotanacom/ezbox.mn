@@ -5,11 +5,7 @@ import Link from 'next/link';
 import AdminRouteGuard from '@/components/AdminRouteGuard';
 import AdminNav from '@/components/AdminNav';
 import { useTranslation } from '@/contexts/LanguageContext';
-import {
-  getParameterGroups,
-  getParameters,
-  getProductsUsingParameterGroup,
-} from '@/lib/api';
+import { parameterAPI } from '@/lib/api-client';
 import type { ParameterGroup, Parameter, Product } from '@/types/database';
 
 interface ParameterGroupWithDetails extends ParameterGroup {
@@ -42,18 +38,14 @@ export default function AdminParameterGroupsPage() {
 
   const fetchData = async () => {
     try {
-      const groupsData = await getParameterGroups();
+      const { parameterGroups: groupsData } = await parameterAPI.getAllGroups();
 
       const groupsWithDetails = await Promise.all(
         groupsData.map(async (group) => {
-          const [parameters, products] = await Promise.all([
-            getParameters(group.id),
-            getProductsUsingParameterGroup(group.id),
-          ]);
+          const { products } = await parameterAPI.getProductsUsingGroup(group.id);
 
           return {
             ...group,
-            parameters,
             products,
           };
         })

@@ -5,14 +5,8 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import AdminRouteGuard from '@/components/AdminRouteGuard';
 import AdminNav from '@/components/AdminNav';
-import {
-  createProduct,
-  getCategories,
-  getParameterGroups,
-  getParameters,
-  addParameterGroupToProduct,
-  createParameterGroupWithParameters,
-} from '@/lib/api';
+import { productAPI, categoryAPI, parameterAPI } from '@/lib/api-client';
+import { parameterAPI, productAPI } from "@/lib/api-client";
 import type { Category, ParameterGroup, Parameter } from '@/types/database';
 
 interface InlineParameterGroup {
@@ -53,18 +47,17 @@ export default function NewProductPage() {
 
   const fetchData = async () => {
     try {
-      const [categoriesData, paramGroupsData] = await Promise.all([
-        getCategories(),
-        getParameterGroups()
+      const [categoriesResponse, paramGroupsResponse] = await Promise.all([
+        categoryAPI.getAll(),
+        parameterAPI.getAllGroups()
       ]);
-      setCategories(categoriesData);
-      setAllParameterGroups(paramGroupsData);
+      setCategories(categoriesResponse.categories);
+      setAllParameterGroups(paramGroupsResponse.parameterGroups);
 
-      // Fetch parameters for all groups
+      // Build parameters map from the groups response (parameters are included)
       const paramsMap: Record<number, Parameter[]> = {};
-      for (const group of paramGroupsData) {
-        const params = await getParameters(group.id);
-        paramsMap[group.id] = params;
+      for (const group of paramGroupsResponse.parameterGroups) {
+        paramsMap[group.id] = group.parameters || [];
       }
       setParametersByGroup(paramsMap);
     } catch (error) {
@@ -88,32 +81,29 @@ export default function NewProductPage() {
     setSaving(true);
     try {
       // 1. Create the product
-      const newProduct = await createProduct({
+      const { product: newProduct } = await productAPI.create({
         name: formData.name,
         description: formData.description,
         base_price: formData.base_price,
-        category_id: formData.category_id,
-        status: formData.status,
+        category_id: formData.category_id || undefined,
       });
 
       // 2. Add selected existing parameter groups
       for (const groupId of selectedGroupIds) {
         const params = parametersByGroup[groupId];
         const defaultParamId = params && params.length > 0 ? params[0].id : undefined;
-        await addParameterGroupToProduct(newProduct.id, groupId, defaultParamId);
+        await productAPI.addParameterGroup(newProduct.id, groupId, defaultParamId);
       }
 
       // 3. Create and add inline parameter groups
       for (const inlineGroup of inlineGroups) {
-        const { group, parameters } = await createParameterGroupWithParameters(
-          {
-            name: inlineGroup.name,
-            internal_name: inlineGroup.internal_name || inlineGroup.name,
-          },
-          inlineGroup.parameters.filter(p => p.name.trim())
-        );
+        const { parameterGroup: group, parameters } = await parameterAPI.createGroupWithParameters({
+          name: inlineGroup.name,
+          internal_name: inlineGroup.internal_name || inlineGroup.name,
+          parameters: inlineGroup.parameters.filter(p => p.name.trim())
+        });
         const defaultParamId = parameters.length > 0 ? parameters[0].id : undefined;
-        await addParameterGroupToProduct(newProduct.id, group.id, defaultParamId);
+        await productAPI.addParameterGroup(newProduct.id, group.id, defaultParamId);
       }
 
       alert('Product created successfully!');

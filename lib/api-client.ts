@@ -236,6 +236,21 @@ export const parameterAPI = {
       body: JSON.stringify(data),
     }),
 
+  createGroupWithParameters: (data: {
+    name: string;
+    internal_name?: string;
+    description?: string;
+    parameters: Array<{
+      name: string;
+      price_modifier?: number;
+      description?: string;
+    }>;
+  }) =>
+    apiRequest<{ parameterGroup: ParameterGroup; parameters: Parameter[] }>('/api/parameter-groups', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
   updateGroup: (id: number, data: { name?: string; description?: string }) =>
     apiRequest<{ parameterGroup: ParameterGroup }>(`/api/parameter-groups/${id}`, {
       method: 'PUT',
@@ -395,6 +410,31 @@ export const specialAPI = {
     apiRequest<{ message: string }>(`/api/specials/${id}`, {
       method: 'DELETE',
     }),
+
+  // Special items management
+  addItem: (specialId: number, data: {
+    productId: number;
+    quantity: number;
+    selectedParameters?: Record<string, number>;
+  }) =>
+    apiRequest<{ item: any }>(`/api/specials/${specialId}/items`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  updateItem: (specialId: number, itemId: number, data: {
+    quantity?: number;
+    selectedParameters?: Record<string, number>;
+  }) =>
+    apiRequest<{ item: any }>(`/api/specials/${specialId}/items/${itemId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
+  removeItem: (specialId: number, itemId: number) =>
+    apiRequest<{ message: string }>(`/api/specials/${specialId}/items/${itemId}`, {
+      method: 'DELETE',
+    }),
 };
 
 // ==================== ORDERS ====================
@@ -483,6 +523,13 @@ export const homeAPI = {
   // Batched: categories + products + specials
   getData: () =>
     apiRequest<HomePageData>('/api/home'),
+};
+
+// ==================== HISTORY ====================
+
+export const historyAPI = {
+  getForEntity: (entityType: string, entityId: number) =>
+    apiRequest<{ history: any[] }>(`/api/history/${entityType}/${entityId}`),
 };
 
 // ==================== HELPERS ====================

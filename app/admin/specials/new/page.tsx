@@ -6,7 +6,7 @@ import Link from 'next/link';
 import AdminRouteGuard from '@/components/AdminRouteGuard';
 import AdminNav from '@/components/AdminNav';
 import SpecialImageUpload from '@/components/admin/SpecialImageUpload';
-import { createSpecial, addItemToSpecial, getAllProductsWithDetails } from '@/lib/api';
+import { specialAPI, productAPI } from '@/lib/api-client';
 import type { ProductWithDetails } from '@/types/database';
 import { useTranslation } from '@/contexts/LanguageContext';
 
@@ -41,7 +41,7 @@ export default function AdminNewSpecialPage() {
 
   const fetchProducts = async () => {
     try {
-      const productsData = await getAllProductsWithDetails(true);
+      const { products: productsData } = await productAPI.getAll(true);
       setProducts(productsData);
     } catch (error) {
       console.error('Error fetching products:', error);
@@ -99,11 +99,14 @@ export default function AdminNewSpecialPage() {
     setSaving(true);
     try {
       // 1. Create the special first
-      const newSpecial = await createSpecial(formData);
+      const { special: newSpecial } = await specialAPI.create(formData);
 
       // 2. Add all selected items to the special
       for (const item of selectedItems) {
-        await addItemToSpecial(newSpecial.id, item.product_id, item.quantity);
+        await specialAPI.addItem(newSpecial.id, {
+          productId: item.product_id,
+          quantity: item.quantity
+        });
       }
 
       alert(t('admin.specials.create-success'));

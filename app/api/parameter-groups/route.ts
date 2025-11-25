@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { requireAdmin } from '@/lib/auth-server';
-import { getParameterGroups, getParameters, createParameterGroup } from '@/lib/api';
+import { getParameterGroups, getParameters, createParameterGroup, createParameterGroupWithParameters } from '@/lib/api';
 import { clearCache } from '@/lib/cache';
 
 // GET: Return all parameter groups with their parameters (batched)
@@ -36,13 +36,36 @@ export async function POST(request: NextRequest) {
     await requireAdmin();
 
     const data = await request.json();
-    const parameterGroup = await createParameterGroup(data);
 
-    // Clear caches
-    clearCache('products-data');
-    clearCache('products-data-all');
+    // Check if we're creating with parameters
+    if (data.parameters && Array.isArray(data.parameters)) {
+      const result = await createParameterGroupWithParameters(
+        {
+          name: data.name,
+          internal_name: data.internal_name,
+          description: data.description,
+        },
+        data.parameters
+      );
 
-    return NextResponse.json({ parameterGroup });
+      // Clear caches
+      clearCache('products-data');
+      clearCache('products-data-all');
+
+      return NextResponse.json({
+        parameterGroup: result.group,
+        parameters: result.parameters
+      });
+    } else {
+      // Create without parameters
+      const parameterGroup = await createParameterGroup(data);
+
+      // Clear caches
+      clearCache('products-data');
+      clearCache('products-data-all');
+
+      return NextResponse.json({ parameterGroup });
+    }
   } catch (error: any) {
     console.error('Error creating parameter group:', error);
     return NextResponse.json(

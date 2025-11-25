@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
-import { orderAPI } from '@/lib/api-client';
+import { orderAPI, type OrderWithItems } from '@/lib/api-client';
 import Image from '@/components/Image';
 import { PageContainer, LoadingState } from '@/components/layout';
 import { Button } from '@/components/ui/button';
@@ -28,8 +28,8 @@ export default function OrderDetailPage() {
   const orderId = parseInt(params.id as string);
   const { user, loading: authLoading } = useAuth();
 
-  const [order, setOrder] = useState<Order | null>(null);
-  const [items, setItems] = useState<OrderItem[]>([]);
+  const [order, setOrder] = useState<OrderWithItems | null>(null);
+  const [items, setItems] = useState<OrderWithItems['items']>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -38,7 +38,7 @@ export default function OrderDetailPage() {
       if (authLoading) return;
 
       if (!user) {
-        router.push('/login');
+        router.replace('/login');
         return;
       }
 
@@ -72,7 +72,7 @@ export default function OrderDetailPage() {
     if (orderId) {
       loadOrder();
     }
-  }, [orderId, user, authLoading, router]);
+  }, [orderId, user, authLoading]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -173,23 +173,18 @@ export default function OrderDetailPage() {
                           <div className="flex items-center gap-3">
                             <div className="relative w-16 h-16 rounded-md overflow-hidden">
                               <Image
-                                src={item.image_url || '/placeholder-product.png'}
+                                src="/placeholder-product.png"
                                 alt={item.product_name}
                                 className="object-cover w-full h-full"
                               />
                             </div>
                             <div>
                               <div className="font-medium">{item.product_name}</div>
-                              {item.category_name && (
-                                <div className="text-sm text-muted-foreground">
-                                  {item.category_name}
-                                </div>
-                              )}
-                              {item.parameters && item.parameters.length > 0 && (
+                              {item.selected_parameters && Object.keys(item.selected_parameters).length > 0 && (
                                 <div className="flex flex-wrap gap-1 mt-1">
-                                  {item.parameters.map((param, idx) => (
+                                  {Object.entries(item.selected_parameters).map(([key, value], idx) => (
                                     <Badge key={idx} variant="outline" className="text-xs">
-                                      {param.name}
+                                      {key}: {value}
                                     </Badge>
                                   ))}
                                 </div>
@@ -199,7 +194,7 @@ export default function OrderDetailPage() {
                         </TableCell>
                         <TableCell>{item.quantity}</TableCell>
                         <TableCell className="text-right font-semibold">
-                          ₮{item.line_total.toLocaleString()}
+                          ₮{(item.price_at_time * item.quantity).toLocaleString()}
                         </TableCell>
                       </TableRow>
                     ))}

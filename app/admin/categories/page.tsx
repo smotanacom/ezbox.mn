@@ -5,7 +5,7 @@ import Link from 'next/link';
 import AdminRouteGuard from '@/components/AdminRouteGuard';
 import AdminNav from '@/components/AdminNav';
 import { useTranslation } from '@/contexts/LanguageContext';
-import { getCategories, getProducts } from '@/lib/api';
+import { categoryAPI, productAPI } from '@/lib/api-client';
 import type { Category } from '@/types/database';
 
 type SortField = 'id' | 'name' | 'products_count';
@@ -34,15 +34,15 @@ export default function AdminCategoriesPage() {
 
   const fetchData = async () => {
     try {
-      const [categoriesData, productsData] = await Promise.all([
-        getCategories(),
-        getProducts(),
+      const [categoriesResponse, productsResponse] = await Promise.all([
+        categoryAPI.getAll(),
+        productAPI.getAll(),
       ]);
-      setCategories(categoriesData);
+      setCategories(categoriesResponse.categories);
 
       // Count products per category
       const counts: Record<number, number> = {};
-      productsData.forEach((product) => {
+      productsResponse.products.forEach((product) => {
         if (product.category_id) {
           counts[product.category_id] = (counts[product.category_id] || 0) + 1;
         }

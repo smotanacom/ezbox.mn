@@ -79,29 +79,31 @@ export default function Header() {
     <header className="bg-background border-b sticky top-0 z-50 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between">
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 text-xl sm:text-2xl font-bold hover:opacity-80 transition-opacity">
-            <Package className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
-            <span>EzBox<span className="text-primary">.mn</span></span>
-          </Link>
+          {/* Logo + Desktop Navigation */}
+          <div className="flex items-center gap-2">
+            <Link href="/" className="flex items-center gap-2 text-xl sm:text-2xl font-bold hover:opacity-80 transition-opacity">
+              <Package className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
+              <span>EzBox<span className="text-primary">.mn</span></span>
+            </Link>
 
-          {/* Desktop Navigation */}
-          <div className="hidden lg:flex items-center gap-2">
-            <Button variant="ghost" asChild>
-              <Link href="/products">
-                {t('nav.products')}
-              </Link>
-            </Button>
-            <Button variant="ghost" asChild>
-              <Link href="/specials">
-                {t('nav.specials')}
-              </Link>
-            </Button>
-            <Button variant="ghost" asChild>
-              <Link href="/custom">
-                {t('nav.custom-design')}
-              </Link>
-            </Button>
+            {/* Desktop Navigation */}
+            <div className="hidden lg:flex items-center gap-2 ml-8">
+              <Button variant="ghost" asChild>
+                <Link href="/products">
+                  {t('nav.products')}
+                </Link>
+              </Button>
+              <Button variant="ghost" asChild>
+                <Link href="/specials">
+                  {t('nav.specials')}
+                </Link>
+              </Button>
+              <Button variant="ghost" asChild>
+                <Link href="/custom">
+                  {t('nav.custom-design')}
+                </Link>
+              </Button>
+            </div>
           </div>
 
           {/* Desktop Right Nav */}

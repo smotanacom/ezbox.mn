@@ -6,17 +6,7 @@ import Link from 'next/link';
 import AdminRouteGuard from '@/components/AdminRouteGuard';
 import AdminNav from '@/components/AdminNav';
 import { useTranslation } from '@/contexts/LanguageContext';
-import {
-  getParameterGroup,
-  getParameters,
-  getProductsUsingParameterGroup,
-  updateParameterGroup,
-  deleteParameterGroup,
-  cloneParameterGroup,
-  createParameter,
-  updateParameter,
-  deleteParameter,
-} from '@/lib/api';
+import { parameterAPI } from '@/lib/api-client';
 import type { ParameterGroup, Parameter, Product } from '@/types/database';
 
 interface ParameterFormState {
@@ -56,27 +46,26 @@ export default function ParameterGroupDetailPage() {
 
   const fetchData = async () => {
     try {
-      const [groupData, paramsData, productsData] = await Promise.all([
-        getParameterGroup(groupId),
-        getParameters(groupId),
-        getProductsUsingParameterGroup(groupId),
+      const [groupResponse, productsResponse] = await Promise.all([
+        parameterAPI.getGroup(groupId),
+        parameterAPI.getProductsUsingGroup(groupId),
       ]);
 
-      setGroup(groupData);
-      setParameters(paramsData);
-      setProducts(productsData);
+      setGroup(groupResponse.parameterGroup);
+      setParameters(groupResponse.parameterGroup.parameters);
+      setProducts(productsResponse.products);
 
-      if (groupData) {
+      if (groupResponse.parameterGroup) {
         setGroupForm({
-          name: groupData.name,
-          internal_name: groupData.internal_name || '',
-          description: groupData.description || '',
+          name: groupResponse.parameterGroup.name,
+          internal_name: groupResponse.parameterGroup.internal_name || '',
+          description: groupResponse.parameterGroup.description || '',
         });
       }
 
       // Initialize parameter forms
       const forms: Record<number, ParameterFormState> = {};
-      for (const param of paramsData) {
+      for (const param of groupResponse.parameterGroup.parameters) {
         forms[param.id] = {
           name: param.name,
           price_modifier: param.price_modifier,
@@ -99,11 +88,12 @@ export default function ParameterGroupDetailPage() {
 
     setSaving(true);
     try {
-      await updateParameterGroup(groupId, {
+      // The API accepts internal_name but the TypeScript type doesn't include it
+      await parameterAPI.updateGroup(groupId, {
         name: groupForm.name,
         internal_name: groupForm.internal_name || groupForm.name,
         description: groupForm.description,
-      });
+      } as any);
       await fetchData();
     } catch (error) {
       console.error('Error updating group:', error);
@@ -125,7 +115,7 @@ export default function ParameterGroupDetailPage() {
 
     setDeleting(true);
     try {
-      await deleteParameterGroup(groupId);
+      await parameterAPI.deleteGroup(groupId);
       router.push('/admin/parameter-groups');
     } catch (error) {
       console.error('Error deleting group:', error);
@@ -136,7 +126,7 @@ export default function ParameterGroupDetailPage() {
 
   const handleCloneGroup = async () => {
     try {
-      const cloned = await cloneParameterGroup(groupId);
+      const { parameterGroup: cloned } = await parameterAPI.cloneGroup(groupId, `${group?.name} (Copy)`);
       alert('Parameter group cloned successfully');
       router.push(`/admin/parameter-groups/${cloned.id}`);
     } catch (error) {
@@ -164,10 +154,10 @@ export default function ParameterGroupDetailPage() {
 
     setSaving(true);
     try {
-      await updateParameter(paramId, {
+      await parameterAPI.updateParameter(paramId, {
         name: form.name,
         price_modifier: form.price_modifier,
-        description: form.description,
+        picture_url: form.description,
       });
       await fetchData();
     } catch (error) {
@@ -184,7 +174,7 @@ export default function ParameterGroupDetailPage() {
     }
 
     try {
-      await deleteParameter(paramId);
+      await parameterAPI.deleteParameter(paramId);
       await fetchData();
     } catch (error) {
       console.error('Error deleting parameter:', error);
@@ -200,11 +190,10 @@ export default function ParameterGroupDetailPage() {
 
     setSaving(true);
     try {
-      await createParameter({
-        parameter_group_id: groupId,
+      await parameterAPI.createParameter(groupId, {
         name: newParamForm.name,
         price_modifier: newParamForm.price_modifier,
-        description: newParamForm.description,
+        picture_url: newParamForm.description,
       });
       await fetchData();
       setShowNewParam(false);

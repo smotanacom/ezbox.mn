@@ -35,7 +35,7 @@ export default function AccountPage() {
 
   useEffect(() => {
     if (!loading && !user) {
-      router.push('/login');
+      router.replace('/login');
       return;
     }
 
@@ -44,7 +44,7 @@ export default function AccountPage() {
       setAddress(user.address || '');
       setSecondaryPhone(user.secondary_phone || '');
     }
-  }, [user, loading, router]);
+  }, [user, loading]);
 
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

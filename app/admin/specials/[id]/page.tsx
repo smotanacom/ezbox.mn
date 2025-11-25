@@ -6,15 +6,7 @@ import Link from 'next/link';
 import AdminRouteGuard from '@/components/AdminRouteGuard';
 import AdminNav from '@/components/AdminNav';
 import SpecialImageUpload from '@/components/admin/SpecialImageUpload';
-import {
-  getSpecialWithDetails,
-  updateSpecial,
-  deleteSpecial,
-  getAllProductsWithDetails,
-  addItemToSpecial,
-  updateSpecialItem,
-  removeItemFromSpecial,
-} from '@/lib/api';
+import { specialAPI, productAPI } from '@/lib/api-client';
 import type { ProductWithDetails, SpecialWithItems } from '@/types/database';
 import { useTranslation } from '@/contexts/LanguageContext';
 
@@ -47,25 +39,25 @@ export default function AdminSpecialDetailPage() {
 
   const fetchData = async () => {
     try {
-      const [specialData, productsData] = await Promise.all([
-        getSpecialWithDetails(specialId),
-        getAllProductsWithDetails(true),
+      const [specialResponse, productsResponse] = await Promise.all([
+        specialAPI.getById(specialId),
+        productAPI.getAll(true),
       ]);
 
-      if (!specialData) {
+      if (!specialResponse.special) {
         alert(t('admin.specials.delete-failed'));
         router.push('/admin/specials');
         return;
       }
 
-      setSpecial(specialData);
-      setProducts(productsData);
+      setSpecial(specialResponse.special as any);
+      setProducts(productsResponse.products);
 
       setFormData({
-        name: specialData.name,
-        description: specialData.description || '',
-        discounted_price: specialData.discounted_price,
-        status: specialData.status as 'draft' | 'available' | 'hidden',
+        name: specialResponse.special.name,
+        description: specialResponse.special.description || '',
+        discounted_price: specialResponse.special.discounted_price,
+        status: specialResponse.special.status as 'draft' | 'available' | 'hidden',
       });
     } catch (error) {
       console.error('Error fetching special:', error);
@@ -83,7 +75,7 @@ export default function AdminSpecialDetailPage() {
 
     setSaving(true);
     try {
-      await updateSpecial(specialId, formData);
+      await specialAPI.update(specialId, formData);
       alert(t('admin.specials.update-success'));
       await fetchData();
     } catch (error) {
@@ -100,7 +92,7 @@ export default function AdminSpecialDetailPage() {
     }
 
     try {
-      await deleteSpecial(specialId);
+      await specialAPI.delete(specialId);
       alert(t('admin.specials.delete-success'));
       router.push('/admin/specials');
     } catch (error) {
@@ -116,7 +108,10 @@ export default function AdminSpecialDetailPage() {
     }
 
     try {
-      await addItemToSpecial(specialId, newItem.product_id, newItem.quantity);
+      await specialAPI.addItem(specialId, {
+        productId: newItem.product_id,
+        quantity: newItem.quantity
+      });
       setNewItem({ product_id: 0, quantity: 1 });
       await fetchData();
     } catch (error) {
@@ -127,7 +122,7 @@ export default function AdminSpecialDetailPage() {
 
   const handleUpdateItemQuantity = async (itemId: number, quantity: number) => {
     try {
-      await updateSpecialItem(itemId, quantity);
+      await specialAPI.updateItem(specialId, itemId, { quantity });
       await fetchData();
     } catch (error) {
       console.error('Error updating item:', error);
@@ -137,7 +132,7 @@ export default function AdminSpecialDetailPage() {
 
   const handleRemoveItem = async (itemId: number) => {
     try {
-      await removeItemFromSpecial(itemId);
+      await specialAPI.removeItem(specialId, itemId);
       await fetchData();
     } catch (error) {
       console.error('Error removing item:', error);

@@ -7,7 +7,7 @@ import AdminRouteGuard from '@/components/AdminRouteGuard';
 import AdminNav from '@/components/AdminNav';
 import CategoryImageUpload from '@/components/admin/CategoryImageUpload';
 import { useTranslation } from '@/contexts/LanguageContext';
-import { getCategories, updateCategory, deleteCategory } from '@/lib/api';
+import { categoryAPI } from '@/lib/api-client';
 import type { Category } from '@/types/database';
 
 export default function AdminCategoryDetailPage() {
@@ -31,8 +31,7 @@ export default function AdminCategoryDetailPage() {
 
   const fetchData = async () => {
     try {
-      const categories = await getCategories();
-      const categoryData = categories.find(c => c.id === categoryId);
+      const { category: categoryData } = await categoryAPI.getById(categoryId);
 
       if (!categoryData) {
         alert(t('admin.category.error.load'));
@@ -61,7 +60,7 @@ export default function AdminCategoryDetailPage() {
 
     setSaving(true);
     try {
-      await updateCategory(categoryId, formData);
+      await categoryAPI.update(categoryId, formData);
       alert(t('admin.category.success.updated'));
       await fetchData();
     } catch (error) {
@@ -78,7 +77,7 @@ export default function AdminCategoryDetailPage() {
     }
 
     try {
-      await deleteCategory(categoryId);
+      await categoryAPI.delete(categoryId);
       alert(t('admin.category.success.updated'));
       router.push('/admin/categories');
     } catch (error) {
