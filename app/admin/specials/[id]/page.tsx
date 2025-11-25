@@ -318,7 +318,7 @@ export default function AdminSpecialDetailPage() {
                       <div key={item.id} className="flex items-center justify-between bg-gray-50 p-4 rounded-lg">
                         <div className="flex-1">
                           <div className="font-medium text-gray-900">
-                            {item.product?.name || \`Product #\${item.product_id}\`}
+                            {item.product?.name || `Product #${item.product_id}`}
                           </div>
                           <div className="text-sm text-gray-600 mt-1">
                             {t('admin.specials.item-quantity')}:
