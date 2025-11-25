@@ -29,7 +29,7 @@ export default function ExportPage() {
   const { t } = useTranslation();
   const router = useRouter();
   const [selectedTables, setSelectedTables] = useState<string[]>([]);
-  const [format, setFormat] = useState<ExportFormat>('json');
+  const [format, setFormat] = useState<ExportFormat>('csv');
   const [isExporting, setIsExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -120,11 +120,11 @@ export default function ExportPage() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+        <div className="mb-6">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
             {t('admin.export.title')}
           </h1>
-          <p className="text-gray-600">
+          <p className="text-sm sm:text-base text-gray-600">
             {t('admin.export.subtitle')}
           </p>
         </div>
@@ -147,19 +147,6 @@ export default function ExportPage() {
                 <input
                   type="radio"
                   name="format"
-                  value="json"
-                  checked={format === 'json'}
-                  onChange={(e) => setFormat(e.target.value as ExportFormat)}
-                  className="w-4 h-4 text-blue-600 focus:ring-blue-500"
-                />
-                <span className="ml-2 text-gray-700">
-                  {t('admin.export.format-json')}
-                </span>
-              </label>
-              <label className="flex items-center cursor-pointer">
-                <input
-                  type="radio"
-                  name="format"
                   value="csv"
                   checked={format === 'csv'}
                   onChange={(e) => setFormat(e.target.value as ExportFormat)}
@@ -167,6 +154,19 @@ export default function ExportPage() {
                 />
                 <span className="ml-2 text-gray-700">
                   {t('admin.export.format-csv')}
+                </span>
+              </label>
+              <label className="flex items-center cursor-pointer">
+                <input
+                  type="radio"
+                  name="format"
+                  value="json"
+                  checked={format === 'json'}
+                  onChange={(e) => setFormat(e.target.value as ExportFormat)}
+                  className="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="ml-2 text-gray-700">
+                  {t('admin.export.format-json')}
                 </span>
               </label>
             </div>

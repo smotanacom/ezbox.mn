@@ -544,3 +544,211 @@ async function deleteStorageFiles(
     console.error('Failed to delete storage files:', error);
   }
 }
+
+/**
+ * Uploads a category image with automatic resizing
+ *
+ * @param categoryId - Category ID
+ * @param file - Image file buffer
+ * @param fileName - Original file name
+ * @param mimeType - MIME type
+ * @returns Path to the uploaded image
+ */
+export async function uploadCategoryImage(
+  categoryId: number,
+  file: Buffer,
+  fileName: string,
+  mimeType: string
+): Promise<{ data: { path: string } | null; error: string | null }> {
+  try {
+    // Validate image
+    const validation = await validateImageFile(file, fileName, mimeType);
+    if (!validation.valid) {
+      return { data: null, error: validation.error || 'Invalid image file' };
+    }
+
+    // Generate all sizes
+    const sizes = await generateAllSizes(file);
+
+    // Generate unique file names
+    const timestamp = Date.now();
+    const ext = '.jpg'; // All processed images are saved as JPEG
+    const basePath = `categories/${categoryId}`;
+
+    const paths = {
+      original: `${basePath}/${timestamp}_original${ext}`,
+      thumbnail: `${basePath}/${timestamp}_thumb${ext}`,
+      medium: `${basePath}/${timestamp}_medium${ext}`,
+    };
+
+    // Upload all sizes to storage
+    const uploadResults = await Promise.all([
+      supabase.storage
+        .from(BUCKETS.PRODUCT_IMAGES)
+        .upload(paths.original, sizes.original, {
+          contentType: 'image/jpeg',
+          upsert: false
+        }),
+      supabase.storage
+        .from(BUCKETS.PRODUCT_IMAGES)
+        .upload(paths.thumbnail, sizes.thumbnail, {
+          contentType: 'image/jpeg',
+          upsert: false
+        }),
+      supabase.storage
+        .from(BUCKETS.PRODUCT_IMAGES)
+        .upload(paths.medium, sizes.medium, {
+          contentType: 'image/jpeg',
+          upsert: false
+        })
+    ]);
+
+    // Check for upload errors
+    const uploadError = uploadResults.find(result => result.error);
+    if (uploadError?.error) {
+      // Cleanup uploaded files
+      await deleteStorageFiles(BUCKETS.PRODUCT_IMAGES, Object.values(paths));
+      return { data: null, error: uploadError.error.message };
+    }
+
+    // Return the medium path (used for display)
+    return { data: { path: paths.medium }, error: null };
+  } catch (error) {
+    return {
+      data: null,
+      error: error instanceof Error ? error.message : 'Failed to upload category image'
+    };
+  }
+}
+
+/**
+ * Deletes a category image by its path
+ *
+ * @param imagePath - The medium path of the image
+ * @returns Success status
+ */
+export async function deleteCategoryImage(
+  imagePath: string
+): Promise<{ success: boolean; error: string | null }> {
+  try {
+    // Derive all paths from the medium path
+    const basePath = imagePath.replace('_medium.jpg', '');
+    const paths = [
+      `${basePath}_original.jpg`,
+      `${basePath}_thumb.jpg`,
+      `${basePath}_medium.jpg`,
+    ];
+
+    await deleteStorageFiles(BUCKETS.PRODUCT_IMAGES, paths);
+    return { success: true, error: null };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to delete category image'
+    };
+  }
+}
+
+/**
+ * Uploads a special image with automatic resizing
+ *
+ * @param specialId - The ID of the special
+ * @param file - The image file buffer
+ * @param fileName - Original file name
+ * @param mimeType - File mime type
+ * @returns The medium path to be stored in the database
+ */
+export async function uploadSpecialImage(
+  specialId: number,
+  file: Buffer,
+  fileName: string,
+  mimeType: string
+): Promise<{ data: { path: string } | null; error: string | null }> {
+  try {
+    // Validate image
+    const validation = await validateImageFile(file, fileName, mimeType);
+    if (!validation.valid) {
+      return { data: null, error: validation.error || 'Invalid image file' };
+    }
+
+    // Generate all sizes
+    const sizes = await generateAllSizes(file);
+
+    // Generate unique file names
+    const timestamp = Date.now();
+    const ext = '.jpg'; // All processed images are saved as JPEG
+    const basePath = `specials/${specialId}`;
+
+    const paths = {
+      original: `${basePath}/${timestamp}_original${ext}`,
+      thumbnail: `${basePath}/${timestamp}_thumb${ext}`,
+      medium: `${basePath}/${timestamp}_medium${ext}`,
+    };
+
+    // Upload all sizes to storage
+    const uploadResults = await Promise.all([
+      supabase.storage
+        .from(BUCKETS.PRODUCT_IMAGES)
+        .upload(paths.original, sizes.original, {
+          contentType: 'image/jpeg',
+          upsert: false
+        }),
+      supabase.storage
+        .from(BUCKETS.PRODUCT_IMAGES)
+        .upload(paths.thumbnail, sizes.thumbnail, {
+          contentType: 'image/jpeg',
+          upsert: false
+        }),
+      supabase.storage
+        .from(BUCKETS.PRODUCT_IMAGES)
+        .upload(paths.medium, sizes.medium, {
+          contentType: 'image/jpeg',
+          upsert: false
+        })
+    ]);
+
+    // Check for upload errors
+    const uploadError = uploadResults.find(result => result.error);
+    if (uploadError?.error) {
+      // Cleanup uploaded files
+      await deleteStorageFiles(BUCKETS.PRODUCT_IMAGES, Object.values(paths));
+      return { data: null, error: uploadError.error.message };
+    }
+
+    // Return the medium path (used for display)
+    return { data: { path: paths.medium }, error: null };
+  } catch (error) {
+    return {
+      data: null,
+      error: error instanceof Error ? error.message : 'Failed to upload special image'
+    };
+  }
+}
+
+/**
+ * Deletes a special image by its path
+ *
+ * @param imagePath - The medium path of the image
+ * @returns Success status
+ */
+export async function deleteSpecialImage(
+  imagePath: string
+): Promise<{ success: boolean; error: string | null }> {
+  try {
+    // Derive all paths from the medium path
+    const basePath = imagePath.replace('_medium.jpg', '');
+    const paths = [
+      `${basePath}_original.jpg`,
+      `${basePath}_thumb.jpg`,
+      `${basePath}_medium.jpg`,
+    ];
+
+    await deleteStorageFiles(BUCKETS.PRODUCT_IMAGES, paths);
+    return { success: true, error: null };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to delete special image'
+    };
+  }
+}

@@ -330,6 +330,7 @@ function ProductsContent() {
                 router.push(`/products?category=${categoryId}`);
               }
             }}
+            renderMobileContent={() => renderProductConfiguration()}
             renderDesktopContent={() => renderProductConfiguration()}
           />
         </div>

@@ -38,8 +38,56 @@ export default function CategorySelector({
 
   return (
     <div>
-      {/* Categories Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 lg:gap-6 lg:items-end">
+      {/* Mobile: Horizontal Scrolling Categories */}
+      <div className="lg:hidden">
+        <div className="overflow-x-auto -mx-4 px-4 scrollbar-hide">
+          <div className="flex gap-6 min-w-min pb-4">
+            {categoriesWithProducts.map((category) => {
+              const products = productsByCategory[category.id] || [];
+              const isSelected = selectedCategory === category.id;
+
+              return (
+                <button
+                  key={category.id}
+                  onClick={() => handleCategoryClick(category.id)}
+                  className="flex-shrink-0 w-32 flex flex-col items-center group"
+                >
+                  {/* Category Image */}
+                  <div className={`w-32 h-32 relative rounded-lg overflow-hidden mb-2 transition-all ${
+                    isSelected ? 'ring-2 ring-primary' : 'opacity-70 group-hover:opacity-100'
+                  }`}>
+                    <Image
+                      src={category.picture_url}
+                      alt={category.name}
+                      className="object-cover w-full h-full"
+                    />
+                  </div>
+                  {/* Category Name */}
+                  <h3 className={`text-sm font-semibold text-center transition-colors ${
+                    isSelected ? 'text-primary' : 'text-gray-700'
+                  }`}>
+                    {category.name}
+                  </h3>
+                  {/* Underline Indicator */}
+                  <div className={`mt-1 h-0.5 w-full transition-all ${
+                    isSelected ? 'bg-primary' : 'bg-transparent'
+                  }`} />
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Mobile: Products below horizontal categories */}
+        {selectedCategory && renderMobileContent && (
+          <div className="mt-6">
+            {renderMobileContent(selectedCategory, productsByCategory[selectedCategory] || [])}
+          </div>
+        )}
+      </div>
+
+      {/* Desktop: Grid Layout (unchanged) */}
+      <div className="hidden lg:grid lg:grid-cols-4 gap-4 lg:gap-6 lg:items-end">
         {categoriesWithProducts.map((category) => {
           const products = productsByCategory[category.id] || [];
           const isSelected = selectedCategory === category.id;
@@ -80,12 +128,7 @@ export default function CategorySelector({
 
               {/* Connection Line (Desktop only) */}
               {isSelected && renderDesktopContent && (
-                <div className="hidden lg:block absolute left-1/2 -translate-x-1/2 bottom-0 w-0.5 bg-primary h-8 translate-y-full z-0" />
-              )}
-
-              {/* Mobile Content (directly below card) */}
-              {isSelected && renderMobileContent && (
-                renderMobileContent(category.id, products)
+                <div className="absolute left-1/2 -translate-x-1/2 bottom-0 w-0.5 bg-primary h-8 translate-y-full z-0" />
               )}
             </div>
           );
@@ -94,7 +137,7 @@ export default function CategorySelector({
 
       {/* Desktop Content (below all categories) */}
       {selectedCategory && renderDesktopContent && (
-        <div className="mt-8 pt-8 border-t-2 border-primary/20">
+        <div className="hidden lg:block mt-8 pt-8 border-t-2 border-primary/20">
           {renderDesktopContent(selectedCategory, productsByCategory[selectedCategory] || [])}
         </div>
       )}

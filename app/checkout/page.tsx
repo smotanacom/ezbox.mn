@@ -4,11 +4,11 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/contexts/CartContext';
 import { useTranslation } from '@/contexts/LanguageContext';
-import { getCurrentUser, login, register, saveSession } from '@/lib/auth';
+import { useAuth } from '@/hooks/useAuth';
 import { getUserByPhone } from '@/lib/api';
 import { getFirstImageUrl } from '@/lib/storage-client';
 import { createOrder } from '@/app/actions/orders';
-import { PageContainer, PageTitle, EmptyState } from '@/components/layout';
+import { PageContainer, PageTitle, EmptyState, LoadingState } from '@/components/layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -16,19 +16,19 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { ShoppingBag, Package } from 'lucide-react';
 import Image from '@/components/Image';
-import type { User } from '@/types/database';
 
 type CheckoutStep = 'phone' | 'login' | 'register' | 'details';
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { cart, items, total, refreshCart } = useCart();
+  const { cart, items, total, refreshCart, loading: cartLoading } = useCart();
   const { t } = useTranslation();
+  const { user: currentUser, login, register } = useAuth();
 
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [step, setStep] = useState<CheckoutStep>('phone');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [invalidFields, setInvalidFields] = useState<Set<string>>(new Set());
 
   // Form fields
   const [phone, setPhone] = useState('');
@@ -38,25 +38,24 @@ export default function CheckoutPage() {
   const [secondaryPhone, setSecondaryPhone] = useState('');
 
   useEffect(() => {
-    const user = getCurrentUser();
-    setCurrentUser(user);
-
-    if (user) {
+    if (currentUser) {
       // User is logged in, prefill form
       setStep('details');
-      setPhone(user.phone);
-      setName(user.name || '');
-      setAddress(user.address || '');
-      setSecondaryPhone(user.secondary_phone || '');
+      setPhone(currentUser.phone);
+      setName(currentUser.name || '');
+      setAddress(currentUser.address || '');
+      setSecondaryPhone(currentUser.secondary_phone || '');
     }
-  }, []);
+  }, [currentUser]);
 
   const handlePhoneSubmit = async () => {
     setError('');
+    setInvalidFields(new Set());
 
     // Validate phone number
     if (!/^\d{8}$/.test(phone)) {
       setError(t('checkout.phone-invalid'));
+      setInvalidFields(new Set(['phone']));
       return;
     }
 
@@ -80,12 +79,14 @@ export default function CheckoutPage() {
 
   const handleLogin = async () => {
     setError('');
+    setInvalidFields(new Set());
     setLoading(true);
 
     try {
       const user = await login(phone, password);
-      saveSession(user);
-      setCurrentUser(user);
+
+      // Refresh cart to get the merged cart items
+      await refreshCart();
 
       // Prefill form with user data
       setName(user.name || '');
@@ -95,6 +96,7 @@ export default function CheckoutPage() {
       setStep('details');
     } catch (err: any) {
       setError(err.message || t('checkout.login-failed'));
+      setInvalidFields(new Set(['password']));
     } finally {
       setLoading(false);
     }
@@ -102,35 +104,45 @@ export default function CheckoutPage() {
 
   const handleRegisterAndCheckout = async () => {
     setError('');
+    setInvalidFields(new Set());
 
     // Validate required fields
+    const invalid = new Set<string>();
     if (!name.trim()) {
       setError(t('checkout.name-required'));
-      return;
+      invalid.add('name');
     }
     if (!address.trim()) {
       setError(t('checkout.address-required'));
-      return;
+      invalid.add('address');
     }
     if (!password) {
       setError(t('checkout.password-required'));
-      return;
+      invalid.add('regPassword');
     }
-    if (!cart) {
-      setError(t('checkout.no-cart'));
+
+    if (invalid.size > 0) {
+      setInvalidFields(invalid);
       return;
     }
 
     setLoading(true);
     try {
-      // Register the user
-      const user = await register(phone, password, name, address, secondaryPhone || undefined);
-      saveSession(user);
-      setCurrentUser(user);
+      // Register the user - Note: the new API doesn't support name/address/secondary_phone yet
+      const user = await register(phone, password);
 
-      // Create the order
+      // Refresh cart to get the merged cart items
+      const { cart: mergedCart } = await refreshCart();
+
+      // Validate that we have a cart with the merged items
+      if (!mergedCart) {
+        setError(t('checkout.no-cart'));
+        return;
+      }
+
+      // Create the order (use the refreshed cart)
       const order = await createOrder(
-        cart.id,
+        mergedCart.id,
         user.id,
         name,
         phone,
@@ -141,10 +153,8 @@ export default function CheckoutPage() {
       // Notify that an order was created
       window.dispatchEvent(new Event('order-created'));
 
-      // Refresh cart to clear it
-      await refreshCart();
-
       // Redirect to order detail page
+      // Note: No need to refresh cart here - it will refresh automatically when user navigates back
       router.push(`/orders/${order.id}`);
     } catch (err: any) {
       setError(err.message || t('checkout.registration-failed'));
@@ -155,18 +165,25 @@ export default function CheckoutPage() {
 
   const handleCheckout = async () => {
     setError('');
+    setInvalidFields(new Set());
 
     // Validate required fields
+    const invalid = new Set<string>();
     if (!name.trim()) {
       setError(t('checkout.name-required'));
-      return;
+      invalid.add('detailsName');
     }
     if (!address.trim()) {
       setError(t('checkout.address-required'));
-      return;
+      invalid.add('address');
     }
     if (!cart) {
       setError(t('checkout.no-cart'));
+      return;
+    }
+
+    if (invalid.size > 0) {
+      setInvalidFields(invalid);
       return;
     }
 
@@ -185,10 +202,8 @@ export default function CheckoutPage() {
       // Notify that an order was created
       window.dispatchEvent(new Event('order-created'));
 
-      // Refresh cart to clear it
-      await refreshCart();
-
       // Redirect to order detail page
+      // Note: No need to refresh cart here - it will refresh automatically when user navigates back
       router.push(`/orders/${order.id}`);
     } catch (err: any) {
       setError(err.message || t('checkout.order-failed'));
@@ -196,6 +211,10 @@ export default function CheckoutPage() {
       setLoading(false);
     }
   };
+
+  if (cartLoading) {
+    return <LoadingState />;
+  }
 
   if (!cart || items.length === 0) {
     return (
@@ -296,12 +315,6 @@ export default function CheckoutPage() {
 
           {/* Right Column: Forms and Price Summary */}
           <div className="space-y-6">
-            {error && (
-              <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md">
-                <p className="text-sm text-destructive">{error}</p>
-              </div>
-            )}
-
             {/* Section 1: Login/User Information */}
             <Card>
               <CardHeader>
@@ -323,9 +336,16 @@ export default function CheckoutPage() {
                         placeholder={t('checkout.phone-placeholder')}
                         maxLength={8}
                         required
+                        className={invalidFields.has('phone') ? 'border-destructive focus-visible:ring-destructive' : ''}
                       />
                       <p className="text-xs text-muted-foreground">{t('checkout.phone-help')}</p>
                     </div>
+
+                    {error && (
+                      <div className="p-3 bg-destructive text-destructive-foreground rounded-md">
+                        <p className="text-sm font-medium">{error}</p>
+                      </div>
+                    )}
 
                     <Button
                       onClick={handlePhoneSubmit}
@@ -365,8 +385,15 @@ export default function CheckoutPage() {
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder={t('checkout.password-enter')}
                         required
+                        className={invalidFields.has('password') ? 'border-destructive focus-visible:ring-destructive' : ''}
                       />
                     </div>
+
+                    {error && (
+                      <div className="p-3 bg-destructive text-destructive-foreground rounded-md">
+                        <p className="text-sm font-medium">{error}</p>
+                      </div>
+                    )}
 
                     <Button
                       onClick={handleLogin}
@@ -408,6 +435,7 @@ export default function CheckoutPage() {
                         onChange={(e) => setName(e.target.value)}
                         placeholder={t('checkout.full-name-placeholder')}
                         required
+                        className={invalidFields.has('name') ? 'border-destructive focus-visible:ring-destructive' : ''}
                       />
                     </div>
 
@@ -436,6 +464,7 @@ export default function CheckoutPage() {
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder={t('checkout.create-password-placeholder')}
                         required
+                        className={invalidFields.has('regPassword') ? 'border-destructive focus-visible:ring-destructive' : ''}
                       />
                     </div>
                   </div>
@@ -462,6 +491,7 @@ export default function CheckoutPage() {
                         onChange={(e) => setName(e.target.value)}
                         placeholder={t('checkout.full-name-placeholder')}
                         required
+                        className={invalidFields.has('detailsName') ? 'border-destructive focus-visible:ring-destructive' : ''}
                       />
                     </div>
 
@@ -501,6 +531,7 @@ export default function CheckoutPage() {
                       onChange={(e) => setAddress(e.target.value)}
                       placeholder={t('checkout.address-placeholder')}
                       required
+                      className={invalidFields.has('address') ? 'border-destructive focus-visible:ring-destructive' : ''}
                     />
                   </div>
                 </CardContent>
@@ -529,6 +560,12 @@ export default function CheckoutPage() {
                       <span className="text-lg font-bold">{grandTotal.toLocaleString()}₮</span>
                     </div>
                   </div>
+
+                  {error && (
+                    <div className="p-3 bg-destructive text-destructive-foreground rounded-md mt-6">
+                      <p className="text-sm font-medium">{error}</p>
+                    </div>
+                  )}
 
                   <Button
                     onClick={step === 'details' ? handleCheckout : handleRegisterAndCheckout}

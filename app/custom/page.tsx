@@ -77,16 +77,16 @@ export default function CustomDesignPage() {
           <div className="space-y-8">
             {/* Process Section */}
             <div className="bg-white rounded-2xl shadow-lg p-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Our Design Process</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">{t('custom.process-title')}</h2>
               <div className="space-y-6">
                 <div className="flex gap-4">
                   <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
                     1
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900 mb-1">Initial Consultation</h3>
+                    <h3 className="font-semibold text-gray-900 mb-1">{t('custom.process-step1-title')}</h3>
                     <p className="text-gray-600">
-                      We discuss your vision, requirements, and budget to understand your needs perfectly.
+                      {t('custom.process-step1-description')}
                     </p>
                   </div>
                 </div>
@@ -95,9 +95,9 @@ export default function CustomDesignPage() {
                     2
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900 mb-1">3D Design & Planning</h3>
+                    <h3 className="font-semibold text-gray-900 mb-1">{t('custom.process-step2-title')}</h3>
                     <p className="text-gray-600">
-                      Our designers create detailed 3D visualizations of your custom kitchen.
+                      {t('custom.process-step2-description')}
                     </p>
                   </div>
                 </div>
@@ -106,9 +106,9 @@ export default function CustomDesignPage() {
                     3
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900 mb-1">Material Selection</h3>
+                    <h3 className="font-semibold text-gray-900 mb-1">{t('custom.process-step3-title')}</h3>
                     <p className="text-gray-600">
-                      Choose from our premium selection of materials, colors, and finishes.
+                      {t('custom.process-step3-description')}
                     </p>
                   </div>
                 </div>
@@ -117,9 +117,9 @@ export default function CustomDesignPage() {
                     4
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900 mb-1">Expert Installation</h3>
+                    <h3 className="font-semibold text-gray-900 mb-1">{t('custom.process-step4-title')}</h3>
                     <p className="text-gray-600">
-                      Professional installation by our certified team with quality guarantee.
+                      {t('custom.process-step4-description')}
                     </p>
                   </div>
                 </div>
@@ -165,19 +165,19 @@ export default function CustomDesignPage() {
 
             {/* Gallery */}
             <div className="bg-white rounded-2xl shadow-lg p-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Featured Projects</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">{t('custom.featured-projects')}</h2>
               <div className="grid grid-cols-2 gap-4">
                 <div className="rounded-lg overflow-hidden">
                   <Image
                     src="https://images.unsplash.com/photo-1556912173-3bb406ef7e77?w=400&q=80"
-                    alt="Custom Kitchen Example 1"
+                    alt={`${t('custom.kitchen-example')} 1`}
                     className="w-full h-48 object-cover"
                   />
                 </div>
                 <div className="rounded-lg overflow-hidden">
                   <Image
                     src="https://images.unsplash.com/photo-1565538810643-b5bdb714032a?w=400&q=80"
-                    alt="Custom Kitchen Example 2"
+                    alt={`${t('custom.kitchen-example')} 2`}
                     className="w-full h-48 object-cover"
                   />
                 </div>
@@ -228,7 +228,7 @@ export default function CustomDesignPage() {
 
                 <div>
                   <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
-                    {t('custom.description')} <span className="text-gray-400">(Optional)</span>
+                    {t('custom.description')} <span className="text-gray-400">{t('common.optional')}</span>
                   </label>
                   <textarea
                     id="description"
@@ -255,7 +255,7 @@ export default function CustomDesignPage() {
 
               <div className="mt-6 pt-6 border-t border-gray-200">
                 <p className="text-sm text-gray-600 text-center">
-                  By submitting this form, you agree to be contacted by our design team.
+                  {t('custom.consent')}
                 </p>
               </div>
             </div>

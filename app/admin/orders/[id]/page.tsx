@@ -6,15 +6,17 @@ import Link from 'next/link';
 import AdminRouteGuard from '@/components/AdminRouteGuard';
 import AdminNav from '@/components/AdminNav';
 import { getOrderById, getOrderItems, updateOrderStatus, getHistoryForEntity } from '@/lib/api';
-import type { Order, CartItemWithDetails, HistoryWithUser } from '@/types/database';
+import { useAdminAuth } from '@/hooks/useAuth';
+import type { Order, OrderItem, HistoryWithUser, OrderSnapshot } from '@/types/database';
 
 export default function AdminOrderDetailPage() {
   const router = useRouter();
   const params = useParams();
   const orderId = parseInt(params.id as string);
+  const { admin } = useAdminAuth();
 
   const [order, setOrder] = useState<Order | null>(null);
-  const [items, setItems] = useState<CartItemWithDetails[]>([]);
+  const [items, setItems] = useState<OrderItem[]>([]);
   const [history, setHistory] = useState<HistoryWithUser[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -38,16 +40,13 @@ export default function AdminOrderDetailPage() {
       setOrder(orderData);
 
       // Fetch order items and history in parallel
-      const promises = [];
-      if (orderData.cart_id) {
-        promises.push(getOrderItems(orderData.cart_id).then(setItems));
-      }
-      promises.push(
+      const promises = [
+        getOrderItems(orderId).then(setItems),
         getHistoryForEntity('order', orderId).then((historyData) => {
           console.log('History data received:', historyData);
           setHistory(historyData);
         })
-      );
+      ];
 
       await Promise.all(promises);
     } catch (error) {
@@ -60,7 +59,7 @@ export default function AdminOrderDetailPage() {
 
   const handleStatusChange = async (newStatus: string) => {
     try {
-      await updateOrderStatus(orderId, newStatus);
+      await updateOrderStatus(orderId, newStatus, admin?.id);
       fetchOrderDetails();
     } catch (error) {
       console.error('Error updating status:', error);
@@ -119,56 +118,26 @@ export default function AdminOrderDetailPage() {
     return labels[action] || action;
   };
 
-  const calculateItemPrice = (item: CartItemWithDetails) => {
-    if (!item.product) return 0;
-
-    let price = item.product.base_price;
-    const selectedParams = item.selected_parameters as any;
-
-    if (selectedParams && item.product.parameter_groups) {
-      for (const pg of item.product.parameter_groups) {
-        const selectedParamId = selectedParams[pg.parameter_group_id];
-        if (selectedParamId && pg.parameters) {
-          const param = pg.parameters.find((p) => p.id === selectedParamId);
-          if (param) {
-            price += param.price_modifier;
-          }
-        }
-      }
-    }
-
-    return price * item.quantity;
+  const calculateItemPrice = (item: OrderItem) => {
+    // Use the pre-calculated line_total from snapshot
+    return item.line_total;
   };
 
-  const getParametersText = (item: CartItemWithDetails) => {
-    if (!item.selected_parameters || !item.product?.parameter_groups) return '';
+  const getParametersText = (item: OrderItem) => {
+    if (!item.parameters || item.parameters.length === 0) return '';
 
-    const params: string[] = [];
-    item.product.parameter_groups.forEach((pg) => {
-      const selectedParamId = (item.selected_parameters as any)[pg.parameter_group_id];
-      const param = pg.parameters?.find((p) => p.id === selectedParamId);
-      if (param) {
-        params.push(`${pg.parameter_group?.name}: ${param.name}`);
-      }
-    });
-    return params.join(', ');
+    // Format parameters as "Group: Name" pairs
+    return item.parameters.map(p => `${p.group}: ${p.name}`).join(', ');
   };
 
-  const getParametersForPrint = (item: CartItemWithDetails) => {
-    if (!item.selected_parameters || !item.product?.parameter_groups) return [];
+  const getParametersForPrint = (item: OrderItem) => {
+    if (!item.parameters || item.parameters.length === 0) return [];
 
-    const params: Array<{ name: string; value: string }> = [];
-    item.product.parameter_groups.forEach((pg) => {
-      const selectedParamId = (item.selected_parameters as any)[pg.parameter_group_id];
-      const param = pg.parameters?.find((p) => p.id === selectedParamId);
-      if (param) {
-        params.push({
-          name: pg.parameter_group?.name || '',
-          value: param.name
-        });
-      }
-    });
-    return params;
+    // Convert OrderItemParameter[] to print format
+    return item.parameters.map(p => ({
+      name: p.group,
+      value: p.name
+    }));
   };
 
   if (loading) {
@@ -234,7 +203,7 @@ export default function AdminOrderDetailPage() {
         <AdminNav />
 
         <div className="max-w-5xl mx-auto px-4 py-4">
-          <div className="mb-3 flex items-center justify-between">
+          <div className="mb-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
             <Link
               href="/admin/orders"
               className="text-blue-600 hover:text-blue-800 text-sm font-medium inline-flex items-center"
@@ -257,14 +226,14 @@ export default function AdminOrderDetailPage() {
 
           <div className="bg-white border border-gray-300 p-4">
             {/* Header - Compact */}
-            <div className="flex items-start justify-between mb-4 pb-3 border-b border-gray-300">
+            <div className="flex flex-col sm:flex-row items-start sm:items-start justify-between mb-4 pb-3 border-b border-gray-300 gap-3">
               <div>
                 <h1 className="text-lg font-bold text-gray-900">Order #{order.id}</h1>
                 <p className="text-xs text-gray-600 mt-1">
                   Created: {formatDateShort(order.created_at)} | Updated: {formatDateShort(order.updated_at)}
                 </p>
               </div>
-              <div className="text-right">
+              <div className="text-left sm:text-right">
                 <div className="text-xs text-gray-600 mb-1">Status:</div>
                 <select
                   value={order.status}
@@ -318,7 +287,7 @@ export default function AdminOrderDetailPage() {
                     {items.map((item) => (
                       <tr key={item.id} className="border-b border-gray-200">
                         <td className="py-1.5 align-top">
-                          <div className="font-medium">{item.product?.name}</div>
+                          <div className="font-medium">{item.product_name}</div>
                         </td>
                         <td className="py-1.5 align-top text-gray-600">
                           {getParametersText(item) || '-'}
@@ -496,7 +465,7 @@ export default function AdminOrderDetailPage() {
                       <tr key={item.id} className="border-b border-gray-200">
                         <td className="align-top" style={{ padding: '4px 4px 4px 0', fontSize: PRINT_FONT_SMALL }}>{index + 1}.</td>
                         <td className="align-top" style={{ padding: '4px 0' }}>
-                          <div style={{ fontSize: PRINT_FONT_BIG, fontWeight: 'bold' }}>{item.product?.name}</div>
+                          <div style={{ fontSize: PRINT_FONT_BIG, fontWeight: 'bold' }}>{item.product_name}</div>
                         </td>
                         <td className="align-top" style={{ padding: '4px 0' }}>
                           {params.length === 0 ? (

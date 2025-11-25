@@ -7,25 +7,36 @@ import AdminNav from '@/components/AdminNav';
 import { getAllOrders, updateOrderStatus } from '@/lib/api';
 import type { Order } from '@/types/database';
 
+type SortField = 'id' | 'name' | 'phone' | 'total_price' | 'status' | 'created_at';
+
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [sortBy, setSortBy] = useState<'created_at' | 'total_price' | 'status'>('created_at');
+  const [sortBy, setSortBy] = useState<SortField>('created_at');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+
+  // Debounce search term
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   useEffect(() => {
     fetchOrders();
-  }, [statusFilter, sortBy, sortOrder]);
+  }, [statusFilter, sortBy, sortOrder, debouncedSearchTerm]);
 
   const fetchOrders = async () => {
     setLoading(true);
     try {
       const data = await getAllOrders({
         status: statusFilter,
-        searchTerm: searchTerm || undefined,
-        sortBy,
+        searchTerm: debouncedSearchTerm || undefined,
+        sortBy: sortBy as 'created_at' | 'total_price' | 'status',
         sortOrder,
       });
       setOrders(data);
@@ -36,9 +47,13 @@ export default function AdminOrdersPage() {
     }
   };
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    fetchOrders();
+  const handleSort = (field: SortField) => {
+    if (sortBy === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(field);
+      setSortOrder('desc');
+    }
   };
 
   const handleStatusChange = async (orderId: number, newStatus: string) => {
@@ -79,26 +94,41 @@ export default function AdminOrdersPage() {
     });
   };
 
+  const SortableHeader = ({ field, children }: { field: SortField; children: React.ReactNode }) => (
+    <th
+      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+      onClick={() => handleSort(field)}
+    >
+      <div className="flex items-center gap-1">
+        {children}
+        <span className="text-gray-400">
+          {sortBy === field ? (
+            sortOrder === 'asc' ? '↑' : '↓'
+          ) : (
+            <span className="opacity-0 group-hover:opacity-50">↕</span>
+          )}
+        </span>
+      </div>
+    </th>
+  );
+
   return (
     <AdminRouteGuard>
       <div className="min-h-screen bg-gray-50">
         <AdminNav />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">Orders Management</h1>
-            <p className="text-gray-600 mt-2">View and manage all customer orders</p>
+          <div className="mb-6">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Orders Management</h1>
+            <p className="text-sm sm:text-base text-gray-600 mt-2">View and manage all customer orders</p>
           </div>
 
-          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-            <form onSubmit={handleSearch} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="md:col-span-2">
-                  <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-2">
-                    Search
-                  </label>
+          <div className="bg-white rounded-lg shadow-md overflow-hidden">
+            {/* Filters row */}
+            <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="flex-1">
                   <input
-                    id="search"
                     type="text"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -106,13 +136,8 @@ export default function AdminOrdersPage() {
                     className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
-
-                <div>
-                  <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-2">
-                    Status
-                  </label>
+                <div className="sm:w-48">
                   <select
-                    id="status"
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
                     className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -125,132 +150,84 @@ export default function AdminOrdersPage() {
                     <option value="cancelled">Cancelled</option>
                   </select>
                 </div>
-
-                <div>
-                  <label htmlFor="sort" className="block text-sm font-medium text-gray-700 mb-2">
-                    Sort By
-                  </label>
-                  <select
-                    id="sort"
-                    value={`${sortBy}-${sortOrder}`}
-                    onChange={(e) => {
-                      const [field, order] = e.target.value.split('-');
-                      setSortBy(field as 'created_at' | 'total_price' | 'status');
-                      setSortOrder(order as 'asc' | 'desc');
-                    }}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="created_at-desc">Newest First</option>
-                    <option value="created_at-asc">Oldest First</option>
-                    <option value="total_price-desc">Highest Price</option>
-                    <option value="total_price-asc">Lowest Price</option>
-                    <option value="status-asc">Status A-Z</option>
-                    <option value="status-desc">Status Z-A</option>
-                  </select>
-                </div>
               </div>
-
-              <button
-                type="submit"
-                className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
-              >
-                Search
-              </button>
-            </form>
-          </div>
-
-          {loading ? (
-            <div className="text-center py-12">
-              <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-              <p className="mt-4 text-gray-600">Loading orders...</p>
             </div>
-          ) : orders.length === 0 ? (
-            <div className="bg-white rounded-lg shadow-md p-12 text-center">
-              <p className="text-gray-600 text-lg">No orders found</p>
-            </div>
-          ) : (
-            <div className="bg-white rounded-lg shadow-md overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Order ID
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Customer
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Phone
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Total
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Status
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Date
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {orders.map((order) => (
-                      <tr key={order.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          #{order.id}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {order.name}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                          {order.phone}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          ₮{order.total_price.toLocaleString()}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <select
-                            value={order.status}
-                            onChange={(e) => handleStatusChange(order.id, e.target.value)}
-                            className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
-                              order.status
-                            )} border-0 cursor-pointer`}
-                          >
-                            <option value="pending">Pending</option>
-                            <option value="processing">Processing</option>
-                            <option value="shipped">Shipped</option>
-                            <option value="completed">Completed</option>
-                            <option value="cancelled">Cancelled</option>
-                          </select>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                          {formatDate(order.created_at)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          <Link
-                            href={`/admin/orders/${order.id}`}
-                            className="text-blue-600 hover:text-blue-800 font-medium"
-                          >
-                            View Details
-                          </Link>
-                        </td>
+
+            {loading ? (
+              <div className="text-center py-12">
+                <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                <p className="mt-4 text-gray-600">Loading orders...</p>
+              </div>
+            ) : orders.length === 0 ? (
+              <div className="p-12 text-center">
+                <p className="text-gray-600 text-lg">No orders found</p>
+              </div>
+            ) : (
+              <>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <SortableHeader field="id">Order ID</SortableHeader>
+                        <SortableHeader field="name">Customer</SortableHeader>
+                        <SortableHeader field="phone">Phone</SortableHeader>
+                        <SortableHeader field="total_price">Total</SortableHeader>
+                        <SortableHeader field="status">Status</SortableHeader>
+                        <SortableHeader field="created_at">Date</SortableHeader>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {orders.map((order) => (
+                        <tr key={order.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <Link
+                              href={`/admin/orders/${order.id}`}
+                              className="text-blue-600 hover:text-blue-800"
+                            >
+                              #{order.id}
+                            </Link>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {order.name}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                            {order.phone}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            ₮{order.total_price.toLocaleString()}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <select
+                              value={order.status}
+                              onChange={(e) => handleStatusChange(order.id, e.target.value)}
+                              className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
+                                order.status
+                              )} border-0 cursor-pointer`}
+                            >
+                              <option value="pending">Pending</option>
+                              <option value="processing">Processing</option>
+                              <option value="shipped">Shipped</option>
+                              <option value="completed">Completed</option>
+                              <option value="cancelled">Cancelled</option>
+                            </select>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                            {formatDate(order.created_at)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
 
-              <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
-                <p className="text-sm text-gray-600">
-                  Showing {orders.length} order{orders.length !== 1 ? 's' : ''}
-                </p>
-              </div>
-            </div>
-          )}
+                <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
+                  <p className="text-sm text-gray-600">
+                    Showing {orders.length} order{orders.length !== 1 ? 's' : ''}
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </AdminRouteGuard>

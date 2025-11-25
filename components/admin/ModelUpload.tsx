@@ -31,7 +31,6 @@ export default function ModelUpload({
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showPreview, setShowPreview] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const viewerContainerRef = useRef<HTMLDivElement>(null);
 
@@ -235,7 +234,6 @@ export default function ModelUpload({
       }
 
       setModel(null);
-      setShowPreview(false);
       onModelChange();
     } catch (err) {
       console.error('Delete error:', err);
@@ -250,12 +248,12 @@ export default function ModelUpload({
         <span className="text-gray-500 font-normal ml-2">({t('admin.optional')})</span>
       </label>
 
-      {/* Current Model Display */}
-      {model && !showPreview && (
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-          <div className="flex items-start justify-between">
+      {/* 3D Model Preview - Always Visible When Model Exists */}
+      {model && (
+        <div className="space-y-4">
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
             <div className="flex items-center gap-3">
-              <Box className="w-10 h-10 text-blue-600" />
+              <Box className="w-8 h-8 text-blue-600" />
               <div>
                 <p className="font-medium text-gray-900">
                   {model.file_format.toUpperCase()} Model
@@ -265,37 +263,11 @@ export default function ModelUpload({
                 </p>
               </div>
             </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setShowPreview(true)}
-                className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition"
-              >
-                {t('admin.preview-model')}
-              </button>
-              <button
-                onClick={handleDelete}
-                className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition"
-              >
-                {t('admin.delete')}
-              </button>
-            </div>
           </div>
-        </div>
-      )}
-
-      {/* 3D Model Preview */}
-      {model && showPreview && (
-        <div className="space-y-2">
           <div className="w-full aspect-square rounded-lg overflow-hidden" ref={viewerContainerRef}>
             <ModelViewer model={model} productName={productName} className="aspect-square" />
           </div>
           <div className="flex justify-between items-center">
-            <button
-              onClick={() => setShowPreview(false)}
-              className="text-sm text-gray-600 hover:text-gray-900"
-            >
-              {t('admin.hide-preview')}
-            </button>
             <button
               onClick={handleScreenshot}
               disabled={uploading}

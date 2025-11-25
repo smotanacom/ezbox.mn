@@ -4,6 +4,7 @@ import Script from 'next/script';
 import './globals.css';
 import { CartProvider } from '@/contexts/CartContext';
 import { LanguageProvider } from '@/contexts/LanguageContext';
+import { AuthProvider, AdminAuthProvider } from '@/contexts/AuthContext';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
@@ -59,11 +60,15 @@ export default function RootLayout({
           `}
         </Script>
         <LanguageProvider>
-          <CartProvider>
-            <Header />
-            <main className="flex-1">{children}</main>
-            <Footer />
-          </CartProvider>
+          <AuthProvider>
+            <AdminAuthProvider>
+              <CartProvider>
+                <Header />
+                <main className="flex-1">{children}</main>
+                <Footer />
+              </CartProvider>
+            </AdminAuthProvider>
+          </AuthProvider>
         </LanguageProvider>
       </body>
     </html>

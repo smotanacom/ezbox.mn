@@ -64,22 +64,32 @@ export interface AdminAuthResponse {
 
 export const authAPI = {
   // User authentication
-  register: (phone: string, password: string) =>
-    apiRequest<AuthResponse>('/api/auth/register', {
+  register: async (phone: string, password: string) => {
+    const response = await apiRequest<AuthResponse>('/api/auth/register', {
       method: 'POST',
-      body: JSON.stringify({ phone, password }),
-    }),
+      body: JSON.stringify({ phone, password, guestSessionId: getGuestSessionId() }),
+    });
+    // Clear guest session after successful registration
+    clearGuestSession();
+    return response;
+  },
 
-  login: (phone: string, password: string) =>
-    apiRequest<AuthResponse>('/api/auth/login', {
+  login: async (phone: string, password: string) => {
+    const response = await apiRequest<AuthResponse>('/api/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ phone, password }),
-    }),
+      body: JSON.stringify({ phone, password, guestSessionId: getGuestSessionId() }),
+    });
+    // Clear guest session after successful login
+    clearGuestSession();
+    return response;
+  },
 
-  logout: () =>
-    apiRequest<{ message: string }>('/api/auth/logout', {
+  logout: () => {
+    clearGuestSession();
+    return apiRequest<{ message: string }>('/api/auth/logout', {
       method: 'POST',
-    }),
+    });
+  },
 
   getUser: () =>
     apiRequest<{ user: User | null }>('/api/auth/me'),

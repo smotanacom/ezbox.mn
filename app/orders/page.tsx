@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { getCurrentUser } from '@/lib/auth';
+import { useAuth } from '@/hooks/useAuth';
 import { getUserOrders } from '@/lib/api';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { PageContainer, PageTitle, EmptyState, LoadingState } from '@/components/layout';
@@ -17,13 +17,14 @@ import type { Order } from '@/types/database';
 export default function OrdersPage() {
   const router = useRouter();
   const { t } = useTranslation();
+  const { user, loading: authLoading } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
     async function loadOrders() {
-      const user = getCurrentUser();
+      if (authLoading) return;
 
       if (!user) {
         router.push('/login');
@@ -43,7 +44,7 @@ export default function OrdersPage() {
     }
 
     loadOrders();
-  }, [router]);
+  }, [user, authLoading, router, t]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -109,17 +110,17 @@ export default function OrdersPage() {
             {orders.map((order) => (
               <Card key={order.id} className="hover:shadow-lg transition-shadow">
                 <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle className="flex items-center gap-2">
-                        {t('orders.order-number')} #{order.id}
-                        {getStatusBadge(order.status)}
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                    <div className="flex-1">
+                      <CardTitle className="flex flex-col sm:flex-row sm:items-center gap-2">
+                        <span>{t('orders.order-number')} #{order.id}</span>
+                        <span className="self-start">{getStatusBadge(order.status)}</span>
                       </CardTitle>
                       <CardDescription className="mt-1">
                         {t('orders.ordered-on')} {formatDate(order.created_at!)}
                       </CardDescription>
                     </div>
-                    <div className="text-right">
+                    <div className="sm:text-right">
                       <p className="text-2xl font-bold">₮{order.total_price.toLocaleString()}</p>
                     </div>
                   </div>

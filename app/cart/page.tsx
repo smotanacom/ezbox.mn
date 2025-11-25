@@ -17,7 +17,18 @@ export default function CartPage() {
 
   return (
     <PageContainer>
-      <PageTitle icon={ShoppingCart}>{t('cart.title')}</PageTitle>
+      <div className="flex items-center justify-between mb-6">
+        <PageTitle icon={ShoppingCart}>{t('cart.title')}</PageTitle>
+        {!loading && items.length > 0 && (
+          <Button
+            onClick={() => router.push('/checkout')}
+            size="lg"
+            className="bg-green-600 hover:bg-green-700"
+          >
+            {t('cart.checkout')}
+          </Button>
+        )}
+      </div>
 
       {loading && items.length === 0 ? (
         <LoadingState text={t('common.loading')} fullScreen={false} />
@@ -33,23 +44,7 @@ export default function CartPage() {
           }
         />
       ) : (
-        <>
-          <Cart showCheckoutButton={false} />
-          <Card className="mt-6 p-6">
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-              <Button asChild variant="outline" size="lg">
-                <Link href="/products">{t('cart.continue-shopping')}</Link>
-              </Button>
-              <Button
-                onClick={() => router.push('/checkout')}
-                size="lg"
-                className="bg-green-600 hover:bg-green-700"
-              >
-                {t('cart.checkout')}
-              </Button>
-            </div>
-          </Card>
-        </>
+        <Cart showCheckoutButton={true} />
       )}
     </PageContainer>
   );

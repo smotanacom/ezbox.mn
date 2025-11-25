@@ -10,6 +10,7 @@ import { LoadingState } from '@/components/layout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ShoppingCart, PackageOpen } from 'lucide-react';
+import { getSpecialImageUrl } from '@/lib/storage-client';
 import type { SpecialWithItems } from '@/types/database';
 
 export default function SpecialsPage() {
@@ -142,7 +143,7 @@ export default function SpecialsPage() {
                     {/* Image */}
                     <div className="relative h-64 overflow-hidden">
                       <Image
-                        src={special.picture_url}
+                        src={special.picture_url ? getSpecialImageUrl(special.picture_url) : special.picture_url}
                         alt={special.name}
                         className="object-cover w-full h-full hover:scale-105 transition-transform duration-300"
                       />

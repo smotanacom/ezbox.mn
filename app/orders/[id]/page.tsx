@@ -3,9 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
-import { getCurrentUser } from '@/lib/auth';
-import { getOrderById, getOrderItems, calculateProductPrice } from '@/lib/api';
-import { getFirstImageUrl } from '@/lib/storage-client';
+import { useAuth } from '@/hooks/useAuth';
+import { getOrderById, getOrderItems } from '@/lib/api';
 import Image from '@/components/Image';
 import { PageContainer, LoadingState } from '@/components/layout';
 import { Button } from '@/components/ui/button';
@@ -21,21 +20,22 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Package, ArrowLeft, Clock, CheckCircle, XCircle, MapPin, Phone } from 'lucide-react';
-import type { Order, CartItemWithDetails, ParameterSelection } from '@/types/database';
+import type { Order, OrderItem } from '@/types/database';
 
 export default function OrderDetailPage() {
   const router = useRouter();
   const params = useParams();
   const orderId = parseInt(params.id as string);
+  const { user, loading: authLoading } = useAuth();
 
   const [order, setOrder] = useState<Order | null>(null);
-  const [items, setItems] = useState<CartItemWithDetails[]>([]);
+  const [items, setItems] = useState<OrderItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
     async function loadOrder() {
-      const user = getCurrentUser();
+      if (authLoading) return;
 
       if (!user) {
         router.push('/login');
@@ -61,8 +61,8 @@ export default function OrderDetailPage() {
 
         setOrder(orderData);
 
-        // Load order items
-        const orderItems = await getOrderItems(orderData.cart_id);
+        // Load order items from snapshot
+        const orderItems = await getOrderItems(orderId);
         setItems(orderItems);
       } catch (err) {
         console.error('Error loading order:', err);
@@ -75,7 +75,7 @@ export default function OrderDetailPage() {
     if (orderId) {
       loadOrder();
     }
-  }, [orderId, router]);
+  }, [orderId, user, authLoading, router]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -101,12 +101,6 @@ export default function OrderDetailPage() {
       hour: '2-digit',
       minute: '2-digit',
     });
-  };
-
-  const getItemPrice = (item: CartItemWithDetails) => {
-    if (!item.product) return 0;
-    const params = (item.selected_parameters as ParameterSelection) || {};
-    return calculateProductPrice(item.product, params) * item.quantity;
   };
 
   if (loading) {
@@ -182,29 +176,25 @@ export default function OrderDetailPage() {
                           <div className="flex items-center gap-3">
                             <div className="relative w-16 h-16 rounded-md overflow-hidden">
                               <Image
-                                src={getFirstImageUrl(item.product?.images || [])}
-                                alt={item.product?.name || 'Product'}
+                                src={item.image_url || '/placeholder-product.png'}
+                                alt={item.product_name}
                                 className="object-cover w-full h-full"
                               />
                             </div>
                             <div>
-                              <div className="font-medium">{item.product?.name}</div>
-                              <div className="text-sm text-muted-foreground">
-                                {item.product?.category?.name}
-                              </div>
-                              {item.product?.parameter_groups && item.product.parameter_groups.length > 0 && (
+                              <div className="font-medium">{item.product_name}</div>
+                              {item.category_name && (
+                                <div className="text-sm text-muted-foreground">
+                                  {item.category_name}
+                                </div>
+                              )}
+                              {item.parameters && item.parameters.length > 0 && (
                                 <div className="flex flex-wrap gap-1 mt-1">
-                                  {item.product.parameter_groups.map((pg) => {
-                                    const selections = (item.selected_parameters as ParameterSelection) || {};
-                                    const selectedParamId = selections[pg.parameter_group_id];
-                                    const selectedParam = pg.parameters?.find(p => p.id === selectedParamId);
-                                    if (!selectedParam) return null;
-                                    return (
-                                      <Badge key={pg.parameter_group_id} variant="outline" className="text-xs">
-                                        {selectedParam.name}
-                                      </Badge>
-                                    );
-                                  })}
+                                  {item.parameters.map((param, idx) => (
+                                    <Badge key={idx} variant="outline" className="text-xs">
+                                      {param.name}
+                                    </Badge>
+                                  ))}
                                 </div>
                               )}
                             </div>
@@ -212,7 +202,7 @@ export default function OrderDetailPage() {
                         </TableCell>
                         <TableCell>{item.quantity}</TableCell>
                         <TableCell className="text-right font-semibold">
-                          ₮{getItemPrice(item).toLocaleString()}
+                          ₮{item.line_total.toLocaleString()}
                         </TableCell>
                       </TableRow>
                     ))}

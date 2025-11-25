@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import AdminRouteGuard from '@/components/AdminRouteGuard';
 import AdminNav from '@/components/AdminNav';
-import { supabase } from '@/lib/supabase';
 
 interface DashboardStats {
   totalOrders: number;
@@ -32,27 +31,12 @@ export default function AdminDashboardPage() {
 
   const fetchStats = async () => {
     try {
-      const { data: orders, error } = await supabase
-        .from('orders')
-        .select('status, total_price');
-
-      if (error) throw error;
-
-      const totalOrders = orders?.length || 0;
-      const pendingOrders = orders?.filter((o: any) => o.status === 'pending').length || 0;
-      const processingOrders = orders?.filter((o: any) => o.status === 'processing').length || 0;
-      const shippedOrders = orders?.filter((o: any) => o.status === 'shipped').length || 0;
-      const completedOrders = orders?.filter((o: any) => o.status === 'completed').length || 0;
-      const cancelledOrders = orders?.filter((o: any) => o.status === 'cancelled').length || 0;
-
-      setStats({
-        totalOrders,
-        pendingOrders,
-        processingOrders,
-        shippedOrders,
-        completedOrders,
-        cancelledOrders,
-      });
+      const response = await fetch('/api/admin/stats');
+      if (!response.ok) {
+        throw new Error('Failed to fetch stats');
+      }
+      const data = await response.json();
+      setStats(data);
     } catch (error) {
       console.error('Error fetching stats:', error);
     } finally {
@@ -66,9 +50,9 @@ export default function AdminDashboardPage() {
         <AdminNav />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-            <p className="text-gray-600 mt-2">Welcome to the EzBox admin portal</p>
+          <div className="mb-6">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Dashboard</h1>
+            <p className="text-sm sm:text-base text-gray-600 mt-2">Welcome to the EzBox admin portal</p>
           </div>
 
           {loading ? (

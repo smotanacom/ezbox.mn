@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createUser, setAuthCookie } from '@/lib/auth-server';
+import { migrateGuestCartToUser } from '@/lib/api';
 
 export async function POST(request: NextRequest) {
   try {
-    const { phone, password } = await request.json();
+    const { phone, password, guestSessionId } = await request.json();
 
     if (!phone || !password) {
       return NextResponse.json(
@@ -14,6 +15,16 @@ export async function POST(request: NextRequest) {
 
     const user = await createUser(phone, password);
     await setAuthCookie(user.id);
+
+    // Migrate guest cart to user cart if guest session ID is provided
+    if (guestSessionId) {
+      try {
+        await migrateGuestCartToUser(user.id, guestSessionId);
+      } catch (error) {
+        console.error('Failed to migrate guest cart:', error);
+        // Don't fail the registration if cart migration fails
+      }
+    }
 
     return NextResponse.json({
       user: {

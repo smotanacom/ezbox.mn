@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getCurrentUser, updateUserProfile, changePassword } from '@/lib/auth';
-import type { User } from '@/types/database';
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,12 +10,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Separator } from '@/components/ui/separator';
 import { User as UserIcon, Lock, Save } from 'lucide-react';
 import { useTranslation } from '@/contexts/LanguageContext';
+import { LoadingState } from '@/components/layout';
 
 export default function AccountPage() {
   const { t } = useTranslation();
   const router = useRouter();
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { user, loading, updateProfile, changePassword } = useAuth();
 
   // Profile form state
   const [name, setName] = useState('');
@@ -27,7 +26,7 @@ export default function AccountPage() {
   const [isProfileSaving, setIsProfileSaving] = useState(false);
 
   // Password form state
-  const [currentPassword, setCurrentPassword] = useState('');
+  const [currentPasswordValue, setCurrentPasswordValue] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
@@ -35,18 +34,17 @@ export default function AccountPage() {
   const [isPasswordSaving, setIsPasswordSaving] = useState(false);
 
   useEffect(() => {
-    const currentUser = getCurrentUser();
-    if (!currentUser) {
+    if (!loading && !user) {
       router.push('/login');
       return;
     }
 
-    setUser(currentUser);
-    setName(currentUser.name || '');
-    setAddress(currentUser.address || '');
-    setSecondaryPhone(currentUser.secondary_phone || '');
-    setLoading(false);
-  }, [router]);
+    if (user) {
+      setName(user.name || '');
+      setAddress(user.address || '');
+      setSecondaryPhone(user.secondary_phone || '');
+    }
+  }, [user, loading, router]);
 
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,19 +55,12 @@ export default function AccountPage() {
     try {
       if (!user) throw new Error('Not logged in');
 
-      await updateUserProfile(user.id, {
-        name: name.trim() || undefined,
+      await updateProfile({
         address: address.trim() || undefined,
-        secondary_phone: secondaryPhone.trim() || undefined,
+        phone: secondaryPhone.trim() || undefined,
       });
 
       setProfileSuccess(t('account.success'));
-
-      // Update local user state
-      const updatedUser = getCurrentUser();
-      if (updatedUser) {
-        setUser(updatedUser);
-      }
     } catch (error) {
       setProfileError(error instanceof Error ? error.message : t('account.error'));
     } finally {
@@ -95,12 +86,12 @@ export default function AccountPage() {
         throw new Error(t('account.passwords-no-match'));
       }
 
-      await changePassword(user.id, currentPassword, newPassword);
+      await changePassword(currentPasswordValue, newPassword);
 
       setPasswordSuccess(t('account.password-changed'));
 
       // Clear password fields
-      setCurrentPassword('');
+      setCurrentPasswordValue('');
       setNewPassword('');
       setConfirmPassword('');
     } catch (error) {
@@ -111,13 +102,7 @@ export default function AccountPage() {
   };
 
   if (loading) {
-    return (
-      <main className="min-h-screen bg-background">
-        <div className="max-w-4xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-          <div className="text-center">{t('account.loading')}</div>
-        </div>
-      </main>
-    );
+    return <LoadingState />;
   }
 
   if (!user) {
@@ -237,8 +222,8 @@ export default function AccountPage() {
                   <Input
                     id="current-password"
                     type="password"
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    value={currentPasswordValue}
+                    onChange={(e) => setCurrentPasswordValue(e.target.value)}
                     placeholder={t('account.current-password-placeholder')}
                     required
                   />

@@ -32,6 +32,7 @@ export interface Database {
           name: string
           description: string | null
           picture_url: string | null
+          status: string
           created_at: string
           updated_at: string
         }
@@ -40,6 +41,7 @@ export interface Database {
           name: string
           description?: string | null
           picture_url?: string | null
+          status?: string
           created_at?: string
           updated_at?: string
         }
@@ -48,6 +50,7 @@ export interface Database {
           name?: string
           description?: string | null
           picture_url?: string | null
+          status?: string
           created_at?: string
           updated_at?: string
         }
@@ -90,6 +93,7 @@ export interface Database {
           name: string
           internal_name: string | null
           description: string | null
+          status: string
           created_at: string
         }
         Insert: {
@@ -97,6 +101,7 @@ export interface Database {
           name: string
           internal_name?: string | null
           description?: string | null
+          status?: string
           created_at?: string
         }
         Update: {
@@ -104,6 +109,7 @@ export interface Database {
           name?: string
           internal_name?: string | null
           description?: string | null
+          status?: string
           created_at?: string
         }
       }
@@ -115,6 +121,7 @@ export interface Database {
           description: string | null
           price_modifier: number
           picture_url: string | null
+          status: string
           created_at: string
         }
         Insert: {
@@ -124,6 +131,7 @@ export interface Database {
           description?: string | null
           price_modifier?: number
           picture_url?: string | null
+          status?: string
           created_at?: string
         }
         Update: {
@@ -133,6 +141,7 @@ export interface Database {
           description?: string | null
           price_modifier?: number
           picture_url?: string | null
+          status?: string
           created_at?: string
         }
       }
@@ -263,6 +272,7 @@ export interface Database {
           phone: string
           secondary_phone: string | null
           total_price: number
+          snapshot_data: Json | null
           created_at: string
           updated_at: string
         }
@@ -276,6 +286,7 @@ export interface Database {
           phone: string
           secondary_phone?: string | null
           total_price: number
+          snapshot_data?: Json | null
           created_at?: string
           updated_at?: string
         }
@@ -289,6 +300,7 @@ export interface Database {
           phone?: string
           secondary_phone?: string | null
           total_price?: number
+          snapshot_data?: Json | null
           created_at?: string
           updated_at?: string
         }
@@ -356,6 +368,7 @@ export interface Database {
           id: number
           username: string
           password_hash: string
+          email: string | null
           created_at: string
           updated_at: string
         }
@@ -363,6 +376,7 @@ export interface Database {
           id?: number
           username: string
           password_hash: string
+          email?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -370,6 +384,7 @@ export interface Database {
           id?: number
           username?: string
           password_hash?: string
+          email?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -523,4 +538,48 @@ export interface ParameterSelection {
 export interface HistoryWithUser extends History {
   changed_by?: Pick<User, 'id' | 'phone' | 'is_admin'>
   changed_by_admin?: Pick<Admin, 'id' | 'username'>
+}
+
+// Order snapshot types
+export interface OrderItemParameter {
+  group: string       // Parameter group name (e.g., "Color", "Width")
+  name: string        // Parameter name (e.g., "White", "60cm")
+  value?: string      // Optional value (e.g., hex color "#FFFFFF")
+}
+
+export interface OrderItem {
+  id: string                          // Unique ID for this line item (UUID)
+  product_id: number                  // Reference to product (for admin linking, no FK constraint)
+  product_name: string                // Product name at order time
+  product_description: string | null  // Product description at order time
+  category_name: string | null        // Category name at order time
+  image_url: string | null            // Primary product image URL
+  quantity: number                    // Quantity ordered
+  unit_price: number                  // Final price per unit (admin editable)
+  line_total: number                  // quantity * unit_price
+  parameters: OrderItemParameter[]    // Selected parameters (human-readable)
+  special_id?: number                 // If from special offer
+  special_name?: string               // Special offer name
+}
+
+export interface OrderTotals {
+  subtotal: number    // Sum of all line_totals
+  discount: number    // Total discount amount
+  tax: number         // Tax amount
+  total: number       // Final total (should match orders.total_price column)
+}
+
+export interface OrderSnapshot {
+  items: OrderItem[]
+  totals: OrderTotals
+  metadata?: {
+    backfilled?: boolean  // True if migrated from existing data
+    last_modified_by?: number  // Admin ID who last edited
+    last_modified_at?: string  // ISO timestamp of last edit
+  }
+}
+
+// Extended order type with parsed snapshot
+export interface OrderWithSnapshot extends Order {
+  snapshot_data: OrderSnapshot | null
 }

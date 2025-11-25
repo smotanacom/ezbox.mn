@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import AdminRouteGuard from '@/components/AdminRouteGuard';
 import AdminNav from '@/components/AdminNav';
+import CategoryImageUpload from '@/components/admin/CategoryImageUpload';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { getCategories, updateCategory, deleteCategory } from '@/lib/api';
 import type { Category } from '@/types/database';
@@ -22,7 +23,6 @@ export default function AdminCategoryDetailPage() {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    picture_url: '',
   });
 
   useEffect(() => {
@@ -44,7 +44,6 @@ export default function AdminCategoryDetailPage() {
       setFormData({
         name: categoryData.name,
         description: categoryData.description || '',
-        picture_url: categoryData.picture_url || '',
       });
     } catch (error) {
       console.error('Error fetching category:', error);
@@ -153,19 +152,6 @@ export default function AdminCategoryDetailPage() {
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t('admin.category.form.picture-url')}
-                </label>
-                <input
-                  type="text"
-                  value={formData.picture_url}
-                  onChange={(e) => setFormData({ ...formData, picture_url: e.target.value })}
-                  placeholder={t('admin.category.form.picture-url-placeholder')}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-
               <div className="pt-6 border-t border-gray-200">
                 <div className="flex gap-4">
                   <button
@@ -190,6 +176,16 @@ export default function AdminCategoryDetailPage() {
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Category Image */}
+          <div className="bg-white rounded-lg shadow-md p-6 mt-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">{t('admin.category.image')}</h2>
+            <CategoryImageUpload
+              categoryId={categoryId}
+              existingImagePath={category?.picture_url || null}
+              onImageChange={fetchData}
+            />
           </div>
         </div>
       </div>

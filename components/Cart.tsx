@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/contexts/CartContext';
 import { calculateProductPrice } from '@/lib/api';
@@ -40,6 +40,7 @@ export default function Cart({ showCheckoutButton = true, compact = false, stick
   const [itemErrors, setItemErrors] = useState<Record<number, string>>({});
   const [isMinimized, setIsMinimized] = useState(true);
   const prevItemsLength = useRef(items.length);
+  const updateTimers = useRef<Record<number, NodeJS.Timeout>>({});
 
   // Group items by special_id
   const specialBundles = items.filter(item => item.special_id !== null);
@@ -93,7 +94,7 @@ export default function Cart({ showCheckoutButton = true, compact = false, stick
     return calculateProductPrice(item.product, params) * item.quantity;
   };
 
-  const handleUpdateCartItem = async (
+  const handleUpdateCartItem = useCallback(async (
     itemId: number,
     newQuantity?: number,
     newParameters?: ParameterSelection
@@ -120,7 +121,28 @@ export default function Cart({ showCheckoutButton = true, compact = false, stick
         return next;
       });
     }
-  };
+  }, [updateCartItem, t]);
+
+  // Debounced quantity update handler
+  const handleDebouncedQuantityChange = useCallback((itemId: number, newQuantity: number) => {
+    // Clear existing timer for this item
+    if (updateTimers.current[itemId]) {
+      clearTimeout(updateTimers.current[itemId]);
+    }
+
+    // Set new timer to update after 500ms of no changes
+    updateTimers.current[itemId] = setTimeout(() => {
+      handleUpdateCartItem(itemId, newQuantity);
+      delete updateTimers.current[itemId];
+    }, 500);
+  }, [handleUpdateCartItem]);
+
+  // Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      Object.values(updateTimers.current).forEach(timer => clearTimeout(timer));
+    };
+  }, []);
 
   const handleRemoveFromCart = async (itemId: number) => {
     setUpdatingItems(prev => new Set(prev).add(itemId));
@@ -152,57 +174,45 @@ export default function Cart({ showCheckoutButton = true, compact = false, stick
     return (
       <div className={`
         fixed bottom-0 left-0 right-0 bg-white shadow-[0_-4px_20px_rgba(0,0,0,0.15)] border-t z-50
-        transition-all duration-300 ease-in-out
+        transition-[height] duration-200 ease-out will-change-[height]
         ${isMinimized ? 'h-16' : 'h-[40vh]'}
       `}>
         {/* Header Bar */}
         <div
           onClick={() => setIsMinimized(!isMinimized)}
           className="
-            flex items-center justify-between px-6 h-16 border-b bg-gradient-to-r from-primary/5 to-white
+            flex items-center justify-between px-3 sm:px-6 h-16 border-b bg-gradient-to-r from-primary/5 to-white
             cursor-pointer hover:bg-primary/5
             transition-colors
           "
         >
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <ShoppingCart className="h-6 w-6 text-primary" />
-                {items.length > 0 && (
-                  <Badge className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs bg-primary">
-                    {items.length}
-                  </Badge>
-                )}
-              </div>
-              <div>
-                <h3 className="font-semibold text-gray-900">
-                  {t('cart.shopping-cart')}
-                </h3>
-                {items.length > 0 && (
-                  <p className="text-xs text-gray-500">
-                    {items.length} {items.length === 1 ? t('cart.item-count') : t('cart.items-count')}
-                  </p>
-                )}
-              </div>
+          <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
+            <div className="relative flex-shrink-0">
+              <ShoppingCart className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+              {items.length > 0 && (
+                <Badge className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs bg-primary">
+                  {items.length}
+                </Badge>
+              )}
             </div>
             {items.length > 0 && (
-              <div className="ml-4 px-4 py-1.5 bg-primary text-white rounded-full">
-                <span className="text-lg font-bold">
+              <div className="ml-auto px-2 sm:px-4 py-1 sm:py-1.5 bg-primary text-white rounded-full flex-shrink-0">
+                <span className="text-sm sm:text-lg font-bold whitespace-nowrap">
                   ₮{total.toLocaleString()}
                 </span>
               </div>
             )}
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1 sm:gap-3 flex-shrink-0 ml-2">
             {showCheckoutButton && items.length > 0 && (
               <Button
                 onClick={(e) => {
                   e.stopPropagation();
                   router.push('/checkout');
                 }}
-                size="lg"
-                className="bg-secondary hover:bg-secondary/90"
+                size="sm"
+                className="bg-secondary hover:bg-secondary/90 text-xs sm:text-sm px-2 sm:px-4"
               >
                 {t('cart.checkout-button')}
               </Button>
@@ -214,6 +224,7 @@ export default function Cart({ showCheckoutButton = true, compact = false, stick
               }}
               size="icon"
               variant="ghost"
+              className="flex-shrink-0"
               aria-label={isMinimized ? t('cart.expand') : t('cart.minimize')}
             >
               {isMinimized ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
@@ -324,7 +335,7 @@ export default function Cart({ showCheckoutButton = true, compact = false, stick
                             handleUpdateCartItem(item.id, undefined, newSelections);
                           }}
                           onQuantityChange={(newQuantity) =>
-                            handleUpdateCartItem(item.id, newQuantity)
+                            handleDebouncedQuantityChange(item.id, newQuantity)
                           }
                           price={price}
                           disabled={isUpdating}
@@ -451,7 +462,7 @@ export default function Cart({ showCheckoutButton = true, compact = false, stick
                   handleUpdateCartItem(item.id, undefined, newSelections);
                 }}
                 onQuantityChange={(newQuantity) =>
-                  handleUpdateCartItem(item.id, newQuantity)
+                  handleDebouncedQuantityChange(item.id, newQuantity)
                 }
                 price={price}
                 disabled={isUpdating}

@@ -19,7 +19,7 @@ interface CartContextType {
   removeFromCart: (itemId: number) => Promise<void>;
   removeSpecialFromCart: (specialId: number) => Promise<void>;
   addSpecialToCart: (specialId: number) => Promise<void>;
-  refreshCart: () => Promise<void>;
+  refreshCart: () => Promise<{ cart: Cart | null; items: CartItemWithDetails[]; total: number }>;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -44,8 +44,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       setCart(data.cart);
       setItems(data.items);
       setTotal(data.total);
+
+      return data;
     } catch (error) {
       console.error('Error refreshing cart:', error);
+      return { cart: null, items: [], total: 0 };
     } finally {
       setLoading(false);
     }

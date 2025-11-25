@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Image from '@/components/Image';
 import { Button } from '@/components/ui/button';
 import { ShoppingCart } from 'lucide-react';
+import { getSpecialImageUrl } from '@/lib/storage-client';
 import type { SpecialWithItems } from '@/types/database';
 
 interface SpecialOffersCarouselProps {
@@ -63,7 +64,7 @@ export default function SpecialOffersCarousel({
             }`}
           >
             <Image
-              src={special.picture_url}
+              src={special.picture_url ? getSpecialImageUrl(special.picture_url) : special.picture_url}
               alt={special.name}
               className="object-cover w-full h-full"
             />

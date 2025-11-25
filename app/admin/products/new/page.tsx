@@ -8,12 +8,24 @@ import AdminNav from '@/components/AdminNav';
 import {
   createProduct,
   getCategories,
+  getParameterGroups,
+  getParameters,
+  addParameterGroupToProduct,
+  createParameterGroupWithParameters,
 } from '@/lib/api';
-import type { Category } from '@/types/database';
+import type { Category, ParameterGroup, Parameter } from '@/types/database';
+
+interface InlineParameterGroup {
+  name: string;
+  internal_name: string;
+  parameters: Array<{ name: string; price_modifier: number }>;
+}
 
 export default function NewProductPage() {
   const router = useRouter();
   const [categories, setCategories] = useState<Category[]>([]);
+  const [allParameterGroups, setAllParameterGroups] = useState<ParameterGroup[]>([]);
+  const [parametersByGroup, setParametersByGroup] = useState<Record<number, Parameter[]>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -25,16 +37,38 @@ export default function NewProductPage() {
     status: 'draft' as string,
   });
 
+  // Parameter groups to add to the product
+  const [selectedGroupIds, setSelectedGroupIds] = useState<number[]>([]);
+  const [inlineGroups, setInlineGroups] = useState<InlineParameterGroup[]>([]);
+  const [showInlineForm, setShowInlineForm] = useState(false);
+  const [currentInlineGroup, setCurrentInlineGroup] = useState<InlineParameterGroup>({
+    name: '',
+    internal_name: '',
+    parameters: [{ name: '', price_modifier: 0 }]
+  });
+
   useEffect(() => {
-    fetchCategories();
+    fetchData();
   }, []);
 
-  const fetchCategories = async () => {
+  const fetchData = async () => {
     try {
-      const categoriesData = await getCategories();
+      const [categoriesData, paramGroupsData] = await Promise.all([
+        getCategories(),
+        getParameterGroups()
+      ]);
       setCategories(categoriesData);
+      setAllParameterGroups(paramGroupsData);
+
+      // Fetch parameters for all groups
+      const paramsMap: Record<number, Parameter[]> = {};
+      for (const group of paramGroupsData) {
+        const params = await getParameters(group.id);
+        paramsMap[group.id] = params;
+      }
+      setParametersByGroup(paramsMap);
     } catch (error) {
-      console.error('Error fetching categories:', error);
+      console.error('Error fetching data:', error);
     } finally {
       setLoading(false);
     }
@@ -53,6 +87,7 @@ export default function NewProductPage() {
 
     setSaving(true);
     try {
+      // 1. Create the product
       const newProduct = await createProduct({
         name: formData.name,
         description: formData.description,
@@ -61,7 +96,27 @@ export default function NewProductPage() {
         status: formData.status,
       });
 
-      alert('Product created successfully! You can now upload images and 3D models.');
+      // 2. Add selected existing parameter groups
+      for (const groupId of selectedGroupIds) {
+        const params = parametersByGroup[groupId];
+        const defaultParamId = params && params.length > 0 ? params[0].id : undefined;
+        await addParameterGroupToProduct(newProduct.id, groupId, defaultParamId);
+      }
+
+      // 3. Create and add inline parameter groups
+      for (const inlineGroup of inlineGroups) {
+        const { group, parameters } = await createParameterGroupWithParameters(
+          {
+            name: inlineGroup.name,
+            internal_name: inlineGroup.internal_name || inlineGroup.name,
+          },
+          inlineGroup.parameters.filter(p => p.name.trim())
+        );
+        const defaultParamId = parameters.length > 0 ? parameters[0].id : undefined;
+        await addParameterGroupToProduct(newProduct.id, group.id, defaultParamId);
+      }
+
+      alert('Product created successfully!');
       router.push(`/admin/products/${newProduct.id}`);
     } catch (error) {
       console.error('Error creating product:', error);
@@ -70,6 +125,59 @@ export default function NewProductPage() {
     } finally {
       setSaving(false);
     }
+  };
+
+  // Inline group handlers
+  const addSelectedGroup = (groupId: number) => {
+    if (!selectedGroupIds.includes(groupId)) {
+      setSelectedGroupIds([...selectedGroupIds, groupId]);
+    }
+  };
+
+  const removeSelectedGroup = (groupId: number) => {
+    setSelectedGroupIds(selectedGroupIds.filter(id => id !== groupId));
+  };
+
+  const addInlineGroup = () => {
+    if (!currentInlineGroup.name.trim()) {
+      alert('Please enter a group name');
+      return;
+    }
+    const validParams = currentInlineGroup.parameters.filter(p => p.name.trim());
+    if (validParams.length === 0) {
+      alert('Please add at least one parameter');
+      return;
+    }
+    setInlineGroups([...inlineGroups, { ...currentInlineGroup, parameters: validParams }]);
+    setCurrentInlineGroup({
+      name: '',
+      internal_name: '',
+      parameters: [{ name: '', price_modifier: 0 }]
+    });
+    setShowInlineForm(false);
+  };
+
+  const removeInlineGroup = (index: number) => {
+    setInlineGroups(inlineGroups.filter((_, i) => i !== index));
+  };
+
+  const addParamRow = () => {
+    setCurrentInlineGroup({
+      ...currentInlineGroup,
+      parameters: [...currentInlineGroup.parameters, { name: '', price_modifier: 0 }]
+    });
+  };
+
+  const updateParamRow = (index: number, field: 'name' | 'price_modifier', value: string | number) => {
+    const updated = [...currentInlineGroup.parameters];
+    updated[index] = { ...updated[index], [field]: value };
+    setCurrentInlineGroup({ ...currentInlineGroup, parameters: updated });
+  };
+
+  const removeParamRow = (index: number) => {
+    if (currentInlineGroup.parameters.length <= 1) return;
+    const updated = currentInlineGroup.parameters.filter((_, i) => i !== index);
+    setCurrentInlineGroup({ ...currentInlineGroup, parameters: updated });
   };
 
   if (loading) {
@@ -189,7 +297,204 @@ export default function NewProductPage() {
                 </p>
               </div>
 
-              {/* Picture URL field removed - images are now uploaded after product creation */}
+              {/* Parameter Groups Section */}
+              <div className="pt-6 border-t border-gray-200">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900">Parameter Groups</h3>
+                    <p className="text-sm text-gray-500">Add configuration options for this product</p>
+                  </div>
+                  {!showInlineForm && (
+                    <button
+                      type="button"
+                      onClick={() => setShowInlineForm(true)}
+                      className="text-sm text-blue-600 hover:text-blue-800"
+                    >
+                      + Create new group
+                    </button>
+                  )}
+                </div>
+
+                {/* Selected/Added Groups List */}
+                {(selectedGroupIds.length > 0 || inlineGroups.length > 0) && (
+                  <div className="mb-4 space-y-2">
+                    {/* Selected existing groups */}
+                    {selectedGroupIds.map(groupId => {
+                      const group = allParameterGroups.find(g => g.id === groupId);
+                      const params = parametersByGroup[groupId] || [];
+                      return (
+                        <div key={`selected-${groupId}`} className="flex items-center justify-between bg-blue-50 p-3 rounded-lg border border-blue-200">
+                          <div>
+                            <span className="font-medium text-gray-900">{group?.name}</span>
+                            {group?.internal_name && group.internal_name !== group.name && (
+                              <span className="text-xs text-gray-500 ml-2">({group.internal_name})</span>
+                            )}
+                            <div className="text-sm text-gray-600">
+                              {params.map(p => p.name).join(', ')}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeSelectedGroup(groupId)}
+                            className="text-red-600 hover:text-red-800 text-sm"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      );
+                    })}
+
+                    {/* Inline groups (to be created) */}
+                    {inlineGroups.map((group, index) => (
+                      <div key={`inline-${index}`} className="flex items-center justify-between bg-green-50 p-3 rounded-lg border border-green-200">
+                        <div>
+                          <span className="font-medium text-gray-900">{group.name}</span>
+                          <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded ml-2">New</span>
+                          {group.internal_name && group.internal_name !== group.name && (
+                            <span className="text-xs text-gray-500 ml-2">({group.internal_name})</span>
+                          )}
+                          <div className="text-sm text-gray-600">
+                            {group.parameters.map(p => p.name).join(', ')}
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeInlineGroup(index)}
+                          className="text-red-600 hover:text-red-800 text-sm"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Add existing group dropdown */}
+                {!showInlineForm && (
+                  <select
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        addSelectedGroup(parseInt(e.target.value));
+                        e.target.value = '';
+                      }
+                    }}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="">Select existing group...</option>
+                    {allParameterGroups
+                      .filter(pg => !selectedGroupIds.includes(pg.id))
+                      .map(pg => (
+                        <option key={pg.id} value={pg.id}>
+                          {pg.name} {pg.internal_name && pg.internal_name !== pg.name ? `(${pg.internal_name})` : ''}
+                        </option>
+                      ))}
+                  </select>
+                )}
+
+                {/* Inline Group Creation Form */}
+                {showInlineForm && (
+                  <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                    <h4 className="font-medium text-gray-900 mb-3">Create New Parameter Group</h4>
+                    <div className="grid grid-cols-2 gap-3 mb-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Group Name *</label>
+                        <input
+                          type="text"
+                          value={currentInlineGroup.name}
+                          onChange={(e) => setCurrentInlineGroup({ ...currentInlineGroup, name: e.target.value })}
+                          placeholder="e.g., Height, Color"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Internal Name</label>
+                        <input
+                          type="text"
+                          value={currentInlineGroup.internal_name}
+                          onChange={(e) => setCurrentInlineGroup({ ...currentInlineGroup, internal_name: e.target.value })}
+                          placeholder="Optional"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 text-sm"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Parameters */}
+                    <div className="mb-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="block text-xs font-medium text-gray-600">Parameters *</label>
+                        <button
+                          type="button"
+                          onClick={addParamRow}
+                          className="text-xs text-blue-600 hover:text-blue-800"
+                        >
+                          + Add
+                        </button>
+                      </div>
+                      <div className="space-y-2">
+                        {currentInlineGroup.parameters.map((param, index) => (
+                          <div key={index} className="flex items-center gap-2">
+                            <input
+                              type="text"
+                              value={param.name}
+                              onChange={(e) => updateParamRow(index, 'name', e.target.value)}
+                              placeholder={`Option ${index + 1}`}
+                              className="flex-1 px-3 py-1.5 border border-gray-300 rounded text-sm"
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' && param.name.trim()) {
+                                  e.preventDefault();
+                                  addParamRow();
+                                }
+                              }}
+                            />
+                            <input
+                              type="number"
+                              value={param.price_modifier}
+                              onChange={(e) => updateParamRow(index, 'price_modifier', parseFloat(e.target.value) || 0)}
+                              placeholder="₮0"
+                              className="w-24 px-2 py-1.5 border border-gray-300 rounded text-sm"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeParamRow(index)}
+                              className="p-1 text-gray-400 hover:text-red-600"
+                              disabled={currentInlineGroup.parameters.length <= 1}
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={addInlineGroup}
+                        className="px-3 py-1.5 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition"
+                      >
+                        Add Group
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowInlineForm(false);
+                          setCurrentInlineGroup({
+                            name: '',
+                            internal_name: '',
+                            parameters: [{ name: '', price_modifier: 0 }]
+                          });
+                        }}
+                        className="px-3 py-1.5 bg-gray-200 text-gray-700 rounded text-sm hover:bg-gray-300 transition"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
 
               <div className="pt-6 border-t border-gray-200">
                 <div className="flex gap-4">
@@ -208,7 +513,7 @@ export default function NewProductPage() {
                   </Link>
                 </div>
                 <p className="mt-4 text-sm text-gray-600">
-                  After creating the product, you'll be able to add parameter groups and configure options.
+                  After creating the product, you can upload images and 3D models on the product detail page.
                 </p>
               </div>
             </div>

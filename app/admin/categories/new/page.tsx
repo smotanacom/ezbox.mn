@@ -16,7 +16,6 @@ export default function NewCategoryPage() {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    picture_url: '',
   });
 
   const handleCreate = async () => {
@@ -30,11 +29,11 @@ export default function NewCategoryPage() {
       const newCategory = await createCategory({
         name: formData.name,
         description: formData.description,
-        picture_url: formData.picture_url,
       });
 
       alert(t('admin.category.success.created'));
-      router.push('/admin/categories');
+      // Redirect to edit page to allow image upload
+      router.push(`/admin/categories/${newCategory.id}`);
     } catch (error) {
       console.error('Error creating category:', error);
       alert(t('admin.category.error.create'));
@@ -88,17 +87,10 @@ export default function NewCategoryPage() {
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t('admin.category.form.picture-url')}
-                </label>
-                <input
-                  type="text"
-                  value={formData.picture_url}
-                  onChange={(e) => setFormData({ ...formData, picture_url: e.target.value })}
-                  placeholder={t('admin.category.form.picture-url-placeholder')}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
+              <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+                <p className="text-sm text-blue-700">
+                  {t('admin.category.image-after-create')}
+                </p>
               </div>
 
               <div className="pt-6 border-t border-gray-200">

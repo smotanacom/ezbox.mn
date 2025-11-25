@@ -340,6 +340,14 @@ History is automatically displayed in the admin order detail page (`app/admin/or
 - Linked to both `users` (for customer changes) and `admins` (for admin changes)
 - See "History Tracking System" section above for usage guidelines
 
+### Admin Management
+
+**admins** - Admin users for backend management
+- `id`, `username`, `password_hash`, `email`, `created_at`, `updated_at`
+- Separate from regular users table
+- Email field is used for system notifications (order confirmations, custom design requests)
+- All admin emails receive notifications automatically
+
 ## Important Functions & APIs
 
 ### In `lib/api.ts`
@@ -484,7 +492,8 @@ AWS_SES_REGION=us-east-1
 AWS_SES_ACCESS_KEY_ID=your-aws-access-key-id
 AWS_SES_SECRET_ACCESS_KEY=your-aws-secret-access-key
 AWS_SES_FROM_EMAIL=noreply@ezbox.mn
-AWS_SES_ADMIN_EMAIL=admin@ezbox.mn
+# Note: Admin notification emails are now configured in the database (admins.email column)
+# AWS_SES_ADMIN_EMAIL is DEPRECATED
 ```
 
 ## Known Limitations & Future Enhancements
@@ -684,6 +693,12 @@ ORDER BY times_ordered DESC;
 - Sign commits with GPG key
 - Use user: Matus Faro <matus@matus.io>
 - Keep commits atomic and focused
+
+### Development Server
+- **NEVER kill or restart the dev server without explicit permission**
+- Next.js has hot module reloading (HMR) that automatically picks up file changes
+- No need to restart when making code edits - changes will be reflected automatically
+- Only suggest a restart if there are actual issues requiring it, and always ask first
 
 ### Common Pitfalls
 - Remember to mark items as `as any` for Supabase inserts/updates

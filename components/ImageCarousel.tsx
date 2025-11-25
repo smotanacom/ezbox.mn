@@ -21,13 +21,15 @@ interface ImageCarouselProps {
   productName: string;
   model?: ProductModel | null;
   className?: string;
+  showControls?: boolean;
 }
 
 export default function ImageCarousel({
   images,
   productName,
   model,
-  className = ''
+  className = '',
+  showControls = true
 }: ImageCarouselProps) {
   // ALL HOOKS MUST BE AT THE TOP - before any conditional returns
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -193,46 +195,54 @@ export default function ImageCarousel({
       </div>
 
       {/* Previous Button */}
-      <button
-        onClick={goToPrevious}
-        disabled={isTransitioning}
-        className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-gray-800 rounded-full p-2 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 disabled:opacity-50"
-        aria-label="Previous image"
-      >
-        <ChevronLeft className="w-5 h-5" />
-      </button>
+      {showControls && (
+        <button
+          onClick={goToPrevious}
+          disabled={isTransitioning}
+          className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-gray-800 rounded-full p-2 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 disabled:opacity-50"
+          aria-label="Previous image"
+        >
+          <ChevronLeft className="w-5 h-5" />
+        </button>
+      )}
 
       {/* Next Button */}
-      <button
-        onClick={goToNext}
-        disabled={isTransitioning}
-        className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-gray-800 rounded-full p-2 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 disabled:opacity-50"
-        aria-label="Next image"
-      >
-        <ChevronRight className="w-5 h-5" />
-      </button>
+      {showControls && (
+        <button
+          onClick={goToNext}
+          disabled={isTransitioning}
+          className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-gray-800 rounded-full p-2 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 disabled:opacity-50"
+          aria-label="Next image"
+        >
+          <ChevronRight className="w-5 h-5" />
+        </button>
+      )}
 
       {/* Dot Indicators */}
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
-        {Array.from({ length: totalSlides }).map((_, index) => (
-          <button
-            key={index}
-            onClick={() => goToIndex(index)}
-            disabled={isTransitioning}
-            className={`w-2 h-2 rounded-full transition-all duration-200 ${
-              index === currentIndex
-                ? 'bg-white w-6'
-                : 'bg-white/60 hover:bg-white/80'
-            }`}
-            aria-label={`Go to ${index === 0 && hasModel ? '3D model' : `image ${index - (hasModel ? 1 : 0) + 1}`}`}
-          />
-        ))}
-      </div>
+      {showControls && (
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+          {Array.from({ length: totalSlides }).map((_, index) => (
+            <button
+              key={index}
+              onClick={() => goToIndex(index)}
+              disabled={isTransitioning}
+              className={`w-2 h-2 rounded-full transition-all duration-200 ${
+                index === currentIndex
+                  ? 'bg-white w-6'
+                  : 'bg-white/60 hover:bg-white/80'
+              }`}
+              aria-label={`Go to ${index === 0 && hasModel ? '3D model' : `image ${index - (hasModel ? 1 : 0) + 1}`}`}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Slide Counter */}
-      <div className="absolute top-4 right-4 bg-black/60 text-white text-sm px-3 py-1 rounded-full">
-        {currentIndex + 1} / {totalSlides}
-      </div>
+      {showControls && (
+        <div className="absolute top-4 right-4 bg-black/60 text-white text-sm px-3 py-1 rounded-full">
+          {currentIndex + 1} / {totalSlides}
+        </div>
+      )}
     </div>
   );
 }

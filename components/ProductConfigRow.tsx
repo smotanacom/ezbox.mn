@@ -5,14 +5,8 @@ import Image from '@/components/Image';
 import ImageCarousel from '@/components/ImageCarousel';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { getFirstImageUrl } from '@/lib/storage-client';
+import { Minus, Plus } from 'lucide-react';
+import { useTranslation } from '@/contexts/LanguageContext';
 import type { ProductWithDetails, ParameterSelection } from '@/types/database';
 
 interface ProductConfigRowProps {
@@ -46,105 +40,147 @@ export default function ProductConfigRow({
   compact = false,
   className = '',
 }: ProductConfigRowProps) {
+  const { t } = useTranslation();
   const calculatedTotal = totalPrice ?? price * quantity;
 
   return (
-    <div className={`flex gap-4 p-4 mb-4 bg-muted/50 rounded-lg ${disabled ? 'opacity-50' : ''} ${className}`}>
-      {/* Product Image & Name */}
-      <div className="relative flex-shrink-0 w-55 h-55 bg-white rounded-md overflow-hidden border">
-        <ImageCarousel
-          images={product.images || []}
-          productName={product.name}
-          model={product.model}
-          className="rounded-md"
-        />
-      </div>
-
-      {/* Configuration Section */}
-      <div className="flex-1 flex flex-col justify-between gap-4">
-        {/* Parameter Configuration */}
-        <div className="flex flex-wrap gap-4">
-          {product.parameter_groups?.map((pg) => {
-            const selectedParamId = selectedParameters[pg.parameter_group_id];
-            const selectedParam = pg.parameters?.find(p => p.id === selectedParamId);
-
-            return (
-              <div key={pg.parameter_group_id} className="flex flex-col gap-2">
-                <Label className="text-xs font-medium">
-                  {pg.parameter_group?.name}
-                </Label>
-                {readOnly ? (
-                  <div className="px-3 py-2 bg-background rounded-md text-sm border">
-                    {selectedParam?.name || 'N/A'}
-                    {selectedParam?.price_modifier !== 0 &&
-                      ` (${selectedParam!.price_modifier > 0 ? '+' : ''}₮${selectedParam!.price_modifier.toLocaleString()})`}
-                  </div>
-                ) : (
-                  <Select
-                    value={String(selectedParamId || '')}
-                    onValueChange={(value) =>
-                      onParameterChange?.(pg.parameter_group_id, parseInt(value))
-                    }
-                    disabled={disabled}
-                  >
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {pg.parameters?.map((param) => (
-                        <SelectItem key={param.id} value={String(param.id)}>
-                          {param.name}
-                          {param.price_modifier !== 0 &&
-                            ` (${param.price_modifier > 0 ? '+' : ''}₮${param.price_modifier.toLocaleString()})`}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              </div>
-            );
-          })}
-
-          {/* Quantity */}
-          <div className="flex flex-col gap-2">
-            <Label className="text-xs font-medium">Quantity</Label>
-            {readOnly ? (
-              <div className="px-3 py-2 bg-background rounded-md text-sm border font-medium">
-                x{quantity}
-              </div>
-            ) : (
-              <Input
-                type="number"
-                min="1"
-                max="100"
-                value={quantity}
-                onChange={(e) => onQuantityChange?.(parseInt(e.target.value) || 1)}
-                disabled={disabled}
-                className="w-24"
-              />
-            )}
-          </div>
+    <div className={`p-3 mb-3 bg-white rounded-lg border shadow-sm ${disabled ? 'opacity-50' : ''} ${className}`}>
+      <div className="flex gap-3">
+        {/* Product Image */}
+        <div className="relative flex-shrink-0 w-20 h-20 bg-gray-50 rounded-md overflow-hidden border">
+          <ImageCarousel
+            images={product.images || []}
+            productName={product.name}
+            model={product.model}
+            className="rounded-md"
+            showControls={false}
+          />
         </div>
 
-        {/* Bottom Row: Price and Actions */}
-        <div className="flex items-center justify-between">
-          <div className="flex flex-col gap-1">
-            {!compact && price !== product.base_price && (
-              <div className="text-xs text-muted-foreground">
-                ₮{price.toLocaleString()} each
-              </div>
+        {/* Product Info & Configuration */}
+        <div className="flex-1 min-w-0">
+          {/* Product Name & Description */}
+          <div className="mb-2">
+            <h3 className="font-semibold text-sm leading-tight mb-0.5">
+              {product.name}
+            </h3>
+            {product.description && (
+              <p className="text-xs text-muted-foreground line-clamp-2">
+                {product.description}
+              </p>
             )}
-            <div className={`${compact ? 'text-base' : 'text-xl'} font-bold`}>
-              ₮{calculatedTotal.toLocaleString()}
-            </div>
           </div>
 
-          {/* Actions */}
-          {actions && (
-            <div className="flex items-center">
-              {actions}
+          {/* Parameter Configuration - Compact */}
+          <div className="space-y-2 mb-3">
+            {product.parameter_groups?.map((pg) => {
+              const selectedParamId = selectedParameters[pg.parameter_group_id];
+              const selectedParam = pg.parameters?.find(p => p.id === selectedParamId);
+
+              return (
+                <div key={pg.parameter_group_id}>
+                  <Label className="text-xs font-medium text-muted-foreground mb-1 block">
+                    {pg.parameter_group?.name}
+                  </Label>
+                  {readOnly ? (
+                    <div className="text-xs font-medium">
+                      {selectedParam?.name || 'N/A'}
+                      {selectedParam?.price_modifier !== 0 &&
+                        ` (+₮${selectedParam!.price_modifier.toLocaleString()})`}
+                    </div>
+                  ) : (
+                    <div className="flex flex-wrap gap-1">
+                      {pg.parameters?.map((param) => {
+                        const isSelected = param.id === selectedParamId;
+                        return (
+                          <button
+                            key={param.id}
+                            onClick={() => onParameterChange?.(pg.parameter_group_id, param.id)}
+                            disabled={disabled}
+                            className={`
+                              px-2 py-1 text-xs rounded border transition-colors
+                              ${isSelected
+                                ? 'bg-primary text-primary-foreground border-primary font-medium'
+                                : 'bg-background hover:bg-muted border-border'
+                              }
+                              ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+                            `}
+                          >
+                            {param.name}
+                            {param.price_modifier !== 0 && (
+                              <span className="ml-1 opacity-75">
+                                {param.price_modifier > 0 ? '+' : ''}₮{Math.abs(param.price_modifier).toLocaleString()}
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Bottom Row: Quantity, Price, and Actions */}
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            {/* Quantity */}
+            <div className="flex items-center gap-1">
+              <Label className="text-xs text-muted-foreground mr-1">
+                {t('products.quantity')}:
+              </Label>
+              {readOnly ? (
+                <span className="text-sm font-medium">x{quantity}</span>
+              ) : (
+                <div className="flex items-center border rounded">
+                  <button
+                    onClick={() => onQuantityChange?.(Math.max(1, quantity - 1))}
+                    disabled={disabled || quantity <= 1}
+                    className="p-1 hover:bg-muted disabled:opacity-50"
+                  >
+                    <Minus className="h-3 w-3" />
+                  </button>
+                  <input
+                    type="number"
+                    min="1"
+                    max="100"
+                    value={quantity}
+                    onChange={(e) => onQuantityChange?.(parseInt(e.target.value) || 1)}
+                    disabled={disabled}
+                    className="w-10 text-center text-sm border-0 focus:ring-0 py-0.5 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                  />
+                  <button
+                    onClick={() => onQuantityChange?.(quantity + 1)}
+                    disabled={disabled}
+                    className="p-1 hover:bg-muted disabled:opacity-50"
+                  >
+                    <Plus className="h-3 w-3" />
+                  </button>
+                </div>
+              )}
             </div>
-          )}
+
+            {/* Price */}
+            <div className="flex items-center gap-2">
+              <div className="text-right">
+                {price !== product.base_price && (
+                  <div className="text-xs text-muted-foreground">
+                    ₮{price.toLocaleString()} × {quantity}
+                  </div>
+                )}
+                <div className="text-base font-bold">
+                  ₮{calculatedTotal.toLocaleString()}
+                </div>
+              </div>
+
+              {/* Actions */}
+              {actions && (
+                <div className="flex items-center">
+                  {actions}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>

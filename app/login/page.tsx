@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { login, saveSession } from '@/lib/auth';
+import { useAuth } from '@/hooks/useAuth';
 import { useCart } from '@/contexts/CartContext';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ import { LogIn } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
+  const { login } = useAuth();
   const { refreshCart } = useCart();
   const { t } = useTranslation();
   const [phone, setPhone] = useState('');
@@ -27,8 +28,7 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const user = await login(phone, password);
-      saveSession(user);
+      await login(phone, password);
       await refreshCart();
       router.push('/');
     } catch (err) {

@@ -1,22 +1,32 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import AdminRouteGuard from '@/components/AdminRouteGuard';
 import AdminNav from '@/components/AdminNav';
 import { useTranslation } from '@/contexts/LanguageContext';
-import { getCategories, getProducts, updateCategory, deleteCategory } from '@/lib/api';
+import { getCategories, getProducts } from '@/lib/api';
 import type { Category } from '@/types/database';
 
+type SortField = 'id' | 'name' | 'products_count';
+
 export default function AdminCategoriesPage() {
-  const router = useRouter();
   const { t } = useTranslation();
   const [categories, setCategories] = useState<Category[]>([]);
   const [productCounts, setProductCounts] = useState<Record<number, number>>({});
   const [loading, setLoading] = useState(true);
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [editValues, setEditValues] = useState<Partial<Category>>({});
+  const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState<SortField>('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+
+  // Debounce search term
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   useEffect(() => {
     fetchData();
@@ -45,45 +55,62 @@ export default function AdminCategoriesPage() {
     }
   };
 
-  const startEditing = (category: Category) => {
-    setEditingId(category.id);
-    setEditValues({
-      name: category.name,
-      description: category.description || '',
-      picture_url: category.picture_url || '',
+  const handleSort = (field: SortField) => {
+    if (sortBy === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(field);
+      setSortOrder('asc');
+    }
+  };
+
+  const filteredAndSortedCategories = useMemo(() => {
+    let result = [...categories];
+
+    // Filter by search term
+    if (debouncedSearchTerm) {
+      const term = debouncedSearchTerm.toLowerCase();
+      result = result.filter(c =>
+        c.name.toLowerCase().includes(term) ||
+        c.description?.toLowerCase().includes(term)
+      );
+    }
+
+    // Sort
+    result.sort((a, b) => {
+      let comparison = 0;
+      switch (sortBy) {
+        case 'id':
+          comparison = a.id - b.id;
+          break;
+        case 'name':
+          comparison = a.name.localeCompare(b.name);
+          break;
+        case 'products_count':
+          comparison = (productCounts[a.id] || 0) - (productCounts[b.id] || 0);
+          break;
+      }
+      return sortOrder === 'asc' ? comparison : -comparison;
     });
-  };
 
-  const cancelEditing = () => {
-    setEditingId(null);
-    setEditValues({});
-  };
+    return result;
+  }, [categories, debouncedSearchTerm, sortBy, sortOrder, productCounts]);
 
-  const saveEdit = async (categoryId: number) => {
-    try {
-      await updateCategory(categoryId, editValues);
-      await fetchData();
-      setEditingId(null);
-      setEditValues({});
-    } catch (error) {
-      console.error('Error updating category:', error);
-      alert(t('admin.categories.update-failed'));
-    }
-  };
-
-  const handleDelete = async (categoryId: number, categoryName: string) => {
-    if (!confirm(t('admin.categories.delete-confirm'))) {
-      return;
-    }
-
-    try {
-      await deleteCategory(categoryId);
-      await fetchData();
-    } catch (error) {
-      console.error('Error deleting category:', error);
-      alert(t('admin.categories.delete-failed'));
-    }
-  };
+  const SortableHeader = ({ field, children }: { field: SortField; children: React.ReactNode }) => (
+    <th
+      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+      onClick={() => handleSort(field)}
+    >
+      <div className="flex items-center gap-1">
+        {children}
+        <span className="text-gray-400">
+          {sortBy === field ? (
+            sortOrder === 'asc' ? '↑' : '↓'
+          ) : null}
+        </span>
+      </div>
+    </th>
+  );
 
   return (
     <AdminRouteGuard>
@@ -91,152 +118,100 @@ export default function AdminCategoriesPage() {
         <AdminNav />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="mb-8 flex items-center justify-between">
+          <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">{t('admin.categories.title')}</h1>
-              <p className="text-gray-600 mt-2">{t('admin.categories.manage')}</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{t('admin.categories.title')}</h1>
+              <p className="text-sm sm:text-base text-gray-600 mt-2">{t('admin.categories.manage')}</p>
             </div>
             <Link
               href="/admin/categories/new"
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition whitespace-nowrap"
             >
               {t('admin.categories.add-new')}
             </Link>
           </div>
 
-          {loading ? (
-            <div className="text-center py-12">
-              <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-              <p className="mt-4 text-gray-600">{t('admin.categories.loading')}</p>
+          <div className="bg-white rounded-lg shadow-md overflow-hidden">
+            {/* Filters row */}
+            <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="flex-1">
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Search by name or description..."
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
             </div>
-          ) : (
-            <div className="bg-white rounded-lg shadow-md overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        {t('admin.categories.id')}
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        {t('admin.categories.name')}
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        {t('admin.categories.description')}
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        {t('admin.categories.picture-url')}
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        {t('admin.categories.products-count')}
-                      </th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        {t('admin.categories.actions')}
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {categories.map((category) => {
-                      const isEditing = editingId === category.id;
-                      return (
+
+            {loading ? (
+              <div className="text-center py-12">
+                <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                <p className="mt-4 text-gray-600">{t('admin.categories.loading')}</p>
+              </div>
+            ) : filteredAndSortedCategories.length === 0 ? (
+              <div className="text-center py-12 text-gray-500">
+                {t('admin.categories.no-categories')}
+              </div>
+            ) : (
+              <>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <SortableHeader field="id">{t('admin.categories.id')}</SortableHeader>
+                        <SortableHeader field="name">{t('admin.categories.name')}</SortableHeader>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          {t('admin.categories.description')}
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          {t('admin.categories.picture-url')}
+                        </th>
+                        <SortableHeader field="products_count">{t('admin.categories.products-count')}</SortableHeader>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {filteredAndSortedCategories.map((category) => (
                         <tr key={category.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {category.id}
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <Link
+                              href={`/admin/categories/${category.id}`}
+                              className="text-blue-600 hover:text-blue-800"
+                            >
+                              #{category.id}
+                            </Link>
                           </td>
                           <td className="px-6 py-4 text-sm text-gray-900">
-                            {isEditing ? (
-                              <input
-                                type="text"
-                                value={editValues.name || ''}
-                                onChange={(e) => setEditValues({ ...editValues, name: e.target.value })}
-                                className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
-                              />
-                            ) : (
-                              <div className="font-medium">{category.name}</div>
-                            )}
+                            <div className="font-medium">{category.name}</div>
                           </td>
-                          <td className="px-6 py-4 text-sm text-gray-900">
-                            {isEditing ? (
-                              <textarea
-                                value={editValues.description || ''}
-                                onChange={(e) => setEditValues({ ...editValues, description: e.target.value })}
-                                className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
-                                rows={2}
-                              />
-                            ) : (
-                              <span className="text-gray-500">{category.description || '-'}</span>
-                            )}
+                          <td className="px-6 py-4 text-sm text-gray-500">
+                            {category.description || '-'}
                           </td>
-                          <td className="px-6 py-4 text-sm text-gray-900">
-                            {isEditing ? (
-                              <input
-                                type="text"
-                                value={editValues.picture_url || ''}
-                                onChange={(e) => setEditValues({ ...editValues, picture_url: e.target.value })}
-                                className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
-                              />
-                            ) : (
-                              <span className="text-gray-500 text-xs truncate max-w-xs block">
-                                {category.picture_url || '-'}
-                              </span>
-                            )}
+                          <td className="px-6 py-4 text-sm text-gray-500">
+                            <span className="truncate max-w-xs block text-xs">
+                              {category.picture_url || '-'}
+                            </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             {productCounts[category.id] || 0}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            {isEditing ? (
-                              <div className="flex justify-end gap-2">
-                                <button
-                                  onClick={() => saveEdit(category.id)}
-                                  className="text-green-600 hover:text-green-900"
-                                >
-                                  {t('admin.categories.save')}
-                                </button>
-                                <button
-                                  onClick={cancelEditing}
-                                  className="text-gray-600 hover:text-gray-900"
-                                >
-                                  {t('admin.categories.cancel')}
-                                </button>
-                              </div>
-                            ) : (
-                              <div className="flex justify-end gap-2">
-                                <button
-                                  onClick={() => startEditing(category)}
-                                  className="text-blue-600 hover:text-blue-900"
-                                >
-                                  {t('admin.categories.edit')}
-                                </button>
-                                <Link
-                                  href={`/admin/categories/${category.id}`}
-                                  className="text-indigo-600 hover:text-indigo-900"
-                                >
-                                  {t('common.edit')}
-                                </Link>
-                                <button
-                                  onClick={() => handleDelete(category.id, category.name)}
-                                  className="text-red-600 hover:text-red-900"
-                                >
-                                  {t('admin.categories.delete')}
-                                </button>
-                              </div>
-                            )}
-                          </td>
                         </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-
-              {categories.length === 0 && (
-                <div className="text-center py-12 text-gray-500">
-                  {t('admin.categories.no-categories')}
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-              )}
-            </div>
-          )}
+
+                <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
+                  <p className="text-sm text-gray-600">
+                    Showing {filteredAndSortedCategories.length} categor{filteredAndSortedCategories.length !== 1 ? 'ies' : 'y'}
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </AdminRouteGuard>

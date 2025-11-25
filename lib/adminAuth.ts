@@ -22,11 +22,17 @@ async function verifyPassword(password: string, hash: string): Promise<boolean> 
 // Create new admin (used by CLI script)
 export async function createAdmin(
   username: string,
-  password: string
+  password: string,
+  email?: string
 ): Promise<Admin> {
   // Validate username (alphanumeric, 3-50 chars)
   if (!/^[a-zA-Z0-9_]{3,50}$/.test(username)) {
     throw new Error('Username must be 3-50 alphanumeric characters or underscores');
+  }
+
+  // Validate email if provided
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    throw new Error('Invalid email address');
   }
 
   // Check if admin already exists
@@ -40,6 +46,19 @@ export async function createAdmin(
     throw new Error('Admin with this username already exists');
   }
 
+  // Check if email already exists (if email provided)
+  if (email) {
+    const { data: existingEmail } = await supabase
+      .from('admins')
+      .select('*')
+      .eq('email', email)
+      .maybeSingle();
+
+    if (existingEmail) {
+      throw new Error('Admin with this email already exists');
+    }
+  }
+
   // Hash password
   const password_hash = await hashPassword(password);
 
@@ -49,6 +68,7 @@ export async function createAdmin(
     .insert({
       username,
       password_hash,
+      email: email || null,
     } as any)
     .select()
     .single();

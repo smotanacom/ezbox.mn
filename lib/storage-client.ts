@@ -54,3 +54,33 @@ export function getModelUrl(path: string): string {
 
   return data.publicUrl;
 }
+
+/**
+ * Gets public URL for a category image path
+ * Category images are stored in the product-images bucket
+ *
+ * @param path - Storage path (e.g., "categories/1/123_medium.jpg")
+ * @returns Public URL
+ */
+export function getCategoryImageUrl(path: string): string {
+  const { data } = supabase.storage
+    .from(BUCKETS.PRODUCT_IMAGES)
+    .getPublicUrl(path);
+
+  return data.publicUrl;
+}
+
+/**
+ * Gets public URL for a special image path
+ * Special images are stored in the product-images bucket
+ *
+ * @param path - Storage path (e.g., "specials/1/123_medium.jpg")
+ * @returns Public URL
+ */
+export function getSpecialImageUrl(path: string): string {
+  const { data } = supabase.storage
+    .from(BUCKETS.PRODUCT_IMAGES)
+    .getPublicUrl(path);
+
+  return data.publicUrl;
+}

@@ -5,28 +5,27 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import AdminRouteGuard from '@/components/AdminRouteGuard';
 import AdminNav from '@/components/AdminNav';
+import SpecialImageUpload from '@/components/admin/SpecialImageUpload';
 import {
   getSpecialWithDetails,
   updateSpecial,
   deleteSpecial,
-  addItemToSpecial,
-  removeItemFromSpecial,
-  updateSpecialItem,
   getAllProductsWithDetails,
-  calculateSpecialOriginalPrice,
+  addItemToSpecial,
+  updateSpecialItem,
+  removeItemFromSpecial,
 } from '@/lib/api';
-import type { SpecialWithItems, ProductWithDetails, SpecialItem } from '@/types/database';
+import type { ProductWithDetails, SpecialWithItems } from '@/types/database';
 import { useTranslation } from '@/contexts/LanguageContext';
 
 export default function AdminSpecialDetailPage() {
-  const { t } = useTranslation();
   const params = useParams();
   const router = useRouter();
+  const { t } = useTranslation();
   const specialId = parseInt(params?.id as string);
 
   const [special, setSpecial] = useState<SpecialWithItems | null>(null);
   const [products, setProducts] = useState<ProductWithDetails[]>([]);
-  const [originalPrice, setOriginalPrice] = useState(0);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -34,7 +33,7 @@ export default function AdminSpecialDetailPage() {
     name: '',
     description: '',
     discounted_price: 0,
-    status: 'draft',
+    status: 'draft' as 'draft' | 'available' | 'hidden',
   });
 
   const [newItem, setNewItem] = useState({
@@ -54,7 +53,7 @@ export default function AdminSpecialDetailPage() {
       ]);
 
       if (!specialData) {
-        alert('Special not found');
+        alert(t('admin.specials.delete-failed'));
         router.push('/admin/specials');
         return;
       }
@@ -68,23 +67,20 @@ export default function AdminSpecialDetailPage() {
         discounted_price: specialData.discounted_price,
         status: specialData.status,
       });
-
-      // Calculate original price
-      try {
-        const price = await calculateSpecialOriginalPrice(specialId);
-        setOriginalPrice(price);
-      } catch (error) {
-        console.error('Error calculating original price:', error);
-        setOriginalPrice(0);
-      }
     } catch (error) {
-      console.error('Error fetching data:', error);
+      console.error('Error fetching special:', error);
+      alert(t('admin.specials.delete-failed'));
     } finally {
       setLoading(false);
     }
   };
 
   const handleSave = async () => {
+    if (!formData.name || formData.discounted_price <= 0) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
     setSaving(true);
     try {
       await updateSpecial(specialId, formData);
@@ -99,7 +95,7 @@ export default function AdminSpecialDetailPage() {
   };
 
   const handleDelete = async () => {
-    if (!confirm(t('admin.specials.delete-confirm').replace('{name}', special?.name || ''))) {
+    if (!confirm(\`Are you sure you want to delete "${special?.name}"? This action cannot be undone.\`)) {
       return;
     }
 
@@ -129,6 +125,16 @@ export default function AdminSpecialDetailPage() {
     }
   };
 
+  const handleUpdateItemQuantity = async (itemId: number, quantity: number) => {
+    try {
+      await updateSpecialItem(itemId, quantity);
+      await fetchData();
+    } catch (error) {
+      console.error('Error updating item:', error);
+      alert('Failed to update item');
+    }
+  };
+
   const handleRemoveItem = async (itemId: number) => {
     try {
       await removeItemFromSpecial(itemId);
@@ -139,14 +145,11 @@ export default function AdminSpecialDetailPage() {
     }
   };
 
-  const handleUpdateItemQuantity = async (itemId: number, quantity: number) => {
-    try {
-      await updateSpecialItem(itemId, quantity);
-      await fetchData();
-    } catch (error) {
-      console.error('Error updating item:', error);
-      alert('Failed to update item');
-    }
+  const calculateOriginalPrice = () => {
+    if (!special?.items) return 0;
+    return special.items.reduce((total, item) => {
+      return total + (item.product?.base_price || 0) * item.quantity;
+    }, 0);
   };
 
   if (loading) {
@@ -163,12 +166,13 @@ export default function AdminSpecialDetailPage() {
         </div>
       </AdminRouteGuard>
     );
-  }
+  };
 
   if (!special) {
     return null;
   }
 
+  const originalPrice = calculateOriginalPrice();
   const savings = originalPrice - formData.discounted_price;
   const savingsPercent = originalPrice > 0 ? Math.round((savings / originalPrice) * 100) : 0;
 
@@ -186,7 +190,7 @@ export default function AdminSpecialDetailPage() {
               ← {t('admin.specials.back')}
             </Link>
             <h1 className="text-3xl font-bold text-gray-900">{t('admin.specials.edit')}</h1>
-            <p className="text-gray-600 mt-2">Special ID: {specialId}</p>
+            <p className="text-gray-600 mt-2">Special Offer ID: {specialId}</p>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -198,7 +202,7 @@ export default function AdminSpecialDetailPage() {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {t('admin.specials.name')}
+                      {t('admin.specials.name')} <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
@@ -229,25 +233,27 @@ export default function AdminSpecialDetailPage() {
                       </label>
                       <select
                         value={formData.status}
-                        onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                        onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
                         className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       >
-                        <option value="available">{t('admin.specials.status-available')}</option>
                         <option value="draft">{t('admin.specials.status-draft')}</option>
+                        <option value="available">{t('admin.specials.status-available')}</option>
                         <option value="hidden">{t('admin.specials.status-hidden')}</option>
                       </select>
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        {t('admin.specials.price-tugrik')}
+                        {t('admin.specials.price-tugrik')} <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="number"
                         value={formData.discounted_price}
-                        onChange={(e) => setFormData({ ...formData, discounted_price: parseFloat(e.target.value) })}
+                        onChange={(e) => setFormData({ ...formData, discounted_price: parseFloat(e.target.value) || 0 })}
                         className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder={t('admin.specials.price-placeholder')}
+                        min="0"
+                        step="1"
                       />
                     </div>
                   </div>
@@ -291,6 +297,16 @@ export default function AdminSpecialDetailPage() {
                 </div>
               </div>
 
+              {/* Special Image */}
+              <div className="bg-white rounded-lg shadow-md p-6">
+                <h2 className="text-xl font-bold text-gray-900 mb-4">{t('admin.specials.image')}</h2>
+                <SpecialImageUpload
+                  specialId={specialId}
+                  existingImagePath={special?.picture_url || null}
+                  onImageChange={fetchData}
+                />
+              </div>
+
               {/* Bundle Items */}
               <div className="bg-white rounded-lg shadow-md p-6">
                 <h2 className="text-xl font-bold text-gray-900 mb-2">{t('admin.specials.bundle-items')}</h2>
@@ -298,11 +314,11 @@ export default function AdminSpecialDetailPage() {
 
                 {special.items && special.items.length > 0 ? (
                   <div className="space-y-3 mb-6">
-                    {special.items.map((item: any) => (
+                    {special.items.map((item) => (
                       <div key={item.id} className="flex items-center justify-between bg-gray-50 p-4 rounded-lg">
                         <div className="flex-1">
                           <div className="font-medium text-gray-900">
-                            {item.product?.name || `Product #${item.product_id}`}
+                            {item.product?.name || \`Product #\${item.product_id}\`}
                           </div>
                           <div className="text-sm text-gray-600 mt-1">
                             {t('admin.specials.item-quantity')}:
@@ -383,8 +399,18 @@ export default function AdminSpecialDetailPage() {
                 </div>
 
                 <div className="mt-6 pt-6 border-t border-gray-200">
-                  <h4 className="font-semibold text-gray-900 mb-2">Special Info</h4>
+                  <h4 className="font-semibold text-gray-900 mb-2">Bundle Info</h4>
                   <dl className="space-y-2 text-sm">
+                    <div>
+                      <dt className="text-gray-600">{t('admin.specials.items')}</dt>
+                      <dd className="text-gray-900">{special.items?.length || 0}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-gray-600">Total Products</dt>
+                      <dd className="text-gray-900">
+                        {special.items?.reduce((sum, item) => sum + item.quantity, 0) || 0}
+                      </dd>
+                    </div>
                     <div>
                       <dt className="text-gray-600">{t('admin.specials.created')}</dt>
                       <dd className="text-gray-900">{new Date(special.created_at).toLocaleDateString()}</dd>
@@ -392,10 +418,6 @@ export default function AdminSpecialDetailPage() {
                     <div>
                       <dt className="text-gray-600">{t('admin.specials.updated')}</dt>
                       <dd className="text-gray-900">{new Date(special.updated_at).toLocaleDateString()}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-gray-600">{t('admin.specials.items')}</dt>
-                      <dd className="text-gray-900">{special.items?.length || 0}</dd>
                     </div>
                   </dl>
                 </div>

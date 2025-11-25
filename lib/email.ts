@@ -1,6 +1,7 @@
 import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses';
 import { getCartItems } from './api';
 import { Order, CartItemWithDetails } from '@/types/database';
+import { supabase } from './supabase';
 
 // Initialize AWS SES client
 const sesClient = new SESClient({
@@ -11,8 +12,31 @@ const sesClient = new SESClient({
   },
 });
 
-// Admin email to receive notifications (from environment variable)
-const ADMIN_EMAIL = process.env.AWS_SES_ADMIN_EMAIL;
+/**
+ * Fetches all admin email addresses from the database
+ * @returns Array of admin email addresses
+ */
+async function getAdminEmails(): Promise<string[]> {
+  try {
+    const { data: admins, error } = await supabase
+      .from('admins')
+      .select('email')
+      .not('email', 'is', null);
+
+    if (error) {
+      console.error('Failed to fetch admin emails:', error);
+      return [];
+    }
+
+    // Filter out any null emails and return only valid email strings
+    return admins
+      .map((admin) => admin.email)
+      .filter((email): email is string => email !== null && email.length > 0);
+  } catch (error) {
+    console.error('Error fetching admin emails:', error);
+    return [];
+  }
+}
 
 /**
  * Formats a price in Mongolian Tugrik
@@ -215,6 +239,13 @@ export async function sendOrderNotificationEmail(
       return;
     }
 
+    // Fetch admin emails from database
+    const adminEmails = await getAdminEmails();
+    if (adminEmails.length === 0) {
+      console.warn('No admin emails configured. Skipping email notification.');
+      return;
+    }
+
     // Fetch cart items
     const items = await getCartItems(cartId);
 
@@ -225,7 +256,7 @@ export async function sendOrderNotificationEmail(
     const command = new SendEmailCommand({
       Source: process.env.AWS_SES_FROM_EMAIL,
       Destination: {
-        ToAddresses: [ADMIN_EMAIL],
+        ToAddresses: adminEmails,
       },
       Message: {
         Subject: {
@@ -379,8 +410,10 @@ export async function sendCustomDesignRequestEmail(
       return;
     }
 
-    if (!ADMIN_EMAIL) {
-      console.warn('AWS_SES_ADMIN_EMAIL not configured. Skipping email notification.');
+    // Fetch admin emails from database
+    const adminEmails = await getAdminEmails();
+    if (adminEmails.length === 0) {
+      console.warn('No admin emails configured. Skipping email notification.');
       return;
     }
 
@@ -391,7 +424,7 @@ export async function sendCustomDesignRequestEmail(
     const command = new SendEmailCommand({
       Source: process.env.AWS_SES_FROM_EMAIL,
       Destination: {
-        ToAddresses: [ADMIN_EMAIL],
+        ToAddresses: adminEmails,
       },
       Message: {
         Subject: {
