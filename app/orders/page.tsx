@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
-import { getUserOrders } from '@/lib/api';
+import { orderAPI } from '@/lib/api-client';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { PageContainer, PageTitle, EmptyState, LoadingState } from '@/components/layout';
 import { Button } from '@/components/ui/button';
@@ -33,7 +33,7 @@ export default function OrdersPage() {
 
       try {
         setLoading(true);
-        const userOrders = await getUserOrders(user.id);
+        const { orders: userOrders } = await orderAPI.getAll();
         setOrders(userOrders);
       } catch (err) {
         console.error('Error loading orders:', err);

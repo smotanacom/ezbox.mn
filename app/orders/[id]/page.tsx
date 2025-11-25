@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
-import { getOrderById, getOrderItems } from '@/lib/api';
+import { orderAPI } from '@/lib/api-client';
 import Image from '@/components/Image';
 import { PageContainer, LoadingState } from '@/components/layout';
 import { Button } from '@/components/ui/button';
@@ -44,7 +44,7 @@ export default function OrderDetailPage() {
 
       try {
         setLoading(true);
-        const orderData = await getOrderById(orderId);
+        const { order: orderData } = await orderAPI.getById(orderId);
 
         if (!orderData) {
           setError('Order not found');
@@ -60,10 +60,7 @@ export default function OrderDetailPage() {
         }
 
         setOrder(orderData);
-
-        // Load order items from snapshot
-        const orderItems = await getOrderItems(orderId);
-        setItems(orderItems);
+        setItems(orderData.items || []);
       } catch (err) {
         console.error('Error loading order:', err);
         setError('Failed to load order details');

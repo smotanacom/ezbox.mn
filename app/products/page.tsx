@@ -3,10 +3,7 @@
 import { Suspense, useEffect, useState, useMemo, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import {
-  getAllProductsWithDetails,
-  calculateProductPrice,
-} from '@/lib/api';
+import { productAPI, calculateProductPrice } from '@/lib/api-client';
 import { useCart } from '@/contexts/CartContext';
 import ProductCard from '@/components/ProductCard';
 import ProductConfigRow from '@/components/ProductConfigRow';
@@ -51,7 +48,7 @@ function ProductsContent() {
     async function loadData() {
       try {
         setLoading(true);
-        const prods = await getAllProductsWithDetails();
+        const { products: prods } = await productAPI.getAll(false);
 
         // Extract unique categories from products
         const categoryMap = new Map<number, Category>();
