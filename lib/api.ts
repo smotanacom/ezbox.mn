@@ -1181,7 +1181,7 @@ export async function updateOrderLineItem(
   if (!order) throw new Error('Order not found');
   if (!order.snapshot_data) throw new Error('Order has no snapshot data');
 
-  const snapshot = order.snapshot_data as OrderSnapshot;
+  const snapshot = order.snapshot_data as unknown as OrderSnapshot;
 
   // Find and update the item
   const itemIndex = snapshot.items.findIndex(item => item.id === itemId);
@@ -1248,7 +1248,7 @@ export async function addOrderLineItem(
   if (!order) throw new Error('Order not found');
   if (!order.snapshot_data) throw new Error('Order has no snapshot data');
 
-  const snapshot = order.snapshot_data as OrderSnapshot;
+  const snapshot = order.snapshot_data as unknown as OrderSnapshot;
 
   // Create new item
   const newItem: OrderItem = {
@@ -1306,7 +1306,7 @@ export async function removeOrderLineItem(
   if (!order) throw new Error('Order not found');
   if (!order.snapshot_data) throw new Error('Order has no snapshot data');
 
-  const snapshot = order.snapshot_data as OrderSnapshot;
+  const snapshot = order.snapshot_data as unknown as OrderSnapshot;
 
   // Find and remove the item
   const itemIndex = snapshot.items.findIndex(item => item.id === itemId);
