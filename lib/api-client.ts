@@ -16,6 +16,7 @@ import {
   Parameter,
   ProductWithDetails,
   Special,
+  SpecialWithItems,
   User
 } from '@/types/database';
 
@@ -368,7 +369,7 @@ export const cartAPI = {
 
 // ==================== SPECIALS ====================
 
-export interface SpecialWithPricing extends Special {
+export interface SpecialWithPricing extends SpecialWithItems {
   original_price: number;
 }
 
@@ -517,6 +518,7 @@ export interface HomePageData {
   categories: Category[];
   productsByCategory: Record<number, ProductWithDetails[]>;
   specials: SpecialWithPricing[];
+  specialOriginalPrices: Record<number, number>;
 }
 
 export const homeAPI = {

@@ -5,16 +5,33 @@ import Link from 'next/link';
 import AdminRouteGuard from '@/components/AdminRouteGuard';
 import AdminNav from '@/components/AdminNav';
 import { useTranslation } from '@/contexts/LanguageContext';
-import { categoryAPI, productAPI } from '@/lib/api-client';
-import type { Category } from '@/types/database';
+import { useCategories, useProducts } from '@/lib/queries';
 
 type SortField = 'id' | 'name' | 'products_count';
 
 export default function AdminCategoriesPage() {
   const { t } = useTranslation();
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [productCounts, setProductCounts] = useState<Record<number, number>>({});
-  const [loading, setLoading] = useState(true);
+
+  // Use React Query hooks
+  const { data: categoriesData, isLoading: categoriesLoading } = useCategories();
+  const { data: productsData, isLoading: productsLoading } = useProducts();
+
+  const categories = categoriesData || [];
+  const products = productsData?.products || [];
+  const loading = categoriesLoading || productsLoading;
+
+  // Calculate product counts
+  const productCounts = useMemo(() => {
+    const counts: Record<number, number> = {};
+    products.forEach((product) => {
+      if (product.category_id) {
+        counts[product.category_id] = (counts[product.category_id] || 0) + 1;
+      }
+    });
+    return counts;
+  }, [products]);
+
+  // UI State
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<SortField>('name');
@@ -27,33 +44,6 @@ export default function AdminCategoriesPage() {
     }, 300);
     return () => clearTimeout(timer);
   }, [searchTerm]);
-
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
-    try {
-      const [categoriesResponse, productsResponse] = await Promise.all([
-        categoryAPI.getAll(),
-        productAPI.getAll(),
-      ]);
-      setCategories(categoriesResponse.categories);
-
-      // Count products per category
-      const counts: Record<number, number> = {};
-      productsResponse.products.forEach((product) => {
-        if (product.category_id) {
-          counts[product.category_id] = (counts[product.category_id] || 0) + 1;
-        }
-      });
-      setProductCounts(counts);
-    } catch (error) {
-      console.error('Error fetching data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleSort = (field: SortField) => {
     if (sortBy === field) {

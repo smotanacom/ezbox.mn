@@ -5,20 +5,35 @@ import Link from 'next/link';
 import AdminRouteGuard from '@/components/AdminRouteGuard';
 import AdminNav from '@/components/AdminNav';
 import { useTranslation } from '@/contexts/LanguageContext';
-import { parameterAPI } from '@/lib/api-client';
-import type { ParameterGroup, Parameter, Product } from '@/types/database';
-
-interface ParameterGroupWithDetails extends ParameterGroup {
-  parameters: Parameter[];
-  products: Product[];
-}
+import { useParameterGroups, useProducts } from '@/lib/queries';
 
 type SortField = 'id' | 'name' | 'internal_name' | 'parameters_count' | 'products_count';
 
 export default function AdminParameterGroupsPage() {
   const { t } = useTranslation();
-  const [groups, setGroups] = useState<ParameterGroupWithDetails[]>([]);
-  const [loading, setLoading] = useState(true);
+
+  // Use React Query hooks
+  const { data: groupsData, isLoading: groupsLoading } = useParameterGroups();
+  const { data: productsData, isLoading: productsLoading } = useProducts();
+
+  const groups = groupsData || [];
+  const products = productsData?.products || [];
+  const loading = groupsLoading || productsLoading;
+
+  // Enrich groups with product count
+  const groupsWithProductCounts = useMemo(() => {
+    return groups.map(group => {
+      const productsUsingGroup = products.filter(p =>
+        p.parameter_groups?.some(pg => pg.parameter_group_id === group.id)
+      );
+      return {
+        ...group,
+        products: productsUsingGroup,
+      };
+    });
+  }, [groups, products]);
+
+  // UI State
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<SortField>('name');
@@ -32,33 +47,6 @@ export default function AdminParameterGroupsPage() {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
-    try {
-      const { parameterGroups: groupsData } = await parameterAPI.getAllGroups();
-
-      const groupsWithDetails = await Promise.all(
-        groupsData.map(async (group) => {
-          const { products } = await parameterAPI.getProductsUsingGroup(group.id);
-
-          return {
-            ...group,
-            products,
-          };
-        })
-      );
-
-      setGroups(groupsWithDetails);
-    } catch (error) {
-      console.error('Error fetching data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleSort = (field: SortField) => {
     if (sortBy === field) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
@@ -69,7 +57,7 @@ export default function AdminParameterGroupsPage() {
   };
 
   const filteredAndSortedGroups = useMemo(() => {
-    let result = [...groups];
+    let result = [...groupsWithProductCounts];
 
     // Filter by search term
     if (debouncedSearchTerm) {
@@ -106,7 +94,7 @@ export default function AdminParameterGroupsPage() {
     });
 
     return result;
-  }, [groups, debouncedSearchTerm, sortBy, sortOrder]);
+  }, [groupsWithProductCounts, debouncedSearchTerm, sortBy, sortOrder]);
 
   const SortableHeader = ({ field, children }: { field: SortField; children: React.ReactNode }) => (
     <th

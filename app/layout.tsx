@@ -2,9 +2,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import Script from 'next/script';
 import './globals.css';
-import { CartProvider } from '@/contexts/CartContext';
-import { LanguageProvider } from '@/contexts/LanguageContext';
-import { AuthProvider, AdminAuthProvider } from '@/contexts/AuthContext';
+import { Providers } from './providers';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
@@ -59,17 +57,11 @@ export default function RootLayout({
             console.log('✓ Meshopt decoder configured to use local file');
           `}
         </Script>
-        <LanguageProvider>
-          <AuthProvider>
-            <AdminAuthProvider>
-              <CartProvider>
-                <Header />
-                <main className="flex-1">{children}</main>
-                <Footer />
-              </CartProvider>
-            </AdminAuthProvider>
-          </AuthProvider>
-        </LanguageProvider>
+        <Providers>
+          <Header />
+          <main className="flex-1">{children}</main>
+          <Footer />
+        </Providers>
       </body>
     </html>
   );

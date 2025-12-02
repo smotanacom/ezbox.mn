@@ -5,8 +5,8 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import AdminRouteGuard from '@/components/AdminRouteGuard';
 import AdminNav from '@/components/AdminNav';
-import { productAPI, categoryAPI } from '@/lib/api-client';
-import type { ProductWithDetails, Category } from '@/types/database';
+import { useProducts, useCategories, useUpdateProduct } from '@/lib/queries';
+import type { ProductWithDetails } from '@/types/database';
 
 type SortField = 'id' | 'name' | 'category' | 'base_price' | 'status';
 
@@ -15,9 +15,16 @@ function AdminProductsContent() {
   const searchParams = useSearchParams();
   const filterGroupId = searchParams?.get('group');
 
-  const [products, setProducts] = useState<ProductWithDetails[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Use React Query hooks
+  const { data: productsData, isLoading: productsLoading } = useProducts(true); // includeInactive = true for admin
+  const { data: categoriesData, isLoading: categoriesLoading } = useCategories();
+  const updateProductMutation = useUpdateProduct();
+
+  const products = productsData?.products || [];
+  const categories = categoriesData || [];
+  const loading = productsLoading || categoriesLoading;
+
+  // UI State
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
@@ -33,25 +40,6 @@ function AdminProductsContent() {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
-    try {
-      const [productsResponse, categoriesResponse] = await Promise.all([
-        productAPI.getAll(true), // includeInactive = true for admin view
-        categoryAPI.getAll(),
-      ]);
-      setProducts(productsResponse.products);
-      setCategories(categoriesResponse.categories);
-    } catch (error) {
-      console.error('Error fetching data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleSort = (field: SortField) => {
     if (sortBy === field) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
@@ -64,8 +52,10 @@ function AdminProductsContent() {
   const handleStatusChange = async (productId: number, newStatus: string) => {
     try {
       // The API accepts status but the TypeScript type doesn't include it
-      await productAPI.update(productId, { status: newStatus } as any);
-      await fetchData();
+      await updateProductMutation.mutateAsync({
+        id: productId,
+        status: newStatus
+      } as any);
     } catch (error) {
       console.error('Error updating product status:', error);
       alert('Failed to update product status');

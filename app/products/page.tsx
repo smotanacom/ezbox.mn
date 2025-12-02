@@ -3,8 +3,9 @@
 import { Suspense, useEffect, useState, useMemo, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { productAPI, calculateProductPrice } from '@/lib/api-client';
+import { calculateProductPrice } from '@/lib/api-client';
 import { useCart } from '@/contexts/CartContext';
+import { useProducts } from '@/lib/queries';
 import ProductCard from '@/components/ProductCard';
 import ProductConfigRow from '@/components/ProductConfigRow';
 import Cart from '@/components/Cart';
@@ -25,15 +26,38 @@ function ProductsContent() {
   const router = useRouter();
   const { items, total, addToCart, updateCartItem, removeFromCart, loading: cartLoading } = useCart();
 
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [products, setProducts] = useState<ProductWithDetails[]>([]);
-  const [productsByCategory, setProductsByCategory] = useState<Record<number, ProductWithDetails[]>>({});
-  const [loading, setLoading] = useState(true);
+  // Use React Query hook to fetch products
+  const { data: productsData, isLoading: loading } = useProducts(false);
+  const products = productsData?.products || [];
+
+  // Derive categories and grouped products from products data
+  const categories = useMemo(() => {
+    const categoryMap = new Map<number, Category>();
+    products.forEach((prod) => {
+      if (prod.category) {
+        categoryMap.set(prod.category.id, prod.category);
+      }
+    });
+    return Array.from(categoryMap.values()).sort((a, b) => a.id - b.id);
+  }, [products]);
+
+  const productsByCategory = useMemo(() => {
+    const grouped: Record<number, ProductWithDetails[]> = {};
+    for (const product of products) {
+      if (product.category_id) {
+        if (!grouped[product.category_id]) {
+          grouped[product.category_id] = [];
+        }
+        grouped[product.category_id].push(product);
+      }
+    }
+    return grouped;
+  }, [products]);
+
+  // UI State
   const [addingToCart, setAddingToCart] = useState<Set<number>>(new Set());
   const [cartErrors, setCartErrors] = useState<Record<number, string>>({});
   const [addedToCart, setAddedToCart] = useState<Set<number>>(new Set());
-
-  // UI State
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
   // Store parameters and quantities per product
   const [productConfigs, setProductConfigs] = useState<Record<number, {
@@ -44,107 +68,72 @@ function ProductsContent() {
   // Track which product has been auto-added to prevent duplicates
   const autoAddedProductRef = useRef<number | null>(null);
 
+  // Handle URL params and auto-add after products are loaded
   useEffect(() => {
-    async function loadData() {
-      try {
-        setLoading(true);
-        const { products: prods } = await productAPI.getAll(false);
+    if (!products.length) return;
 
-        // Extract unique categories from products
-        const categoryMap = new Map<number, Category>();
-        prods.forEach((prod) => {
-          if (prod.category) {
-            categoryMap.set(prod.category.id, prod.category);
-          }
-        });
-        const cats = Array.from(categoryMap.values()).sort((a, b) => a.id - b.id);
+    const categoryParam = searchParams.get('category');
+    const productParam = searchParams.get('product');
+    const autoAddParam = searchParams.get('autoAdd');
 
-        // Group products by category
-        const grouped: Record<number, ProductWithDetails[]> = {};
-        for (const product of prods) {
-          if (product.category_id) {
-            if (!grouped[product.category_id]) {
-              grouped[product.category_id] = [];
-            }
-            grouped[product.category_id].push(product);
-          }
-        }
+    if (categoryParam) {
+      const catId = parseInt(categoryParam);
+      setSelectedCategoryId(catId);
+      const categoryProducts = products.filter((p) => p.category_id === catId);
+      initializeProductConfigs(categoryProducts);
+    }
 
-        setCategories(cats);
-        setProducts(prods);
-        setProductsByCategory(grouped);
-
-        // Set initial selections from URL params
-        const categoryParam = searchParams.get('category');
-        const productParam = searchParams.get('product');
-        const autoAddParam = searchParams.get('autoAdd');
-
-        if (categoryParam) {
-          const catId = parseInt(categoryParam);
-          setSelectedCategoryId(catId);
-          const categoryProducts = prods.filter((p) => p.category_id === catId);
-          initializeProductConfigs(categoryProducts);
-        }
-
-        if (productParam) {
-          const prodId = parseInt(productParam);
-          const product = prods.find((p) => p.id === prodId);
-          if (product) {
-            setSelectedCategoryId(product.category_id);
-            const categoryProducts = prods.filter((p) => p.category_id === product.category_id);
-            initializeProductConfigs(categoryProducts);
-          }
-        }
-
-        // Handle autoAdd parameter - add product to cart automatically
-        if (autoAddParam) {
-          const prodId = parseInt(autoAddParam);
-
-          // Check if we've already auto-added this product
-          if (autoAddedProductRef.current === prodId) {
-            return;
-          }
-
-          const product = prods.find((p) => p.id === prodId);
-          if (product) {
-            setSelectedCategoryId(product.category_id);
-            const categoryProducts = prods.filter((p) => p.category_id === product.category_id);
-            initializeProductConfigs(categoryProducts);
-
-            // Mark this product as being auto-added
-            autoAddedProductRef.current = prodId;
-
-            // Wait a bit for configs to be set, then add to cart
-            setTimeout(async () => {
-              const defaults: ParameterSelection = {};
-              product.parameter_groups?.forEach((pg) => {
-                if (pg.default_parameter_id) {
-                  defaults[pg.parameter_group_id] = pg.default_parameter_id;
-                }
-              });
-
-              try {
-                await addToCart(prodId, 1, defaults);
-                // Remove autoAdd param from URL
-                const newParams = new URLSearchParams(searchParams.toString());
-                newParams.delete('autoAdd');
-                router.replace(`/products?${newParams.toString()}`);
-              } catch (error) {
-                console.error('Error auto-adding to cart:', error);
-              }
-            }, 100);
-          }
-        }
-      } catch (error) {
-        console.error('Error loading data:', error);
-      } finally {
-        setLoading(false);
+    if (productParam) {
+      const prodId = parseInt(productParam);
+      const product = products.find((p) => p.id === prodId);
+      if (product) {
+        setSelectedCategoryId(product.category_id);
+        const categoryProducts = products.filter((p) => p.category_id === product.category_id);
+        initializeProductConfigs(categoryProducts);
       }
     }
 
-    loadData();
+    // Handle autoAdd parameter - add product to cart automatically
+    if (autoAddParam) {
+      const prodId = parseInt(autoAddParam);
+
+      // Check if we've already auto-added this product
+      if (autoAddedProductRef.current === prodId) {
+        return;
+      }
+
+      const product = products.find((p) => p.id === prodId);
+      if (product) {
+        setSelectedCategoryId(product.category_id);
+        const categoryProducts = products.filter((p) => p.category_id === product.category_id);
+        initializeProductConfigs(categoryProducts);
+
+        // Mark this product as being auto-added
+        autoAddedProductRef.current = prodId;
+
+        // Wait a bit for configs to be set, then add to cart
+        setTimeout(async () => {
+          const defaults: ParameterSelection = {};
+          product.parameter_groups?.forEach((pg) => {
+            if (pg.default_parameter_id) {
+              defaults[pg.parameter_group_id] = pg.default_parameter_id;
+            }
+          });
+
+          try {
+            await addToCart(prodId, 1, defaults);
+            // Remove autoAdd param from URL
+            const newParams = new URLSearchParams(searchParams.toString());
+            newParams.delete('autoAdd');
+            router.replace(`/products?${newParams.toString()}`);
+          } catch (error) {
+            console.error('Error auto-adding to cart:', error);
+          }
+        }, 100);
+      }
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only run once on mount
+  }, [products, searchParams])
 
   const initializeProductConfigs = (products: ProductWithDetails[]) => {
     const configs: Record<number, { parameters: ParameterSelection; quantity: number }> = {};

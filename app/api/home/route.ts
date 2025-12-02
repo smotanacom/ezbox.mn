@@ -27,6 +27,17 @@ export async function GET() {
       getSpecials('available'),
     ]);
 
+    // Group products by category
+    const productsByCategory: Record<number, typeof products> = {};
+    for (const product of products) {
+      if (product.category_id) {
+        if (!productsByCategory[product.category_id]) {
+          productsByCategory[product.category_id] = [];
+        }
+        productsByCategory[product.category_id].push(product);
+      }
+    }
+
     // Calculate original prices for all specials in parallel
     const specialOriginalPrices: Record<number, number> = {};
     await Promise.all(
@@ -41,10 +52,10 @@ export async function GET() {
       })
     );
 
-    // Cache the data
+    // Cache the data (matching HomePageData interface)
     const data = {
       categories,
-      products,
+      productsByCategory,
       specials,
       specialOriginalPrices,
     };

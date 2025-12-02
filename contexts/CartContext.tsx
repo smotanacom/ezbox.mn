@@ -1,13 +1,17 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useCallback } from 'react';
 import type { Cart, CartItemWithDetails, ParameterSelection } from '@/types/database';
+import { getGuestSessionId } from '@/lib/api-client';
 import {
-  cartAPI,
-  authAPI,
-  calculateProductPrice,
-  getGuestSessionId,
-} from '@/lib/api-client';
+  useCart as useCartQuery,
+  useAddToCart as useAddToCartMutation,
+  useUpdateCartItem as useUpdateCartItemMutation,
+  useRemoveCartItem as useRemoveCartItemMutation,
+  useAddSpecialToCart as useAddSpecialToCartMutation,
+  useRemoveSpecialFromCart as useRemoveSpecialFromCartMutation,
+} from '@/lib/queries';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface CartContextType {
   cart: Cart | null;
@@ -25,160 +29,113 @@ interface CartContextType {
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
-  const [cart, setCart] = useState<Cart | null>(null);
-  const [items, setItems] = useState<CartItemWithDetails[]>([]);
-  const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
+  // Get current user from AuthContext
+  const { user } = useAuth();
+  const guestSessionId = user ? undefined : getGuestSessionId();
 
-  const refreshCart = useCallback(async () => {
-    try {
-      setLoading(true);
+  // Use React Query hooks for cart data
+  const {
+    data: cartData,
+    isLoading,
+    refetch,
+  } = useCartQuery(user?.id, guestSessionId);
 
-      // Get current user from API
-      const { user } = await authAPI.getUser();
-      const guestSession = user ? undefined : getGuestSessionId();
+  // Use React Query mutation hooks
+  const addToCartMutation = useAddToCartMutation();
+  const updateCartItemMutation = useUpdateCartItemMutation();
+  const removeCartItemMutation = useRemoveCartItemMutation();
+  const addSpecialMutation = useAddSpecialToCartMutation();
+  const removeSpecialMutation = useRemoveSpecialFromCartMutation();
 
-      // Fetch cart with items and total (batched)
-      const data = await cartAPI.get(user?.id, guestSession);
-
-      setCart(data.cart);
-      setItems(data.items);
-      setTotal(data.total);
-
-      return data;
-    } catch (error) {
-      console.error('Error refreshing cart:', error);
-      return { cart: null, items: [], total: 0 };
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    refreshCart();
-  }, [refreshCart]);
-
+  // Wrapper functions to maintain the same API surface
   const addToCart = useCallback(
     async (productId: number, quantity: number, selectedParameters: ParameterSelection) => {
       try {
-        // Get current user
-        const { user } = await authAPI.getUser();
-        const guestSession = user ? undefined : getGuestSessionId();
-
-        // Add item and get updated cart (no need for separate refresh!)
-        const data = await cartAPI.addItem({
+        await addToCartMutation.mutateAsync({
           productId,
           quantity,
           selectedParameters,
           userId: user?.id,
-          sessionId: guestSession,
+          sessionId: guestSessionId,
         });
-
-        // Update state with returned data
-        setCart(data.cart);
-        setItems(data.items);
-        setTotal(data.total);
       } catch (error) {
         console.error('Error adding to cart:', error);
         throw error;
       }
     },
-    []
+    [addToCartMutation, user?.id, guestSessionId]
   );
 
   const updateCartItem = useCallback(
     async (itemId: number, quantity?: number, selectedParameters?: ParameterSelection) => {
       try {
-        // Update item and get updated cart
-        const data = await cartAPI.updateItem(itemId, { quantity, selectedParameters });
-
-        // Update state with returned data
-        setCart(data.cart);
-        setItems(data.items);
-        setTotal(data.total);
+        await updateCartItemMutation.mutateAsync({
+          itemId,
+          quantity,
+          selectedParameters,
+        });
       } catch (error) {
         console.error('Error updating cart item:', error);
         throw error;
       }
     },
-    []
+    [updateCartItemMutation]
   );
 
   const removeFromCart = useCallback(
     async (itemId: number) => {
       try {
-        // Remove item and get updated cart
-        const data = await cartAPI.removeItem(itemId);
-
-        // Update state with returned data
-        setCart(data.cart);
-        setItems(data.items);
-        setTotal(data.total);
+        await removeCartItemMutation.mutateAsync(itemId);
       } catch (error) {
         console.error('Error removing from cart:', error);
         throw error;
       }
     },
-    []
+    [removeCartItemMutation]
   );
 
   const removeSpecialFromCart = useCallback(
     async (specialId: number) => {
       try {
-        // Get current user
-        const { user } = await authAPI.getUser();
-        const guestSession = user ? undefined : getGuestSessionId();
-
-        // Remove special and get updated cart
-        const data = await cartAPI.removeSpecial({
+        await removeSpecialMutation.mutateAsync({
           specialId,
           userId: user?.id,
-          sessionId: guestSession,
+          sessionId: guestSessionId,
         });
-
-        // Update state with returned data
-        setCart(data.cart);
-        setItems(data.items);
-        setTotal(data.total);
       } catch (error) {
         console.error('Error removing special from cart:', error);
         throw error;
       }
     },
-    []
+    [removeSpecialMutation, user?.id, guestSessionId]
   );
 
   const addSpecialToCart = useCallback(
     async (specialId: number) => {
       try {
-        // Get current user
-        const { user } = await authAPI.getUser();
-        const guestSession = user ? undefined : getGuestSessionId();
-
-        // Add special and get updated cart
-        const data = await cartAPI.addSpecial({
+        await addSpecialMutation.mutateAsync({
           specialId,
           userId: user?.id,
-          sessionId: guestSession,
+          sessionId: guestSessionId,
         });
-
-        // Update state with returned data
-        setCart(data.cart);
-        setItems(data.items);
-        setTotal(data.total);
       } catch (error) {
         console.error('Error adding special to cart:', error);
         throw error;
       }
     },
-    []
+    [addSpecialMutation, user?.id, guestSessionId]
   );
 
+  const refreshCart = useCallback(async () => {
+    const result = await refetch();
+    return result.data || { cart: null, items: [], total: 0 };
+  }, [refetch]);
+
   const value: CartContextType = {
-    cart,
-    items,
-    total,
-    loading,
+    cart: cartData?.cart || null,
+    items: cartData?.items || [],
+    total: cartData?.total || 0,
+    loading: isLoading,
     addToCart,
     updateCartItem,
     removeFromCart,

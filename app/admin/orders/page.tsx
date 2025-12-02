@@ -1,17 +1,20 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import AdminRouteGuard from '@/components/AdminRouteGuard';
 import AdminNav from '@/components/AdminNav';
-import { orderAPI } from '@/lib/api-client';
+import { useOrders, useUpdateOrderStatus } from '@/lib/queries';
 import type { Order } from '@/types/database';
 
 type SortField = 'id' | 'name' | 'phone' | 'total_price' | 'status' | 'created_at';
 
 export default function AdminOrdersPage() {
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Use React Query hooks
+  const { data: ordersData, isLoading: loading } = useOrders();
+  const updateStatusMutation = useUpdateOrderStatus();
+
+  // UI State
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [sortBy, setSortBy] = useState<SortField>('created_at');
@@ -26,55 +29,45 @@ export default function AdminOrdersPage() {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  useEffect(() => {
-    fetchOrders();
-  }, [statusFilter, sortBy, sortOrder, debouncedSearchTerm]);
+  // Apply filtering and sorting using useMemo
+  const orders = useMemo(() => {
+    let filteredOrders = ordersData || [];
 
-  const fetchOrders = async () => {
-    setLoading(true);
-    try {
-      const response = await orderAPI.getAll();
-      let filteredOrders = response.orders;
-
-      // Apply filters client-side
-      if (statusFilter && statusFilter !== 'all') {
-        filteredOrders = filteredOrders.filter(order => order.status === statusFilter);
-      }
-
-      if (debouncedSearchTerm) {
-        const term = debouncedSearchTerm.toLowerCase();
-        filteredOrders = filteredOrders.filter(order =>
-          order.name?.toLowerCase().includes(term) ||
-          order.phone?.toLowerCase().includes(term) ||
-          order.address?.toLowerCase().includes(term)
-        );
-      }
-
-      // Apply sorting
-      filteredOrders.sort((a, b) => {
-        let aVal = a[sortBy as keyof Order];
-        let bVal = b[sortBy as keyof Order];
-
-        // Handle numeric values
-        if (typeof aVal === 'number' && typeof bVal === 'number') {
-          return sortOrder === 'asc' ? aVal - bVal : bVal - aVal;
-        }
-
-        // Handle string values
-        const aStr = String(aVal || '');
-        const bStr = String(bVal || '');
-        return sortOrder === 'asc'
-          ? aStr.localeCompare(bStr)
-          : bStr.localeCompare(aStr);
-      });
-
-      setOrders(filteredOrders);
-    } catch (error) {
-      console.error('Error fetching orders:', error);
-    } finally {
-      setLoading(false);
+    // Apply status filter
+    if (statusFilter && statusFilter !== 'all') {
+      filteredOrders = filteredOrders.filter(order => order.status === statusFilter);
     }
-  };
+
+    // Apply search filter
+    if (debouncedSearchTerm) {
+      const term = debouncedSearchTerm.toLowerCase();
+      filteredOrders = filteredOrders.filter(order =>
+        order.name?.toLowerCase().includes(term) ||
+        order.phone?.toLowerCase().includes(term) ||
+        order.address?.toLowerCase().includes(term)
+      );
+    }
+
+    // Apply sorting
+    const sorted = [...filteredOrders].sort((a, b) => {
+      let aVal = a[sortBy as keyof Order];
+      let bVal = b[sortBy as keyof Order];
+
+      // Handle numeric values
+      if (typeof aVal === 'number' && typeof bVal === 'number') {
+        return sortOrder === 'asc' ? aVal - bVal : bVal - aVal;
+      }
+
+      // Handle string values
+      const aStr = String(aVal || '');
+      const bStr = String(bVal || '');
+      return sortOrder === 'asc'
+        ? aStr.localeCompare(bStr)
+        : bStr.localeCompare(aStr);
+    });
+
+    return sorted;
+  }, [ordersData, statusFilter, debouncedSearchTerm, sortBy, sortOrder]);
 
   const handleSort = (field: SortField) => {
     if (sortBy === field) {
@@ -87,8 +80,7 @@ export default function AdminOrdersPage() {
 
   const handleStatusChange = async (orderId: number, newStatus: string) => {
     try {
-      await orderAPI.updateStatus(orderId, newStatus);
-      fetchOrders();
+      await updateStatusMutation.mutateAsync({ id: orderId, status: newStatus });
     } catch (error) {
       console.error('Error updating order status:', error);
       alert('Failed to update order status');

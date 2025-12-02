@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { useCart } from '@/contexts/CartContext';
 import { useTranslation } from '@/contexts/LanguageContext';
+import { useHomeData } from '@/lib/queries';
 import Image from '@/components/Image';
 import KitchenTetris from '@/components/KitchenTetris';
 import CategoryProductGrid from '@/components/CategoryProductGrid';
@@ -12,63 +13,22 @@ import { LoadingState } from '@/components/layout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Package } from 'lucide-react';
-import type { Category, Product, SpecialWithItems } from '@/types/database';
 
 export default function Home() {
   const { t } = useTranslation();
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [productsByCategory, setProductsByCategory] = useState<Record<number, Product[]>>({});
-  const [specials, setSpecials] = useState<SpecialWithItems[]>([]);
-  const [specialOriginalPrices, setSpecialOriginalPrices] = useState<Record<number, number>>({});
-  const [loading, setLoading] = useState(true);
+
+  // Use React Query hook to fetch home page data
+  const { data: homeData, isLoading: loading } = useHomeData();
+  const categories = homeData?.categories || [];
+  const productsByCategory = homeData?.productsByCategory || {};
+  const specials = homeData?.specials || [];
+  const specialOriginalPrices = homeData?.specialOriginalPrices || {};
+
+  // UI State
   const [addingSpecial, setAddingSpecial] = useState<Set<number>>(new Set());
   const [addedSpecial, setAddedSpecial] = useState<Set<number>>(new Set());
   const [specialErrors, setSpecialErrors] = useState<Record<number, string>>({});
   const { addSpecialToCart } = useCart();
-
-  useEffect(() => {
-    async function loadData() {
-      try {
-        setLoading(true);
-
-        // Use the batched API route
-        const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
-        const response = await fetch(`${baseUrl}/api/home`, {
-          cache: 'no-store',
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch home data');
-        }
-
-        const data = await response.json();
-
-        setCategories(data.categories);
-        setSpecials(data.specials);
-
-        // Use pre-calculated original prices from API
-        setSpecialOriginalPrices(data.specialOriginalPrices || {});
-
-        // Group products by category
-        const grouped: Record<number, Product[]> = {};
-        for (const product of data.products) {
-          if (product.category_id) {
-            if (!grouped[product.category_id]) {
-              grouped[product.category_id] = [];
-            }
-            grouped[product.category_id].push(product);
-          }
-        }
-        setProductsByCategory(grouped);
-      } catch (error) {
-        console.error('Error loading data:', error);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    loadData();
-  }, []);
 
   const handleAddSpecialToCart = async (specialId: number) => {
     setAddingSpecial(prev => new Set(prev).add(specialId));
