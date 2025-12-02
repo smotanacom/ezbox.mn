@@ -1,11 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import Image from '@/components/Image';
 import { submitCustomDesignRequest } from '@/app/actions/customDesign';
 import { useTranslation } from '@/contexts/LanguageContext';
+import { getSiteImageUrl, getProjectImageUrl } from '@/lib/storage-client';
+import { Package, Gift, ImageIcon } from 'lucide-react';
+import type { CustomProjectWithDetails } from '@/types/database';
 
 export default function CustomDesignPage() {
   const { t } = useTranslation();
@@ -14,6 +18,26 @@ export default function CustomDesignPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const [coverImagePath, setCoverImagePath] = useState<string | null>(null);
+
+  // Projects state
+  const [projects, setProjects] = useState<CustomProjectWithDetails[]>([]);
+  const [loadingProjects, setLoadingProjects] = useState(true);
+
+  useEffect(() => {
+    // Fetch cover image and projects in parallel
+    Promise.all([
+      fetch('/api/upload/site-image?settingKey=custom_design_cover_image')
+        .then(res => res.json())
+        .then(data => setCoverImagePath(data.path))
+        .catch(err => console.error('Error fetching cover image:', err)),
+      fetch('/api/projects')
+        .then(res => res.json())
+        .then(data => setProjects(data.projects || []))
+        .catch(err => console.error('Error fetching projects:', err))
+        .finally(() => setLoadingProjects(false))
+    ]);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,20 +77,29 @@ export default function CustomDesignPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
-      {/* Hero Section */}
-      <div className="bg-gradient-to-r from-primary to-blue-700 text-white">
-        <div className="max-w-7xl mx-auto px-4 py-16 sm:px-6 lg:px-8">
-          <div className="text-center space-y-4">
-            <Badge className="mb-2 bg-white/20 text-white hover:bg-white/30">
-              {t('home.custom.badge')}
-            </Badge>
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight">
-              {t('custom.title')}
-            </h1>
-            <p className="text-xl sm:text-2xl text-blue-100 max-w-3xl mx-auto">
-              {t('custom.subtitle')}
-            </p>
-          </div>
+      {/* Hero Cover Image */}
+      {coverImagePath && (
+        <div className="w-full">
+          <Image
+            src={getSiteImageUrl(coverImagePath)}
+            alt={t('custom.title')}
+            className="w-full h-auto max-h-[500px] object-cover"
+          />
+        </div>
+      )}
+
+      {/* Title Section */}
+      <div className="bg-gradient-to-r from-primary to-blue-700 text-white py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-4">
+          <Badge className="mb-2 bg-white/20 text-white hover:bg-white/30">
+            {t('home.custom.badge')}
+          </Badge>
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight">
+            {t('custom.title')}
+          </h1>
+          <p className="text-xl sm:text-2xl text-blue-100 max-w-3xl mx-auto">
+            {t('custom.subtitle')}
+          </p>
         </div>
       </div>
 
@@ -126,63 +159,6 @@ export default function CustomDesignPage() {
               </div>
             </div>
 
-            {/* Benefits Section */}
-            <div className="bg-white rounded-2xl shadow-lg p-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">{t('custom.why-choose')}</h2>
-              <div className="space-y-4">
-                <div className="flex items-start gap-3">
-                  <div className="flex-shrink-0 w-6 h-6 rounded-full bg-green-100 flex items-center justify-center mt-1">
-                    <span className="text-green-600 text-sm">✓</span>
-                  </div>
-                  <p className="text-gray-700">{t('custom.benefit1-description')}</p>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="flex-shrink-0 w-6 h-6 rounded-full bg-green-100 flex items-center justify-center mt-1">
-                    <span className="text-green-600 text-sm">✓</span>
-                  </div>
-                  <p className="text-gray-700">{t('custom.benefit2-description')}</p>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="flex-shrink-0 w-6 h-6 rounded-full bg-green-100 flex items-center justify-center mt-1">
-                    <span className="text-green-600 text-sm">✓</span>
-                  </div>
-                  <p className="text-gray-700">{t('custom.benefit3-description')}</p>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="flex-shrink-0 w-6 h-6 rounded-full bg-green-100 flex items-center justify-center mt-1">
-                    <span className="text-green-600 text-sm">✓</span>
-                  </div>
-                  <p className="text-gray-700">{t('home.custom.feature2')}</p>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="flex-shrink-0 w-6 h-6 rounded-full bg-green-100 flex items-center justify-center mt-1">
-                    <span className="text-green-600 text-sm">✓</span>
-                  </div>
-                  <p className="text-gray-700">{t('home.custom.feature3')}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Gallery */}
-            <div className="bg-white rounded-2xl shadow-lg p-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">{t('custom.featured-projects')}</h2>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="rounded-lg overflow-hidden">
-                  <Image
-                    src="https://images.unsplash.com/photo-1556912173-3bb406ef7e77?w=400&q=80"
-                    alt={`${t('custom.kitchen-example')} 1`}
-                    className="w-full h-48 object-cover"
-                  />
-                </div>
-                <div className="rounded-lg overflow-hidden">
-                  <Image
-                    src="https://images.unsplash.com/photo-1565538810643-b5bdb714032a?w=400&q=80"
-                    alt={`${t('custom.kitchen-example')} 2`}
-                    className="w-full h-48 object-cover"
-                  />
-                </div>
-              </div>
-            </div>
           </div>
 
           {/* Right Column - Contact Form */}
@@ -262,6 +238,62 @@ export default function CustomDesignPage() {
           </div>
         </div>
       </div>
+
+      {/* Projects Gallery Section - At Bottom */}
+      {projects.length > 0 && (
+        <div className="bg-gray-100 py-16">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-10">
+              <h2 className="text-3xl font-bold text-gray-900 mb-2">{t('custom.projects-title')}</h2>
+              <p className="text-gray-600">{t('custom.projects-description')}</p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {projects.map((project) => (
+                <Link
+                  key={project.id}
+                  href={`/custom/projects/${project.id}`}
+                  className="bg-white rounded-xl shadow-lg overflow-hidden transform transition hover:scale-[1.02] hover:shadow-xl"
+                >
+                  <div className="aspect-video bg-gray-100">
+                    {project.cover_image_path ? (
+                      <Image
+                        src={getProjectImageUrl(project.cover_image_path)}
+                        alt={project.title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <ImageIcon className="w-12 h-12 text-gray-300" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-4">
+                    <h3 className="font-semibold text-lg text-gray-900 mb-1">{project.title}</h3>
+                    {project.description && (
+                      <p className="text-gray-600 text-sm line-clamp-2">{project.description}</p>
+                    )}
+                    <div className="mt-3 flex items-center gap-2">
+                      {project.special_id && (
+                        <Badge variant="secondary" className="text-xs">
+                          <Gift className="w-3 h-3 mr-1" />
+                          {t('home.specials.title')}
+                        </Badge>
+                      )}
+                      {project.products && project.products.length > 0 && (
+                        <Badge variant="outline" className="text-xs">
+                          <Package className="w-3 h-3 mr-1" />
+                          {project.products.length} {project.products.length === 1 ? 'product' : 'products'}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

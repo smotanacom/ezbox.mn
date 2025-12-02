@@ -6,11 +6,13 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import AdminRouteGuard from '@/components/AdminRouteGuard';
 import AdminNav from '@/components/AdminNav';
 import { useProducts, useCategories, useUpdateProduct } from '@/lib/queries';
+import { useTranslation } from '@/contexts/LanguageContext';
 import type { ProductWithDetails } from '@/types/database';
 
 type SortField = 'id' | 'name' | 'category' | 'base_price' | 'status';
 
 function AdminProductsContent() {
+  const { t } = useTranslation();
   const router = useRouter();
   const searchParams = useSearchParams();
   const filterGroupId = searchParams?.get('group');
@@ -58,7 +60,7 @@ function AdminProductsContent() {
       } as any);
     } catch (error) {
       console.error('Error updating product status:', error);
-      alert('Failed to update product status');
+      alert(t('admin.products.update-status-failed'));
     }
   };
 
@@ -155,28 +157,28 @@ function AdminProductsContent() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Products</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{t('admin.products.title')}</h1>
               <p className="text-sm sm:text-base text-gray-600 mt-2">
-                {filterGroupId ? 'Filtered by parameter group' : 'Manage all products'}
+                {filterGroupId ? t('admin.products.filtered-by-group') : t('admin.products.page-subtitle')}
               </p>
             </div>
             <Link
               href="/admin/products/new"
               className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition whitespace-nowrap"
             >
-              Add Product
+              {t('admin.products.add-new')}
             </Link>
           </div>
 
           {filterGroupId && (
             <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-md">
               <p className="text-blue-800">
-                Showing products using parameter group ID: {filterGroupId}
+                {t('admin.products.filter-by-group').replace('{id}', filterGroupId)}
                 <button
                   onClick={() => router.push('/admin/products')}
                   className="ml-4 text-blue-600 hover:text-blue-800 underline"
                 >
-                  Clear filter
+                  {t('admin.products.clear-filter')}
                 </button>
               </p>
             </div>
@@ -191,7 +193,7 @@ function AdminProductsContent() {
                     type="text"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Search by name, description, or category..."
+                    placeholder={t('admin.products.search-placeholder')}
                     className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
@@ -201,7 +203,7 @@ function AdminProductsContent() {
                     onChange={(e) => setCategoryFilter(e.target.value)}
                     className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
-                    <option value="all">All Categories</option>
+                    <option value="all">{t('admin.products.all-categories')}</option>
                     {categories.map((cat) => (
                       <option key={cat.id} value={cat.id}>{cat.name}</option>
                     ))}
@@ -213,10 +215,10 @@ function AdminProductsContent() {
                     onChange={(e) => setStatusFilter(e.target.value)}
                     className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
-                    <option value="all">All Status</option>
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
-                    <option value="draft">Draft</option>
+                    <option value="all">{t('admin.products.all-status')}</option>
+                    <option value="active">{t('admin.products.status.active')}</option>
+                    <option value="inactive">{t('admin.products.status.inactive')}</option>
+                    <option value="draft">{t('admin.products.status.draft')}</option>
                   </select>
                 </div>
               </div>
@@ -225,11 +227,11 @@ function AdminProductsContent() {
             {loading ? (
               <div className="text-center py-12">
                 <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-                <p className="mt-4 text-gray-600">Loading products...</p>
+                <p className="mt-4 text-gray-600">{t('admin.products.loading')}</p>
               </div>
             ) : filteredAndSortedProducts.length === 0 ? (
               <div className="text-center py-12 text-gray-500">
-                {filterGroupId ? 'No products found with this parameter group.' : 'No products found.'}
+                {filterGroupId ? t('admin.products.no-products-group') : t('admin.products.no-products')}
               </div>
             ) : (
               <>
@@ -237,13 +239,13 @@ function AdminProductsContent() {
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                       <tr>
-                        <SortableHeader field="id">ID</SortableHeader>
-                        <SortableHeader field="name">Name</SortableHeader>
-                        <SortableHeader field="category">Category</SortableHeader>
-                        <SortableHeader field="base_price">Base Price</SortableHeader>
-                        <SortableHeader field="status">Status</SortableHeader>
+                        <SortableHeader field="id">{t('admin.products.table.id')}</SortableHeader>
+                        <SortableHeader field="name">{t('admin.products.table.name')}</SortableHeader>
+                        <SortableHeader field="category">{t('admin.products.table.category')}</SortableHeader>
+                        <SortableHeader field="base_price">{t('admin.products.table.base-price')}</SortableHeader>
+                        <SortableHeader field="status">{t('admin.products.table.status')}</SortableHeader>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Parameter Groups
+                          {t('admin.products.table.parameter-groups')}
                         </th>
                       </tr>
                     </thead>
@@ -254,6 +256,7 @@ function AdminProductsContent() {
                             <Link
                               href={`/admin/products/${product.id}`}
                               className="text-blue-600 hover:text-blue-800"
+                              prefetch={false}
                             >
                               #{product.id}
                             </Link>
@@ -280,9 +283,9 @@ function AdminProductsContent() {
                                 product.status || 'active'
                               )} border-0 cursor-pointer`}
                             >
-                              <option value="active">Active</option>
-                              <option value="inactive">Inactive</option>
-                              <option value="draft">Draft</option>
+                              <option value="active">{t('admin.products.status.active')}</option>
+                              <option value="inactive">{t('admin.products.status.inactive')}</option>
+                              <option value="draft">{t('admin.products.status.draft')}</option>
                             </select>
                           </td>
                           <td className="px-6 py-4 text-sm text-gray-900">
@@ -292,6 +295,7 @@ function AdminProductsContent() {
                                   key={pg.id}
                                   href={`/admin/parameter-groups#group-${pg.parameter_group_id}`}
                                   className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded hover:bg-blue-200 transition"
+                                  prefetch={false}
                                 >
                                   {pg.parameter_group?.name}
                                 </Link>
@@ -306,7 +310,9 @@ function AdminProductsContent() {
 
                 <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
                   <p className="text-sm text-gray-600">
-                    Showing {filteredAndSortedProducts.length} product{filteredAndSortedProducts.length !== 1 ? 's' : ''}
+                    {filteredAndSortedProducts.length === 1
+                      ? t('admin.products.showing-count').replace('{count}', filteredAndSortedProducts.length.toString())
+                      : t('admin.products.showing-count-plural').replace('{count}', filteredAndSortedProducts.length.toString())}
                   </p>
                 </div>
               </>

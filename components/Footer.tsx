@@ -42,6 +42,11 @@ export default function Footer() {
                   {t('footer.custom-design')}
                 </Link>
               </li>
+              <li>
+                <Link href="/specials" className="hover:text-foreground transition-colors">
+                  {t('nav.specials')}
+                </Link>
+              </li>
             </ul>
           </div>
 

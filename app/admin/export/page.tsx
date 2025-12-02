@@ -236,7 +236,9 @@ export default function ExportPage() {
           {/* Selected Count */}
           {selectedTables.length > 0 && (
             <div className="mt-4 text-sm text-gray-600 text-center">
-              {selectedTables.length} {selectedTables.length === 1 ? 'table' : 'tables'} selected
+              {selectedTables.length === 1
+                ? t('admin.export.selected-count').replace('{count}', selectedTables.length.toString())
+                : t('admin.export.selected-count-plural').replace('{count}', selectedTables.length.toString())}
             </div>
           )}
         </div>

@@ -112,6 +112,13 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
   const currentPrice = product ? calculateProductPrice(product, selectedParameters) : 0;
   const totalPrice = currentPrice * quantity;
 
+  // Check if there are any non-zero price modifiers across selected parameters
+  const hasNonZeroModifiers = product?.parameter_groups?.some((pg) => {
+    const selectedParamId = selectedParameters[pg.parameter_group_id];
+    const selectedParam = pg.parameters?.find(p => p.id === selectedParamId);
+    return selectedParam && selectedParam.price_modifier !== 0;
+  }) || false;
+
   if (isLoading) {
     return <LoadingState />;
   }
@@ -238,14 +245,23 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
 
             {/* Price display */}
             <div className="border-t border-b py-4 space-y-2">
-              <div className="flex justify-between items-center text-sm text-gray-500">
-                <span>{t('product.base-price')}</span>
-                <span>₮{product.base_price.toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between items-center text-lg font-semibold">
-                <span>{t('product.current-price')}</span>
-                <span className="text-primary">₮{currentPrice.toLocaleString()}</span>
-              </div>
+              {hasNonZeroModifiers ? (
+                <>
+                  <div className="flex justify-between items-center text-sm text-gray-500">
+                    <span>{t('product.base-price')}</span>
+                    <span>₮{product.base_price.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-lg font-semibold">
+                    <span>{t('product.total-price')}</span>
+                    <span className="text-primary">₮{currentPrice.toLocaleString()}</span>
+                  </div>
+                </>
+              ) : (
+                <div className="flex justify-between items-center text-lg font-semibold">
+                  <span>{t('common.price')}</span>
+                  <span className="text-primary">₮{currentPrice.toLocaleString()}</span>
+                </div>
+              )}
             </div>
 
             {/* Parameter Groups */}

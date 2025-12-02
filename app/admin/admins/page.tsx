@@ -4,11 +4,13 @@ import { useEffect, useState, useMemo } from 'react';
 import AdminRouteGuard from '@/components/AdminRouteGuard';
 import AdminNav from '@/components/AdminNav';
 import { listAdmins, createAdmin, deleteAdmin } from '@/lib/adminAuth';
+import { useTranslation } from '@/contexts/LanguageContext';
 import type { Admin } from '@/types/database';
 
 type SortField = 'id' | 'username' | 'email' | 'created_at' | 'updated_at';
 
 export default function AdminManagementPage() {
+  const { t } = useTranslation();
   const [admins, setAdmins] = useState<Admin[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -44,7 +46,7 @@ export default function AdminManagementPage() {
       setAdmins(data);
     } catch (error) {
       console.error('Error fetching admins:', error);
-      alert('Failed to load admins');
+      alert(t('admin.admins.load-failed'));
     } finally {
       setLoading(false);
     }
@@ -65,17 +67,17 @@ export default function AdminManagementPage() {
 
     // Validate
     if (!/^[a-zA-Z0-9_]{3,50}$/.test(formData.username)) {
-      setFormError('Username must be 3-50 alphanumeric characters or underscores');
+      setFormError(t('admin.admins.username-error'));
       return;
     }
 
     if (formData.password.length < 6) {
-      setFormError('Password must be at least 6 characters');
+      setFormError(t('admin.admins.password-error'));
       return;
     }
 
     if (formData.password !== formData.confirmPassword) {
-      setFormError('Passwords do not match');
+      setFormError(t('admin.admins.passwords-no-match'));
       return;
     }
 
@@ -86,7 +88,7 @@ export default function AdminManagementPage() {
       setFormData({ username: '', password: '', confirmPassword: '', email: '' });
       setShowAddForm(false);
       fetchAdmins();
-      alert('Admin created successfully!');
+      alert(t('admin.admins.create-success'));
     } catch (error) {
       setFormError(error instanceof Error ? error.message : 'Failed to create admin');
     } finally {
@@ -95,17 +97,17 @@ export default function AdminManagementPage() {
   };
 
   const handleDelete = async (admin: Admin) => {
-    if (!confirm(`Are you sure you want to delete admin "${admin.username}"? This action cannot be undone.`)) {
+    if (!confirm(t('admin.admins.delete-confirm').replace('{name}', admin.username))) {
       return;
     }
 
     try {
       await deleteAdmin(admin.id);
       fetchAdmins();
-      alert('Admin deleted successfully');
+      alert(t('admin.admins.delete-success'));
     } catch (error) {
       console.error('Error deleting admin:', error);
-      alert('Failed to delete admin');
+      alert(t('admin.admins.delete-failed'));
     }
   };
 
@@ -182,20 +184,20 @@ export default function AdminManagementPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Admin Management</h1>
-              <p className="text-sm sm:text-base text-gray-600 mt-2">Manage admin users and permissions</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{t('admin.admins.title')}</h1>
+              <p className="text-sm sm:text-base text-gray-600 mt-2">{t('admin.admins.subtitle')}</p>
             </div>
             <button
               onClick={() => setShowAddForm(!showAddForm)}
               className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition whitespace-nowrap"
             >
-              {showAddForm ? 'Cancel' : 'Add New Admin'}
+              {showAddForm ? t('admin.admins.cancel') : t('admin.admins.add-new')}
             </button>
           </div>
 
           {showAddForm && (
             <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Create New Admin</h2>
+              <h2 className="text-xl font-bold text-gray-900 mb-4">{t('admin.admins.create-title')}</h2>
               <form onSubmit={handleSubmit} className="space-y-4">
                 {formError && (
                   <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
@@ -206,7 +208,7 @@ export default function AdminManagementPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
-                      Username
+                      {t('admin.admins.username')}
                     </label>
                     <input
                       id="username"
@@ -215,14 +217,14 @@ export default function AdminManagementPage() {
                       onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                       required
                       className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="3-50 alphanumeric characters"
+                      placeholder={t('admin.admins.username-placeholder')}
                       disabled={submitting}
                     />
                   </div>
 
                   <div>
                     <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                      Email (optional)
+                      {t('admin.admins.email')}
                     </label>
                     <input
                       id="email"
@@ -230,14 +232,14 @@ export default function AdminManagementPage() {
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                       className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="For notifications"
+                      placeholder={t('admin.admins.email-placeholder')}
                       disabled={submitting}
                     />
                   </div>
 
                   <div>
                     <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                      Password
+                      {t('admin.admins.password')}
                     </label>
                     <input
                       id="password"
@@ -246,14 +248,14 @@ export default function AdminManagementPage() {
                       onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                       required
                       className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Minimum 6 characters"
+                      placeholder={t('admin.admins.password-placeholder')}
                       disabled={submitting}
                     />
                   </div>
 
                   <div>
                     <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
-                      Confirm Password
+                      {t('admin.admins.confirm-password')}
                     </label>
                     <input
                       id="confirmPassword"
@@ -262,7 +264,7 @@ export default function AdminManagementPage() {
                       onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                       required
                       className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Confirm password"
+                      placeholder={t('admin.admins.confirm-password-placeholder')}
                       disabled={submitting}
                     />
                   </div>
@@ -274,7 +276,7 @@ export default function AdminManagementPage() {
                     disabled={submitting}
                     className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed"
                   >
-                    {submitting ? 'Creating...' : 'Create Admin'}
+                    {submitting ? t('admin.admins.creating') : t('admin.admins.create')}
                   </button>
                   <button
                     type="button"
@@ -285,7 +287,7 @@ export default function AdminManagementPage() {
                     }}
                     className="px-6 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition"
                   >
-                    Cancel
+                    {t('admin.admins.cancel')}
                   </button>
                 </div>
               </form>
@@ -301,7 +303,7 @@ export default function AdminManagementPage() {
                     type="text"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Search by username or email..."
+                    placeholder={t('admin.admins.search-placeholder')}
                     className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
@@ -311,12 +313,12 @@ export default function AdminManagementPage() {
             {loading ? (
               <div className="text-center py-12">
                 <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-                <p className="mt-4 text-gray-600">Loading admins...</p>
+                <p className="mt-4 text-gray-600">{t('admin.admins.loading')}</p>
               </div>
             ) : filteredAndSortedAdmins.length === 0 ? (
               <div className="p-12 text-center">
-                <p className="text-gray-600 text-lg">No admins found</p>
-                <p className="text-gray-500 mt-2">Click "Add New Admin" to create your first admin user</p>
+                <p className="text-gray-600 text-lg">{t('admin.admins.no-admins')}</p>
+                <p className="text-gray-500 mt-2">{t('admin.admins.no-admins-hint')}</p>
               </div>
             ) : (
               <>
@@ -324,13 +326,13 @@ export default function AdminManagementPage() {
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                       <tr>
-                        <SortableHeader field="id">ID</SortableHeader>
-                        <SortableHeader field="username">Username</SortableHeader>
-                        <SortableHeader field="email">Email</SortableHeader>
-                        <SortableHeader field="created_at">Created At</SortableHeader>
-                        <SortableHeader field="updated_at">Last Updated</SortableHeader>
+                        <SortableHeader field="id">{t('admin.admins.id')}</SortableHeader>
+                        <SortableHeader field="username">{t('admin.admins.username')}</SortableHeader>
+                        <SortableHeader field="email">{t('admin.admins.email').replace(' (optional)', '')}</SortableHeader>
+                        <SortableHeader field="created_at">{t('admin.admins.created-at')}</SortableHeader>
+                        <SortableHeader field="updated_at">{t('admin.admins.last-updated')}</SortableHeader>
                         <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Actions
+                          {t('admin.admins.actions')}
                         </th>
                       </tr>
                     </thead>
@@ -345,7 +347,7 @@ export default function AdminManagementPage() {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                             {admin.email || (
-                              <span className="text-gray-400 italic">No email</span>
+                              <span className="text-gray-400 italic">{t('admin.admins.no-email')}</span>
                             )}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
@@ -359,7 +361,7 @@ export default function AdminManagementPage() {
                               onClick={() => handleDelete(admin)}
                               className="text-red-600 hover:text-red-800"
                             >
-                              Delete
+                              {t('admin.admins.delete')}
                             </button>
                           </td>
                         </tr>
@@ -370,7 +372,9 @@ export default function AdminManagementPage() {
 
                 <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
                   <p className="text-sm text-gray-600">
-                    Showing {filteredAndSortedAdmins.length} admin{filteredAndSortedAdmins.length !== 1 ? 's' : ''}
+                    {filteredAndSortedAdmins.length === 1
+                      ? t('admin.admins.showing-count').replace('{count}', filteredAndSortedAdmins.length.toString())
+                      : t('admin.admins.showing-count-plural').replace('{count}', filteredAndSortedAdmins.length.toString())}
                   </p>
                 </div>
               </>

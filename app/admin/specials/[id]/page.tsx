@@ -69,7 +69,7 @@ export default function AdminSpecialDetailPage() {
 
   const handleSave = async () => {
     if (!formData.name || formData.discounted_price <= 0) {
-      alert('Please fill in all required fields');
+      alert(t('admin.specials.fill-required'));
       return;
     }
 
@@ -87,7 +87,7 @@ export default function AdminSpecialDetailPage() {
   };
 
   const handleDelete = async () => {
-    if (!confirm(`Are you sure you want to delete "${special?.name}"? This action cannot be undone.`)) {
+    if (!confirm(t('admin.specials.delete-confirm').replace('{name}', special?.name || ''))) {
       return;
     }
 

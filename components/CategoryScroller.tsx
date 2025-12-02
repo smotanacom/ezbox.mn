@@ -4,7 +4,8 @@ import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import ProductCard from '@/components/ProductCard';
-import { getFirstImageUrl } from '@/lib/storage-client';
+import { getFirstImageUrl, getCategoryImageUrl } from '@/lib/storage-client';
+import { useTranslation } from '@/contexts/LanguageContext';
 import type { Category, ProductWithDetails } from '@/types/database';
 
 interface CategoryScrollerProps {
@@ -13,6 +14,7 @@ interface CategoryScrollerProps {
 }
 
 export default function CategoryScroller({ category, products }: CategoryScrollerProps) {
+  const { t } = useTranslation();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
@@ -82,7 +84,7 @@ export default function CategoryScroller({ category, products }: CategoryScrolle
           <button
             onClick={() => scroll('left')}
             className="absolute left-0 top-0 bottom-0 z-10 w-24 sm:w-32 bg-gradient-to-r from-black/80 to-transparent flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-            aria-label="Scroll left"
+            aria-label={t('category.scroll-left')}
           >
             <ChevronLeft className="h-8 w-8 sm:h-10 sm:w-10 text-white drop-shadow-lg" />
           </button>
@@ -107,9 +109,9 @@ export default function CategoryScroller({ category, products }: CategoryScrolle
                   className="flex-shrink-0 w-[45vw] sm:w-[30vw] md:w-[23vw] lg:w-[18vw] xl:w-[15vw]"
                 >
                   <ProductCard
-                    imageUrl={category.picture_url}
+                    imageUrl={category.picture_url ? getCategoryImageUrl(category.picture_url) : null}
                     title={category.name}
-                    description="Browse Collection →"
+                    description={t('category.browse-collection')}
                     className="border-2 border-primary/30 bg-gradient-to-br from-primary/10 to-primary/5"
                   />
                 </Link>
@@ -138,7 +140,7 @@ export default function CategoryScroller({ category, products }: CategoryScrolle
           <button
             onClick={() => scroll('right')}
             className="absolute right-0 top-0 bottom-0 z-10 w-24 sm:w-32 bg-gradient-to-l from-black/80 to-transparent flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-            aria-label="Scroll right"
+            aria-label={t('category.scroll-right')}
           >
             <ChevronRight className="h-8 w-8 sm:h-10 sm:w-10 text-white drop-shadow-lg" />
           </button>

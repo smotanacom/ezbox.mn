@@ -8,9 +8,11 @@ import AdminNav from '@/components/AdminNav';
 import ImageUpload from '@/components/admin/ImageUpload';
 import ModelUpload from '@/components/admin/ModelUpload';
 import { productAPI, categoryAPI, parameterAPI } from '@/lib/api-client';
+import { useTranslation } from '@/contexts/LanguageContext';
 import type { ProductWithDetails, Category, ParameterGroup, Parameter } from '@/types/database';
 
 export default function AdminProductDetailPage() {
+  const { t } = useTranslation();
   const params = useParams();
   const router = useRouter();
   const productId = parseInt(params?.id as string);
@@ -53,7 +55,7 @@ export default function AdminProductDetailPage() {
       const productData = productResponse.product;
 
       if (!productData) {
-        alert('Product not found');
+        alert(t('admin.product.not-found'));
         router.push('/admin/products');
         return;
       }
@@ -87,28 +89,28 @@ export default function AdminProductDetailPage() {
     setSaving(true);
     try {
       await productAPI.update(productId, formData);
-      alert('Product updated successfully');
+      alert(t('admin.product.update-success'));
       await fetchData();
     } catch (error) {
       console.error('Error updating product:', error);
-      alert('Failed to update product');
+      alert(t('admin.product.update-failed'));
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async () => {
-    if (!confirm(`Are you sure you want to delete "${product?.name}"? This action cannot be undone.`)) {
+    if (!confirm(t('admin.product.delete-confirm').replace('{name}', product?.name || ''))) {
       return;
     }
 
     try {
       await productAPI.delete(productId);
-      alert('Product deleted successfully');
+      alert(t('admin.product.delete-success'));
       router.push('/admin/products');
     } catch (error) {
       console.error('Error deleting product:', error);
-      alert('Failed to delete product');
+      alert(t('admin.product.delete-failed'));
     }
   };
 
@@ -122,7 +124,7 @@ export default function AdminProductDetailPage() {
       await fetchData();
     } catch (error) {
       console.error('Error adding parameter group:', error);
-      alert('Failed to add parameter group');
+      alert(t('admin.product.add-group-failed'));
     }
   };
 
@@ -132,20 +134,20 @@ export default function AdminProductDetailPage() {
       await fetchData();
     } catch (error) {
       console.error('Error removing parameter group:', error);
-      alert('Failed to remove parameter group');
+      alert(t('admin.product.remove-group-failed'));
     }
   };
 
   // Inline parameter group creation handlers
   const handleInlineGroupCreate = async () => {
     if (!inlineGroupData.name.trim()) {
-      alert('Please enter a group name');
+      alert(t('admin.product.enter-group-name'));
       return;
     }
 
     const validParams = inlineGroupData.parameters.filter(p => p.name.trim());
     if (validParams.length === 0) {
-      alert('Please add at least one parameter');
+      alert(t('admin.product.add-one-param'));
       return;
     }
 
@@ -173,7 +175,7 @@ export default function AdminProductDetailPage() {
       });
     } catch (error) {
       console.error('Error creating parameter group:', error);
-      alert('Failed to create parameter group');
+      alert(t('admin.product.create-group-failed'));
     }
   };
 
@@ -214,7 +216,7 @@ export default function AdminProductDetailPage() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div className="text-center py-12">
               <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-              <p className="mt-4 text-gray-600">Loading product...</p>
+              <p className="mt-4 text-gray-600">{t('admin.product.loading')}</p>
             </div>
           </div>
         </div>
@@ -237,22 +239,22 @@ export default function AdminProductDetailPage() {
               href="/admin/products"
               className="text-blue-600 hover:text-blue-800 mb-4 inline-block"
             >
-              ← Back to Products
+              ← {t('admin.product.back')}
             </Link>
-            <h1 className="text-3xl font-bold text-gray-900">Edit Product</h1>
-            <p className="text-gray-600 mt-2">Product ID: {productId}</p>
+            <h1 className="text-3xl font-bold text-gray-900">{t('admin.product.edit-title')}</h1>
+            <p className="text-gray-600 mt-2">{t('admin.product.product-id').replace('{id}', productId.toString())}</p>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Main Form */}
             <div className="lg:col-span-2 space-y-6">
               <div className="bg-white rounded-lg shadow-md p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">Basic Information</h2>
+                <h2 className="text-xl font-bold text-gray-900 mb-4">{t('admin.product.basic-info')}</h2>
 
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Product Name
+                      {t('admin.product.name')}
                     </label>
                     <input
                       type="text"
@@ -264,7 +266,7 @@ export default function AdminProductDetailPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Description
+                      {t('admin.product.description')}
                     </label>
                     <textarea
                       value={formData.description}
@@ -277,14 +279,14 @@ export default function AdminProductDetailPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Category
+                        {t('admin.product.category')}
                       </label>
                       <select
                         value={formData.category_id || ''}
                         onChange={(e) => setFormData({ ...formData, category_id: parseInt(e.target.value) || null })}
                         className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       >
-                        <option value="">No category</option>
+                        <option value="">{t('admin.product.no-category')}</option>
                         {categories.map((cat) => (
                           <option key={cat.id} value={cat.id}>
                             {cat.name}
@@ -295,23 +297,23 @@ export default function AdminProductDetailPage() {
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Status
+                        {t('admin.product.status')}
                       </label>
                       <select
                         value={formData.status}
                         onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                         className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       >
-                        <option value="active">Active</option>
-                        <option value="inactive">Inactive</option>
-                        <option value="draft">Draft</option>
+                        <option value="active">{t('admin.products.status.active')}</option>
+                        <option value="inactive">{t('admin.products.status.inactive')}</option>
+                        <option value="draft">{t('admin.products.status.draft')}</option>
                       </select>
                     </div>
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Base Price (₮)
+                      {t('admin.product.base-price')}
                     </label>
                     <input
                       type="number"
@@ -328,20 +330,20 @@ export default function AdminProductDetailPage() {
                     disabled={saving}
                     className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition disabled:bg-gray-400"
                   >
-                    {saving ? 'Saving...' : 'Save Changes'}
+                    {saving ? t('admin.product.saving') : t('admin.product.save-changes')}
                   </button>
                   <button
                     onClick={handleDelete}
                     className="px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition"
                   >
-                    Delete Product
+                    {t('admin.product.delete-product')}
                   </button>
                 </div>
               </div>
 
               {/* Product Images */}
               <div className="bg-white rounded-lg shadow-md p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">Product Images</h2>
+                <h2 className="text-xl font-bold text-gray-900 mb-4">{t('admin.product.images')}</h2>
                 <ImageUpload
                   productId={productId}
                   existingImages={product?.images || []}
@@ -351,7 +353,7 @@ export default function AdminProductDetailPage() {
 
               {/* 3D Model */}
               <div className="bg-white rounded-lg shadow-md p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">3D Model</h2>
+                <h2 className="text-xl font-bold text-gray-900 mb-4">{t('admin.product.model-3d')}</h2>
                 <ModelUpload
                   productId={productId}
                   existingModel={product?.model || null}
@@ -362,7 +364,7 @@ export default function AdminProductDetailPage() {
 
               {/* Parameter Groups */}
               <div className="bg-white rounded-lg shadow-md p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">Parameter Groups</h2>
+                <h2 className="text-xl font-bold text-gray-900 mb-4">{t('admin.product.parameter-groups')}</h2>
 
                 {groupedParameterGroups && Object.keys(groupedParameterGroups).length > 0 ? (
                   <div className="space-y-4">
@@ -372,7 +374,7 @@ export default function AdminProductDetailPage() {
                           <h3 className="font-semibold text-gray-900">{displayName}</h3>
                           {groups.length > 1 && (
                             <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
-                              {groups.length} groups combined
+                              {t('admin.product.groups-combined').replace('{count}', groups.length.toString())}
                             </span>
                           )}
                         </div>
@@ -395,14 +397,16 @@ export default function AdminProductDetailPage() {
                                   )}
                                 </div>
                                 <div className="text-sm text-gray-600 mt-1">
-                                  Default: {pg.default_parameter?.name || 'None'}
+                                  {pg.default_parameter?.name
+                                    ? t('admin.product.default').replace('{name}', pg.default_parameter.name)
+                                    : t('admin.product.default-none')}
                                 </div>
                               </div>
                               <button
                                 onClick={() => handleRemoveParameterGroup(pg.parameter_group_id)}
                                 className="text-red-600 hover:text-red-800 text-sm"
                               >
-                                Remove
+                                {t('admin.product.remove')}
                               </button>
                             </div>
                           ))}
@@ -411,21 +415,21 @@ export default function AdminProductDetailPage() {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-gray-500">No parameter groups assigned yet.</p>
+                  <p className="text-gray-500">{t('admin.product.no-groups')}</p>
                 )}
 
                 {/* Add Parameter Group Section */}
                 <div className="mt-4 pt-4 border-t border-gray-200">
                   <div className="flex items-center justify-between mb-3">
                     <label className="block text-sm font-medium text-gray-700">
-                      Add Parameter Group
+                      {t('admin.product.add-group')}
                     </label>
                     {!showInlineGroupForm && (
                       <button
                         onClick={() => setShowInlineGroupForm(true)}
                         className="text-sm text-blue-600 hover:text-blue-800"
                       >
-                        + Create new
+                        {t('admin.product.create-new')}
                       </button>
                     )}
                   </div>
@@ -441,7 +445,7 @@ export default function AdminProductDetailPage() {
                       }}
                       className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
-                      <option value="">Select existing group...</option>
+                      <option value="">{t('admin.product.select-group')}</option>
                       {allParameterGroups
                         .filter(
                           (pg) => !product.parameter_groups?.some((ppg) => ppg.parameter_group_id === pg.id)
@@ -459,7 +463,7 @@ export default function AdminProductDetailPage() {
                     <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                       <div className="grid grid-cols-2 gap-3 mb-3">
                         <div>
-                          <label className="block text-xs font-medium text-gray-600 mb-1">Group Name *</label>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">{t('admin.product.group-name')}</label>
                           <input
                             type="text"
                             value={inlineGroupData.name}
@@ -469,12 +473,12 @@ export default function AdminProductDetailPage() {
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-gray-600 mb-1">Internal Name</label>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">{t('admin.product.internal-name')}</label>
                           <input
                             type="text"
                             value={inlineGroupData.internal_name}
                             onChange={(e) => setInlineGroupData({ ...inlineGroupData, internal_name: e.target.value })}
-                            placeholder="Optional"
+                            placeholder={t('admin.product.optional')}
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 text-sm"
                           />
                         </div>
@@ -483,13 +487,13 @@ export default function AdminProductDetailPage() {
                       {/* Parameters */}
                       <div className="mb-3">
                         <div className="flex items-center justify-between mb-2">
-                          <label className="block text-xs font-medium text-gray-600">Parameters *</label>
+                          <label className="block text-xs font-medium text-gray-600">{t('admin.product.parameters')}</label>
                           <button
                             type="button"
                             onClick={addInlineParamRow}
                             className="text-xs text-blue-600 hover:text-blue-800"
                           >
-                            + Add
+                            {t('admin.product.add-param')}
                           </button>
                         </div>
                         <div className="space-y-2">
@@ -536,7 +540,7 @@ export default function AdminProductDetailPage() {
                           onClick={handleInlineGroupCreate}
                           className="px-3 py-1.5 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition"
                         >
-                          Create & Add
+                          {t('admin.product.create-add')}
                         </button>
                         <button
                           onClick={() => {
@@ -549,7 +553,7 @@ export default function AdminProductDetailPage() {
                           }}
                           className="px-3 py-1.5 bg-gray-200 text-gray-700 rounded text-sm hover:bg-gray-300 transition"
                         >
-                          Cancel
+                          {t('admin.product.cancel')}
                         </button>
                       </div>
                     </div>
@@ -561,31 +565,31 @@ export default function AdminProductDetailPage() {
             {/* Sidebar */}
             <div className="lg:col-span-1">
               <div className="bg-white rounded-lg shadow-md p-6 sticky top-8">
-                <h3 className="font-bold text-gray-900 mb-4">Quick Actions</h3>
+                <h3 className="font-bold text-gray-900 mb-4">{t('admin.product.quick-actions')}</h3>
                 <div className="space-y-2">
                   <Link
                     href="/admin/parameter-groups"
                     className="block w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition text-center"
                   >
-                    Manage Parameter Groups
+                    {t('admin.product.manage-param-groups')}
                   </Link>
                   <Link
                     href="/admin/products"
                     className="block w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition text-center"
                   >
-                    View All Products
+                    {t('admin.product.view-all-products')}
                   </Link>
                 </div>
 
                 <div className="mt-6 pt-6 border-t border-gray-200">
-                  <h4 className="font-semibold text-gray-900 mb-2">Product Info</h4>
+                  <h4 className="font-semibold text-gray-900 mb-2">{t('admin.product.product-info')}</h4>
                   <dl className="space-y-2 text-sm">
                     <div>
-                      <dt className="text-gray-600">Created</dt>
+                      <dt className="text-gray-600">{t('admin.product.created')}</dt>
                       <dd className="text-gray-900">{new Date(product.created_at).toLocaleDateString()}</dd>
                     </div>
                     <div>
-                      <dt className="text-gray-600">Last Updated</dt>
+                      <dt className="text-gray-600">{t('admin.product.last-updated')}</dt>
                       <dd className="text-gray-900">{new Date(product.updated_at).toLocaleDateString()}</dd>
                     </div>
                   </dl>

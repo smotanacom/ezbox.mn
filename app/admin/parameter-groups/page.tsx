@@ -138,7 +138,7 @@ export default function AdminParameterGroupsPage() {
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search by name, internal name, or parameter..."
+                placeholder={t('admin.parameters.search-placeholder')}
                 className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
@@ -162,7 +162,7 @@ export default function AdminParameterGroupsPage() {
                         <SortableHeader field="name">{t('admin.parameters.group-name')}</SortableHeader>
                         <SortableHeader field="internal_name">{t('admin.parameters.internal-name')}</SortableHeader>
                         <SortableHeader field="parameters_count">{t('admin.parameters.parameters')}</SortableHeader>
-                        <SortableHeader field="products_count">Products</SortableHeader>
+                        <SortableHeader field="products_count">{t('admin.parameters.products-column')}</SortableHeader>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
@@ -172,6 +172,7 @@ export default function AdminParameterGroupsPage() {
                             <Link
                               href={`/admin/parameter-groups/${group.id}`}
                               className="text-blue-600 hover:text-blue-800"
+                              prefetch={false}
                             >
                               #{group.id}
                             </Link>
@@ -197,12 +198,12 @@ export default function AdminParameterGroupsPage() {
                                   </span>
                                 ))
                               ) : (
-                                <span className="text-gray-400 text-xs">No parameters</span>
+                                <span className="text-gray-400 text-xs">{t('admin.parameters.no-parameters')}</span>
                               )}
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm">
-                            <Link href={`/admin/products?group=${group.id}`} className="text-blue-600 hover:text-blue-800">
+                            <Link href={`/admin/products?group=${group.id}`} className="text-blue-600 hover:text-blue-800" prefetch={false}>
                               {group.products.length}
                             </Link>
                           </td>
@@ -214,7 +215,9 @@ export default function AdminParameterGroupsPage() {
 
                 <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
                   <p className="text-sm text-gray-600">
-                    Showing {filteredAndSortedGroups.length} group{filteredAndSortedGroups.length !== 1 ? 's' : ''}
+                    {filteredAndSortedGroups.length === 1
+                      ? t('admin.parameters.showing-count').replace('{count}', filteredAndSortedGroups.length.toString())
+                      : t('admin.parameters.showing-count-plural').replace('{count}', filteredAndSortedGroups.length.toString())}
                   </p>
                 </div>
               </>

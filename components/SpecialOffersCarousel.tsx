@@ -1,10 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import Image from '@/components/Image';
 import { Button } from '@/components/ui/button';
 import { ShoppingCart } from 'lucide-react';
 import { getSpecialImageUrl } from '@/lib/storage-client';
+import { useTranslation } from '@/contexts/LanguageContext';
 import type { SpecialWithItems } from '@/types/database';
 
 interface SpecialOffersCarouselProps {
@@ -24,6 +26,7 @@ export default function SpecialOffersCarousel({
   addedSpecial,
   specialErrors,
 }: SpecialOffersCarouselProps) {
+  const { t } = useTranslation();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isHovering, setIsHovering] = useState(false);
 
@@ -81,7 +84,7 @@ export default function SpecialOffersCarousel({
           {savingsPercent > 0 && (
             <div className="inline-block">
               <span className="inline-flex items-center px-6 py-2 rounded-full text-lg font-bold bg-primary text-white shadow-lg">
-                Save {savingsPercent}%
+                {t('specials.save-percent').replace('{percent}', savingsPercent.toString())}
               </span>
             </div>
           )}
@@ -104,7 +107,7 @@ export default function SpecialOffersCarousel({
               <div className="text-white/80">
                 <span className="text-2xl line-through">₮{originalPrice.toLocaleString()}</span>
                 <span className="ml-3 text-lg font-semibold text-primary-foreground">
-                  Save ₮{savings.toLocaleString()}
+                  {t('specials.save-amount').replace('{amount}', savings.toLocaleString())}
                 </span>
               </div>
             )}
@@ -123,14 +126,20 @@ export default function SpecialOffersCarousel({
             >
               {isAdded && <span className="mr-2">✓</span>}
               {!isAdded && !isAdding && <ShoppingCart className="mr-2 h-6 w-6" />}
-              {isAdding ? 'Adding...' : isAdded ? 'Added to Cart' : 'Add Bundle to Cart'}
+              {isAdding ? t('specials.adding') : isAdded ? t('specials.added') : t('specials.add-bundle')}
             </Button>
             {error && (
               <p className="text-sm text-red-400 font-semibold drop-shadow">{error}</p>
             )}
             <p className="text-sm text-white/70 drop-shadow">
-              Pre-configured bundle • Limited time offer
+              {t('specials.bundle-note')}
             </p>
+            <Link
+              href={`/specials/${currentSpecial.id}`}
+              className="inline-block text-white/90 hover:text-white text-sm font-medium underline underline-offset-4 transition-colors"
+            >
+              {t('specials.view-details')} →
+            </Link>
           </div>
         </div>
       </div>
@@ -147,7 +156,7 @@ export default function SpecialOffersCarousel({
                   ? 'w-12 h-3 bg-white'
                   : 'w-3 h-3 bg-white/50 hover:bg-white/75'
               }`}
-              aria-label={`Go to special offer ${index + 1}`}
+              aria-label={t('specials.go-to-offer').replace('{number}', (index + 1).toString())}
             />
           ))}
         </div>
@@ -159,14 +168,14 @@ export default function SpecialOffersCarousel({
           <button
             onClick={() => setCurrentIndex((prev) => (prev - 1 + specials.length) % specials.length)}
             className="absolute left-4 top-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center transition-all backdrop-blur-sm"
-            aria-label="Previous special"
+            aria-label={t('specials.previous')}
           >
             ‹
           </button>
           <button
             onClick={() => setCurrentIndex((prev) => (prev + 1) % specials.length)}
             className="absolute right-4 top-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center transition-all backdrop-blur-sm"
-            aria-label="Next special"
+            aria-label={t('specials.next')}
           >
             ›
           </button>

@@ -3,9 +3,11 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { saveAdminSession, getAdminSession } from '@/lib/adminAuth';
+import { useTranslation } from '@/contexts/LanguageContext';
 
 export default function AdminLoginPage() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -66,8 +68,8 @@ export default function AdminLoginPage() {
     <div className="min-h-screen bg-gray-100 flex items-center justify-center px-4">
       <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">EzBox Admin</h1>
-          <p className="text-gray-600 mt-2">Sign in to access the admin portal</p>
+          <h1 className="text-3xl font-bold text-gray-900">{t('admin.login.title')}</h1>
+          <p className="text-gray-600 mt-2">{t('admin.login.subtitle')}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -79,7 +81,7 @@ export default function AdminLoginPage() {
 
           <div>
             <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
-              Username
+              {t('admin.login.username')}
             </label>
             <input
               id="username"
@@ -88,14 +90,14 @@ export default function AdminLoginPage() {
               onChange={(e) => setUsername(e.target.value)}
               required
               className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Enter your username"
+              placeholder={t('admin.login.username-placeholder')}
               disabled={loading}
             />
           </div>
 
           <div>
             <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-              Password
+              {t('admin.login.password')}
             </label>
             <input
               id="password"
@@ -104,7 +106,7 @@ export default function AdminLoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               required
               className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Enter your password"
+              placeholder={t('admin.login.password-placeholder')}
               disabled={loading}
             />
           </div>
@@ -114,12 +116,12 @@ export default function AdminLoginPage() {
             disabled={loading}
             className="w-full bg-blue-600 text-white py-3 rounded-md font-medium hover:bg-blue-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
-            {loading ? 'Signing in...' : 'Sign In'}
+            {loading ? t('admin.login.signing-in') : t('admin.login.sign-in')}
           </button>
         </form>
 
         <div className="mt-6 text-center text-sm text-gray-600">
-          <p>Need admin access? Contact your system administrator.</p>
+          <p>{t('admin.login.need-access')}</p>
         </div>
       </div>
     </div>

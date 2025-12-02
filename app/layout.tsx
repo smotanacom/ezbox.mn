@@ -5,6 +5,7 @@ import './globals.css';
 import { Providers } from './providers';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import MessengerButton from '@/components/MessengerButton';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -61,6 +62,7 @@ export default function RootLayout({
           <Header />
           <main className="flex-1">{children}</main>
           <Footer />
+          <MessengerButton />
         </Providers>
       </body>
     </html>

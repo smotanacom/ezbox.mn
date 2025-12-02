@@ -82,7 +82,7 @@ export default function ParameterGroupDetailPage() {
 
   const handleSaveGroup = async () => {
     if (!groupForm.name.trim()) {
-      alert('Group name is required');
+      alert(t('admin.parameters.group-name-required'));
       return;
     }
 
@@ -97,7 +97,7 @@ export default function ParameterGroupDetailPage() {
       await fetchData();
     } catch (error) {
       console.error('Error updating group:', error);
-      alert('Failed to update group');
+      alert(t('admin.parameters.update-failed'));
     } finally {
       setSaving(false);
     }
@@ -105,11 +105,11 @@ export default function ParameterGroupDetailPage() {
 
   const handleDeleteGroup = async () => {
     if (products.length > 0) {
-      alert(`Cannot delete this parameter group. It is used by ${products.length} product(s). Remove it from all products first.`);
+      alert(t('admin.parameters.cannot-delete-in-use').replace('{count}', products.length.toString()));
       return;
     }
 
-    if (!confirm(`Are you sure you want to delete "${group?.name}"? This will also delete all ${parameters.length} parameter(s) in this group.`)) {
+    if (!confirm(t('admin.parameters.delete-all-confirm').replace('{name}', group?.name || '').replace('{count}', parameters.length.toString()))) {
       return;
     }
 
@@ -119,7 +119,7 @@ export default function ParameterGroupDetailPage() {
       router.push('/admin/parameter-groups');
     } catch (error) {
       console.error('Error deleting group:', error);
-      alert('Failed to delete parameter group');
+      alert(t('admin.parameters.delete-group-failed'));
       setDeleting(false);
     }
   };
@@ -127,11 +127,11 @@ export default function ParameterGroupDetailPage() {
   const handleCloneGroup = async () => {
     try {
       const { parameterGroup: cloned } = await parameterAPI.cloneGroup(groupId, `${group?.name} (Copy)`);
-      alert('Parameter group cloned successfully');
+      alert(t('admin.parameters.clone-success'));
       router.push(`/admin/parameter-groups/${cloned.id}`);
     } catch (error) {
       console.error('Error cloning group:', error);
-      alert('Failed to clone group');
+      alert(t('admin.parameters.clone-failed'));
     }
   };
 
@@ -148,7 +148,7 @@ export default function ParameterGroupDetailPage() {
   const handleSaveParam = async (paramId: number) => {
     const form = paramForms[paramId];
     if (!form?.name.trim()) {
-      alert('Parameter name is required');
+      alert(t('admin.parameters.param-name-required'));
       return;
     }
 
@@ -162,14 +162,14 @@ export default function ParameterGroupDetailPage() {
       await fetchData();
     } catch (error) {
       console.error('Error updating parameter:', error);
-      alert('Failed to update parameter');
+      alert(t('admin.parameters.update-param-failed'));
     } finally {
       setSaving(false);
     }
   };
 
   const handleDeleteParam = async (paramId: number, paramName: string) => {
-    if (!confirm(`Are you sure you want to delete "${paramName}"?`)) {
+    if (!confirm(t('admin.parameters.delete-param-confirm').replace('{name}', paramName))) {
       return;
     }
 
@@ -178,13 +178,13 @@ export default function ParameterGroupDetailPage() {
       await fetchData();
     } catch (error) {
       console.error('Error deleting parameter:', error);
-      alert('Failed to delete parameter');
+      alert(t('admin.parameters.delete-param-failed'));
     }
   };
 
   const handleAddParam = async () => {
     if (!newParamForm.name.trim()) {
-      alert('Parameter name is required');
+      alert(t('admin.parameters.param-name-required'));
       return;
     }
 
@@ -200,7 +200,7 @@ export default function ParameterGroupDetailPage() {
       setNewParamForm({ name: '', price_modifier: 0, description: '' });
     } catch (error) {
       console.error('Error creating parameter:', error);
-      alert('Failed to create parameter');
+      alert(t('admin.parameters.create-param-failed'));
     } finally {
       setSaving(false);
     }
@@ -214,7 +214,7 @@ export default function ParameterGroupDetailPage() {
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div className="text-center py-12">
               <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-              <p className="mt-4 text-gray-600">Loading...</p>
+              <p className="mt-4 text-gray-600">{t('admin.parameters.loading')}</p>
             </div>
           </div>
         </div>
@@ -229,9 +229,9 @@ export default function ParameterGroupDetailPage() {
           <AdminNav />
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div className="text-center py-12">
-              <p className="text-gray-600">Parameter group not found</p>
+              <p className="text-gray-600">{t('admin.parameters.group-not-found')}</p>
               <Link href="/admin/parameter-groups" className="text-blue-600 hover:text-blue-800 mt-4 inline-block">
-                Back to Parameter Groups
+                {t('admin.parameters.back')}
               </Link>
             </div>
           </div>
@@ -249,7 +249,7 @@ export default function ParameterGroupDetailPage() {
           {/* Breadcrumb */}
           <div className="mb-6">
             <Link href="/admin/parameter-groups" className="text-blue-600 hover:text-blue-800 text-sm">
-              ← Back to Parameter Groups
+              ← {t('admin.parameters.back')}
             </Link>
           </div>
 
@@ -257,21 +257,21 @@ export default function ParameterGroupDetailPage() {
           <div className="bg-white rounded-lg shadow-md p-6 mb-6">
             <div className="flex items-center justify-between mb-4">
               <h1 className="text-2xl font-bold text-gray-900">
-                Parameter Group #{group.id}
+                {t('admin.parameters.group-id').replace('{id}', group.id.toString())}
               </h1>
               <div className="flex gap-2">
                 <button
                   onClick={handleCloneGroup}
                   className="px-4 py-2 text-sm bg-indigo-100 text-indigo-700 rounded-md hover:bg-indigo-200 transition"
                 >
-                  Clone
+                  {t('admin.parameters.clone')}
                 </button>
                 <button
                   onClick={handleDeleteGroup}
                   disabled={deleting}
                   className="px-4 py-2 text-sm bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition disabled:bg-gray-100 disabled:text-gray-400"
                 >
-                  {deleting ? 'Deleting...' : 'Delete'}
+                  {deleting ? t('admin.parameters.deleting') : t('admin.parameters.delete')}
                 </button>
               </div>
             </div>
@@ -279,38 +279,38 @@ export default function ParameterGroupDetailPage() {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Group Name <span className="text-red-500">*</span>
+                  {t('admin.parameters.group-name-label')} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   value={groupForm.name}
                   onChange={(e) => setGroupForm({ ...groupForm, name: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-                  placeholder="e.g., Color, Height"
+                  placeholder={t('admin.parameters.group-name-example')}
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Internal Name
+                  {t('admin.parameters.internal-name-label')}
                 </label>
                 <input
                   type="text"
                   value={groupForm.internal_name}
                   onChange={(e) => setGroupForm({ ...groupForm, internal_name: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-                  placeholder="For internal reference"
+                  placeholder={t('admin.parameters.internal-name-example')}
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Description
+                  {t('admin.parameters.description-label-short')}
                 </label>
                 <textarea
                   value={groupForm.description}
                   onChange={(e) => setGroupForm({ ...groupForm, description: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
                   rows={2}
-                  placeholder="Optional description"
+                  placeholder={t('admin.parameters.description-example')}
                 />
               </div>
               <div>
@@ -319,7 +319,7 @@ export default function ParameterGroupDetailPage() {
                   disabled={saving}
                   className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition disabled:bg-gray-400"
                 >
-                  {saving ? 'Saving...' : 'Save Group'}
+                  {saving ? t('admin.parameters.save') + '...' : t('admin.parameters.save-group')}
                 </button>
               </div>
             </div>
@@ -329,7 +329,7 @@ export default function ParameterGroupDetailPage() {
           {products.length > 0 && (
             <div className="bg-white rounded-lg shadow-md p-6 mb-6">
               <h2 className="text-lg font-bold text-gray-900 mb-4">
-                Products Using This Group ({products.length})
+                {t('admin.parameters.products-using-title').replace('{count}', products.length.toString())}
               </h2>
               <div className="flex flex-wrap gap-2">
                 {products.map((product) => (
@@ -349,33 +349,33 @@ export default function ParameterGroupDetailPage() {
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold text-gray-900">
-                Parameters ({parameters.length})
+                {t('admin.parameters.parameters-title').replace('{count}', parameters.length.toString())}
               </h2>
               <button
                 onClick={() => setShowNewParam(true)}
                 className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
               >
-                + Add Parameter
+                {t('admin.parameters.add-parameter')}
               </button>
             </div>
 
             {/* Add New Parameter Form */}
             {showNewParam && (
               <div className="mb-4 p-4 bg-green-50 rounded-lg border border-green-200">
-                <h3 className="font-medium text-gray-900 mb-3">New Parameter</h3>
+                <h3 className="font-medium text-gray-900 mb-3">{t('admin.parameters.new-parameter')}</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">Name *</label>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">{t('admin.parameters.name-label')}</label>
                     <input
                       type="text"
                       value={newParamForm.name}
                       onChange={(e) => setNewParamForm({ ...newParamForm, name: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 text-sm"
-                      placeholder="e.g., Red, 50cm"
+                      placeholder={t('admin.parameters.option-placeholder').replace('{index}', '1')}
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">Price Modifier (₮)</label>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">{t('admin.parameters.price-modifier-label')}</label>
                     <input
                       type="number"
                       value={newParamForm.price_modifier}
@@ -385,13 +385,13 @@ export default function ParameterGroupDetailPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">Description</label>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">{t('admin.parameters.description-label')}</label>
                     <input
                       type="text"
                       value={newParamForm.description}
                       onChange={(e) => setNewParamForm({ ...newParamForm, description: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 text-sm"
-                      placeholder="Optional"
+                      placeholder={t('admin.optional')}
                     />
                   </div>
                 </div>
@@ -401,7 +401,7 @@ export default function ParameterGroupDetailPage() {
                     disabled={saving}
                     className="px-4 py-2 text-sm bg-green-600 text-white rounded-md hover:bg-green-700 transition disabled:bg-gray-400"
                   >
-                    {saving ? 'Adding...' : 'Add Parameter'}
+                    {saving ? t('admin.parameters.adding') : t('admin.parameters.add-parameter')}
                   </button>
                   <button
                     onClick={() => {
@@ -410,7 +410,7 @@ export default function ParameterGroupDetailPage() {
                     }}
                     className="px-4 py-2 text-sm bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition"
                   >
-                    Cancel
+                    {t('admin.parameters.cancel')}
                   </button>
                 </div>
               </div>
@@ -418,7 +418,7 @@ export default function ParameterGroupDetailPage() {
 
             {/* Parameters List */}
             {parameters.length === 0 ? (
-              <p className="text-gray-500 text-sm py-4">No parameters yet. Add one above.</p>
+              <p className="text-gray-500 text-sm py-4">{t('admin.parameters.no-parameters-yet')}</p>
             ) : (
               <div className="space-y-3">
                 {parameters.map((param) => {
@@ -432,7 +432,7 @@ export default function ParameterGroupDetailPage() {
                     >
                       <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
                         <div>
-                          <label className="block text-xs font-medium text-gray-500 mb-1">Name *</label>
+                          <label className="block text-xs font-medium text-gray-500 mb-1">{t('admin.parameters.name-label')}</label>
                           <input
                             type="text"
                             value={form.name}
@@ -441,7 +441,7 @@ export default function ParameterGroupDetailPage() {
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-gray-500 mb-1">Price Modifier (₮)</label>
+                          <label className="block text-xs font-medium text-gray-500 mb-1">{t('admin.parameters.price-modifier-label')}</label>
                           <input
                             type="number"
                             value={form.price_modifier}
@@ -450,13 +450,13 @@ export default function ParameterGroupDetailPage() {
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-gray-500 mb-1">Description</label>
+                          <label className="block text-xs font-medium text-gray-500 mb-1">{t('admin.parameters.description-label')}</label>
                           <input
                             type="text"
                             value={form.description}
                             onChange={(e) => updateParamForm(param.id, 'description', e.target.value)}
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 text-sm"
-                            placeholder="Optional"
+                            placeholder={t('admin.optional')}
                           />
                         </div>
                         <div className="flex gap-2">
@@ -465,13 +465,13 @@ export default function ParameterGroupDetailPage() {
                             disabled={saving}
                             className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition disabled:bg-gray-400"
                           >
-                            Save
+                            {t('admin.parameters.save')}
                           </button>
                           <button
                             onClick={() => handleDeleteParam(param.id, param.name)}
                             className="px-4 py-2 text-sm bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition"
                           >
-                            Delete
+                            {t('admin.parameters.delete')}
                           </button>
                         </div>
                       </div>

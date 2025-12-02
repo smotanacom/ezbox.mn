@@ -13,6 +13,7 @@ import { LoadingState } from '@/components/layout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Package } from 'lucide-react';
+import { getSiteImageUrl } from '@/lib/storage-client';
 
 export default function Home() {
   const { t } = useTranslation();
@@ -23,6 +24,7 @@ export default function Home() {
   const productsByCategory = homeData?.productsByCategory || {};
   const specials = homeData?.specials || [];
   const specialOriginalPrices = homeData?.specialOriginalPrices || {};
+  const customDesignCoverImage = homeData?.customDesignCoverImage;
 
   // UI State
   const [addingSpecial, setAddingSpecial] = useState<Set<number>>(new Set());
@@ -154,7 +156,7 @@ export default function Home() {
             {/* Image */}
             <div className="rounded-2xl overflow-hidden shadow-xl">
               <Image
-                src="https://images.unsplash.com/photo-1556912173-46c336c7fd55?w=800&q=80"
+                src={customDesignCoverImage ? getSiteImageUrl(customDesignCoverImage) : "https://images.unsplash.com/photo-1556912173-46c336c7fd55?w=800&q=80"}
                 alt="Custom Kitchen Design"
                 className="w-full h-[400px] lg:h-[500px] object-cover"
               />

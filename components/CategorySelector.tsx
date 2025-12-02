@@ -3,6 +3,7 @@
 import Image from '@/components/Image';
 import { ChevronDown } from 'lucide-react';
 import { useTranslation } from '@/contexts/LanguageContext';
+import { getCategoryImageUrl } from '@/lib/storage-client';
 import type { Category, Product } from '@/types/database';
 
 interface CategorySelectorProps {
@@ -57,7 +58,7 @@ export default function CategorySelector({
                     isSelected ? 'ring-2 ring-primary' : 'opacity-70 group-hover:opacity-100'
                   }`}>
                     <Image
-                      src={category.picture_url}
+                      src={category.picture_url ? getCategoryImageUrl(category.picture_url) : null}
                       alt={category.name}
                       className="object-cover w-full h-full"
                     />
@@ -105,7 +106,7 @@ export default function CategorySelector({
               >
                 <div className="aspect-square relative rounded-lg overflow-hidden mb-4">
                   <Image
-                    src={category.picture_url}
+                    src={category.picture_url ? getCategoryImageUrl(category.picture_url) : null}
                     alt={category.name}
                     className="object-cover w-full h-full"
                   />

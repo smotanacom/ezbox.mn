@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
+import { useTranslation } from '@/contexts/LanguageContext';
 import { orderAPI, type OrderWithItems } from '@/lib/api-client';
 import Image from '@/components/Image';
 import { PageContainer, LoadingState } from '@/components/layout';
@@ -27,6 +28,7 @@ export default function OrderDetailPage() {
   const params = useParams();
   const orderId = parseInt(params.id as string);
   const { user, loading: authLoading } = useAuth();
+  const { t } = useTranslation();
 
   const [order, setOrder] = useState<OrderWithItems | null>(null);
   const [items, setItems] = useState<OrderWithItems['items']>([]);
@@ -47,14 +49,14 @@ export default function OrderDetailPage() {
         const { order: orderData } = await orderAPI.getById(orderId);
 
         if (!orderData) {
-          setError('Order not found');
+          setError(t('order.not-found'));
           setLoading(false);
           return;
         }
 
         // Check if order belongs to current user
         if (orderData.user_id !== user.id) {
-          setError('You do not have permission to view this order');
+          setError(t('order.permission-denied'));
           setLoading(false);
           return;
         }
@@ -63,7 +65,7 @@ export default function OrderDetailPage() {
         setItems(orderData.items || []);
       } catch (err) {
         console.error('Error loading order:', err);
-        setError('Failed to load order details');
+        setError(t('order.failed-to-load'));
       } finally {
         setLoading(false);
       }
@@ -77,13 +79,13 @@ export default function OrderDetailPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'pending':
-        return <Badge variant="secondary" className="gap-1"><Clock className="h-3 w-3" />Pending</Badge>;
+        return <Badge variant="secondary" className="gap-1"><Clock className="h-3 w-3" />{t('orders.status.pending')}</Badge>;
       case 'processing':
-        return <Badge variant="default" className="gap-1"><Package className="h-3 w-3" />Processing</Badge>;
+        return <Badge variant="default" className="gap-1"><Package className="h-3 w-3" />{t('orders.status.processing')}</Badge>;
       case 'completed':
-        return <Badge variant="default" className="gap-1 bg-secondary hover:bg-secondary/90"><CheckCircle className="h-3 w-3" />Completed</Badge>;
+        return <Badge variant="default" className="gap-1 bg-secondary hover:bg-secondary/90"><CheckCircle className="h-3 w-3" />{t('orders.status.completed')}</Badge>;
       case 'cancelled':
-        return <Badge variant="destructive" className="gap-1"><XCircle className="h-3 w-3" />Cancelled</Badge>;
+        return <Badge variant="destructive" className="gap-1"><XCircle className="h-3 w-3" />{t('orders.status.cancelled')}</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -110,12 +112,12 @@ export default function OrderDetailPage() {
         <Card className="border-destructive max-w-3xl mx-auto">
           <CardContent className="p-12 text-center">
             <XCircle className="h-16 w-16 mx-auto mb-4 text-destructive opacity-50" />
-            <h2 className="text-2xl font-bold mb-2">{error || 'Order not found'}</h2>
-            <p className="text-muted-foreground mb-6">The order you're looking for doesn't exist or you don't have permission to view it.</p>
+            <h2 className="text-2xl font-bold mb-2">{error || t('order.not-found')}</h2>
+            <p className="text-muted-foreground mb-6">{t('order.error-description')}</p>
             <Button asChild size="lg">
               <Link href="/orders">
                 <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to Orders
+                {t('order.back-to-orders')}
               </Link>
             </Button>
           </CardContent>
@@ -131,7 +133,7 @@ export default function OrderDetailPage() {
           <Button asChild variant="ghost" className="mb-4">
           <Link href="/orders">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Orders
+            {t('order.back-to-orders')}
           </Link>
         </Button>
 
@@ -139,9 +141,9 @@ export default function OrderDetailPage() {
           <div className="flex items-center gap-3">
             <Package className="h-8 w-8" />
             <div>
-              <h1 className="text-3xl font-bold tracking-tight">Order #{order.id}</h1>
+              <h1 className="text-3xl font-bold tracking-tight">{t('order.order-number')}{order.id}</h1>
               <p className="text-muted-foreground mt-1">
-                Placed on {formatDate(order.created_at!)}
+                {t('order.placed-on')} {formatDate(order.created_at!)}
               </p>
             </div>
           </div>
@@ -154,16 +156,16 @@ export default function OrderDetailPage() {
           <div className="lg:col-span-2 space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Order Items</CardTitle>
-                <CardDescription>{items.length} {items.length === 1 ? 'item' : 'items'}</CardDescription>
+                <CardTitle>{t('order.order-items')}</CardTitle>
+                <CardDescription>{items.length} {items.length === 1 ? t('checkout.item') : t('checkout.items')}</CardDescription>
               </CardHeader>
               <CardContent>
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Product</TableHead>
-                      <TableHead className="w-24">Qty</TableHead>
-                      <TableHead className="w-32 text-right">Price</TableHead>
+                      <TableHead>{t('order.product-column')}</TableHead>
+                      <TableHead className="w-24">{t('order.qty-column')}</TableHead>
+                      <TableHead className="w-32 text-right">{t('order.price-column')}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -208,20 +210,20 @@ export default function OrderDetailPage() {
           <div className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Order Summary</CardTitle>
+                <CardTitle>{t('order.order-summary')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Subtotal</span>
+                  <span className="text-muted-foreground">{t('order.subtotal')}</span>
                   <span className="font-semibold">₮{order.total_price.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Delivery</span>
-                  <span className="font-semibold">Free</span>
+                  <span className="text-muted-foreground">{t('order.delivery')}</span>
+                  <span className="font-semibold">{t('order.delivery-free')}</span>
                 </div>
                 <Separator />
                 <div className="flex justify-between">
-                  <span className="text-lg font-bold">Total</span>
+                  <span className="text-lg font-bold">{t('order.total')}</span>
                   <span className="text-lg font-bold">₮{order.total_price.toLocaleString()}</span>
                 </div>
               </CardContent>
@@ -229,13 +231,13 @@ export default function OrderDetailPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Delivery Information</CardTitle>
+                <CardTitle>{t('order.delivery-information')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
                     <MapPin className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm font-medium">Delivery Address</span>
+                    <span className="text-sm font-medium">{t('order.delivery-address')}</span>
                   </div>
                   <p className="text-sm ml-6">{order.address}</p>
                 </div>
@@ -243,7 +245,7 @@ export default function OrderDetailPage() {
                 <div>
                   <div className="flex items-center gap-2 mb-1">
                     <Phone className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm font-medium">Contact</span>
+                    <span className="text-sm font-medium">{t('order.contact')}</span>
                   </div>
                   <p className="text-sm ml-6">{order.phone}</p>
                   {order.secondary_phone && (
@@ -254,7 +256,7 @@ export default function OrderDetailPage() {
                   <>
                     <Separator />
                     <div>
-                      <span className="text-sm font-medium">Name</span>
+                      <span className="text-sm font-medium">{t('order.name')}</span>
                       <p className="text-sm text-muted-foreground">{order.name}</p>
                     </div>
                   </>

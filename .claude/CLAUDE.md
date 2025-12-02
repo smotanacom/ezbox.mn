@@ -85,6 +85,8 @@ ezbox/
 1. **NEVER hardcode user-facing text** - buttons, labels, messages, placeholders, titles, descriptions, etc.
 2. **ALWAYS add translation keys to BOTH files** - `translations/en.ts` AND `translations/mn.ts`
 3. **ALWAYS use the translation hook** - import and use `useTranslation()` in every component with user-facing text
+4. **EVERY new text MUST be translatable** - When writing any new code, immediately add translations to both files
+5. **VERIFY before completing** - Check that all user-visible text uses `t('...')` before marking a task as done
 
 **Step-by-Step Process for Adding New Text**:
 
@@ -706,6 +708,56 @@ ORDER BY times_ordered DESC;
 - Don't forget to handle guest sessions vs user sessions
 - Price calculations must include all parameter modifiers
 - Check if cart exists before adding items
+
+### 7. Next.js Link Prefetch Prevention
+
+**CRITICAL: Always add `prefetch={false}` to Link components inside loops/maps.**
+
+Next.js `<Link>` components automatically prefetch pages when they enter the viewport. This causes **API spam** when Links are rendered in loops (tables, grids, lists) because every visible Link triggers a prefetch request simultaneously.
+
+**When to add `prefetch={false}`:**
+- Links inside `.map()` loops (table rows, grid items, list items)
+- Links in admin tables (orders, products, categories, specials, etc.)
+- Links in product/special grids on public pages
+- Navigation menu Links rendered in loops
+
+**Examples:**
+
+```typescript
+// ❌ WRONG - Will cause API spam in tables/grids
+{items.map((item) => (
+  <Link href={`/admin/items/${item.id}`}>
+    #{item.id}
+  </Link>
+))}
+
+// ✅ CORRECT - Prevents prefetch spam
+{items.map((item) => (
+  <Link href={`/admin/items/${item.id}`} prefetch={false}>
+    #{item.id}
+  </Link>
+))}
+```
+
+**When prefetch is OK (single Links, not in loops):**
+```typescript
+// These are fine without prefetch={false}
+<Link href="/admin/dashboard">Dashboard</Link>
+<Link href="/products">Browse Products</Link>
+```
+
+**Files that have been fixed:**
+- `app/admin/orders/page.tsx`
+- `app/admin/products/page.tsx`
+- `app/admin/categories/page.tsx`
+- `app/admin/specials/page.tsx`
+- `app/admin/parameter-groups/page.tsx`
+- `app/admin/custom-design/page.tsx`
+- `app/specials/page.tsx`
+- `components/CategoryProductGrid.tsx`
+- `components/AdminNav.tsx`
+
+**Remember**: When creating new pages with tables or grids, always add `prefetch={false}` to Links inside loops.
 
 ---
 

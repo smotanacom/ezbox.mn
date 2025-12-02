@@ -152,7 +152,7 @@ export default function AdminSpecialsPage() {
                     type="text"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Search by name or description..."
+                    placeholder={t('admin.specials.search-placeholder')}
                     className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
@@ -162,7 +162,7 @@ export default function AdminSpecialsPage() {
                     onChange={(e) => setStatusFilter(e.target.value)}
                     className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
-                    <option value="all">All Status</option>
+                    <option value="all">{t('admin.specials.all-status')}</option>
                     <option value="available">{t('admin.specials.status-available')}</option>
                     <option value="draft">{t('admin.specials.status-draft')}</option>
                     <option value="hidden">{t('admin.specials.status-hidden')}</option>
@@ -211,6 +211,7 @@ export default function AdminSpecialsPage() {
                               <Link
                                 href={`/admin/specials/${special.id}`}
                                 className="text-blue-600 hover:text-blue-800"
+                                prefetch={false}
                               >
                                 #{special.id}
                               </Link>
@@ -264,7 +265,9 @@ export default function AdminSpecialsPage() {
 
                 <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
                   <p className="text-sm text-gray-600">
-                    Showing {filteredAndSortedSpecials.length} special{filteredAndSortedSpecials.length !== 1 ? 's' : ''}
+                    {filteredAndSortedSpecials.length === 1
+                      ? t('admin.specials.showing-count').replace('{count}', filteredAndSortedSpecials.length.toString())
+                      : t('admin.specials.showing-count-plural').replace('{count}', filteredAndSortedSpecials.length.toString())}
                   </p>
                 </div>
               </>

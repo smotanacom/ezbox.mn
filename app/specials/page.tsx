@@ -136,21 +136,23 @@ export default function SpecialsPage() {
                 const error = specialErrors[special.id];
 
                 return (
-                  <div
+                  <Link
                     key={special.id}
-                    className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 flex flex-col"
+                    href={`/specials/${special.id}`}
+                    className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 flex flex-col group"
+                    prefetch={false}
                   >
                     {/* Image */}
                     <div className="relative h-64 overflow-hidden">
                       <Image
-                        src={special.picture_url ? getSpecialImageUrl(special.picture_url) : special.picture_url}
+                        src={special.picture_url ? getSpecialImageUrl(special.picture_url) : null}
                         alt={special.name}
-                        className="object-cover w-full h-full hover:scale-105 transition-transform duration-300"
+                        className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
                       />
                       {savingsPercent > 0 && (
                         <div className="absolute top-4 right-4">
                           <Badge className="bg-primary text-white px-4 py-2 text-lg font-bold shadow-lg">
-                            Save {savingsPercent}%
+                            {t('specials.save-percent').replace('{percent}', savingsPercent.toString())}
                           </Badge>
                         </div>
                       )}
@@ -180,7 +182,7 @@ export default function SpecialsPage() {
                             ))}
                             {special.items.length > 3 && (
                               <li className="text-primary font-medium">
-                                +{special.items.length - 3} more items
+                                {t('specials.more-items').replace('{count}', (special.items.length - 3).toString())}
                               </li>
                             )}
                           </ul>
@@ -209,7 +211,11 @@ export default function SpecialsPage() {
 
                       {/* CTA Button */}
                       <Button
-                        onClick={() => handleAddSpecialToCart(special.id)}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleAddSpecialToCart(special.id);
+                        }}
                         disabled={isAdding || isAdded}
                         size="lg"
                         className="w-full bg-secondary hover:bg-secondary/90 text-white"
@@ -221,8 +227,11 @@ export default function SpecialsPage() {
                       {error && (
                         <p className="text-sm text-red-600 mt-2 text-center">{error}</p>
                       )}
+                      <span className="block text-center text-sm text-primary group-hover:text-primary/80 transition-colors mt-3">
+                        {t('specials.view-details')} →
+                      </span>
                     </div>
-                  </div>
+                  </Link>
                 );
               })}
             </div>

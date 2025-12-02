@@ -41,14 +41,14 @@ export default function NewParameterGroupPage() {
 
   const handleSubmit = async () => {
     if (!formData.name.trim()) {
-      alert('Group name is required');
+      alert(t('admin.parameters.name-required'));
       return;
     }
 
     // Filter out empty parameters
     const validParams = formData.parameters.filter((p) => p.name.trim());
     if (validParams.length === 0) {
-      alert('Please add at least one parameter');
+      alert(t('admin.parameters.parameter-required'));
       return;
     }
 
@@ -63,7 +63,7 @@ export default function NewParameterGroupPage() {
       router.push(`/admin/parameter-groups/${newGroup.parameterGroup.id}`);
     } catch (error) {
       console.error('Error creating parameter group:', error);
-      alert('Failed to create parameter group');
+      alert(t('admin.parameters.create-group-failed'));
     } finally {
       setSaving(false);
     }
@@ -78,7 +78,7 @@ export default function NewParameterGroupPage() {
           {/* Breadcrumb */}
           <div className="mb-6">
             <Link href="/admin/parameter-groups" className="text-blue-600 hover:text-blue-800 text-sm">
-              ← Back to Parameter Groups
+              ← {t('admin.parameters.back')}
             </Link>
           </div>
 
@@ -182,7 +182,7 @@ export default function NewParameterGroupPage() {
                 ))}
               </div>
               <p className="mt-2 text-xs text-gray-500">
-                Press Enter to add another option. Price modifier is added to the base price.
+                {t('admin.parameters.create-hint-full')}
               </p>
             </div>
 
@@ -193,7 +193,7 @@ export default function NewParameterGroupPage() {
                 disabled={saving}
                 className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition disabled:bg-gray-400"
               >
-                {saving ? 'Creating...' : t('admin.parameters.create-group')}
+                {saving ? t('admin.parameters.creating') : t('admin.parameters.create-group')}
               </button>
               <Link
                 href="/admin/parameter-groups"

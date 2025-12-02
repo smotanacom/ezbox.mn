@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getCached, setCache } from '@/lib/cache';
-import { getCategories, getAllProductsWithDetails, getSpecials, calculateSpecialOriginalPrice } from '@/lib/api';
+import { getCategories, getAllProductsWithDetails, getSpecials, calculateSpecialOriginalPricesBatch, getCustomDesignCoverImage } from '@/lib/api';
 
 // Cache for 5 minutes (300 seconds)
 export const revalidate = 300;
@@ -21,10 +21,11 @@ export async function GET() {
     }
 
     // Fetch all home page data in parallel using lib/api functions
-    const [categories, products, specials] = await Promise.all([
+    const [categories, products, specials, customDesignCoverImage] = await Promise.all([
       getCategories(),
       getAllProductsWithDetails(),
       getSpecials('available'),
+      getCustomDesignCoverImage(),
     ]);
 
     // Group products by category
@@ -38,19 +39,10 @@ export async function GET() {
       }
     }
 
-    // Calculate original prices for all specials in parallel
-    const specialOriginalPrices: Record<number, number> = {};
-    await Promise.all(
-      specials.map(async (special) => {
-        try {
-          const originalPrice = await calculateSpecialOriginalPrice(special.id);
-          specialOriginalPrices[special.id] = originalPrice;
-        } catch (error) {
-          console.error(`Error calculating original price for special ${special.id}:`, error);
-          specialOriginalPrices[special.id] = 0;
-        }
-      })
-    );
+    // Calculate original prices for all specials using batch function (no N+1 queries)
+    // Build products map from already-fetched products
+    const productsMap = new Map(products.map(p => [p.id, p]));
+    const specialOriginalPrices = calculateSpecialOriginalPricesBatch(specials, productsMap);
 
     // Cache the data (matching HomePageData interface)
     const data = {
@@ -58,6 +50,7 @@ export async function GET() {
       productsByCategory,
       specials,
       specialOriginalPrices,
+      customDesignCoverImage,
     };
     setCache(CACHE_KEY, data);
 

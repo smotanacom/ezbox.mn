@@ -5,11 +5,13 @@ import Link from 'next/link';
 import AdminRouteGuard from '@/components/AdminRouteGuard';
 import AdminNav from '@/components/AdminNav';
 import { useOrders, useUpdateOrderStatus } from '@/lib/queries';
+import { useTranslation } from '@/contexts/LanguageContext';
 import type { Order } from '@/types/database';
 
 type SortField = 'id' | 'name' | 'phone' | 'total_price' | 'status' | 'created_at';
 
 export default function AdminOrdersPage() {
+  const { t } = useTranslation();
   // Use React Query hooks
   const { data: ordersData, isLoading: loading } = useOrders();
   const updateStatusMutation = useUpdateOrderStatus();
@@ -83,7 +85,7 @@ export default function AdminOrdersPage() {
       await updateStatusMutation.mutateAsync({ id: orderId, status: newStatus });
     } catch (error) {
       console.error('Error updating order status:', error);
-      alert('Failed to update order status');
+      alert(t('admin.orders.update-failed'));
     }
   };
 
@@ -140,8 +142,8 @@ export default function AdminOrdersPage() {
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="mb-6">
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Orders Management</h1>
-            <p className="text-sm sm:text-base text-gray-600 mt-2">View and manage all customer orders</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{t('admin.orders.page-title')}</h1>
+            <p className="text-sm sm:text-base text-gray-600 mt-2">{t('admin.orders.page-subtitle')}</p>
           </div>
 
           <div className="bg-white rounded-lg shadow-md overflow-hidden">
@@ -153,7 +155,7 @@ export default function AdminOrdersPage() {
                     type="text"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Search by name, phone, or address..."
+                    placeholder={t('admin.orders.search-placeholder')}
                     className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
@@ -163,12 +165,12 @@ export default function AdminOrdersPage() {
                     onChange={(e) => setStatusFilter(e.target.value)}
                     className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
-                    <option value="all">All Status</option>
-                    <option value="pending">Pending</option>
-                    <option value="processing">Processing</option>
-                    <option value="shipped">Shipped</option>
-                    <option value="completed">Completed</option>
-                    <option value="cancelled">Cancelled</option>
+                    <option value="all">{t('admin.orders.filter-all')}</option>
+                    <option value="pending">{t('admin.orders.status.pending')}</option>
+                    <option value="processing">{t('admin.orders.status.processing')}</option>
+                    <option value="shipped">{t('admin.orders.status.shipped')}</option>
+                    <option value="completed">{t('admin.orders.status.completed')}</option>
+                    <option value="cancelled">{t('admin.orders.status.cancelled')}</option>
                   </select>
                 </div>
               </div>
@@ -177,11 +179,11 @@ export default function AdminOrdersPage() {
             {loading ? (
               <div className="text-center py-12">
                 <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-                <p className="mt-4 text-gray-600">Loading orders...</p>
+                <p className="mt-4 text-gray-600">{t('admin.orders.loading')}</p>
               </div>
             ) : orders.length === 0 ? (
               <div className="p-12 text-center">
-                <p className="text-gray-600 text-lg">No orders found</p>
+                <p className="text-gray-600 text-lg">{t('admin.orders.no-orders')}</p>
               </div>
             ) : (
               <>
@@ -189,12 +191,12 @@ export default function AdminOrdersPage() {
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                       <tr>
-                        <SortableHeader field="id">Order ID</SortableHeader>
-                        <SortableHeader field="name">Customer</SortableHeader>
-                        <SortableHeader field="phone">Phone</SortableHeader>
-                        <SortableHeader field="total_price">Total</SortableHeader>
-                        <SortableHeader field="status">Status</SortableHeader>
-                        <SortableHeader field="created_at">Date</SortableHeader>
+                        <SortableHeader field="id">{t('admin.orders.order-id')}</SortableHeader>
+                        <SortableHeader field="name">{t('admin.orders.customer')}</SortableHeader>
+                        <SortableHeader field="phone">{t('order.phone')}</SortableHeader>
+                        <SortableHeader field="total_price">{t('admin.orders.total')}</SortableHeader>
+                        <SortableHeader field="status">{t('admin.orders.status')}</SortableHeader>
+                        <SortableHeader field="created_at">{t('admin.orders.date')}</SortableHeader>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
@@ -204,6 +206,7 @@ export default function AdminOrdersPage() {
                             <Link
                               href={`/admin/orders/${order.id}`}
                               className="text-blue-600 hover:text-blue-800"
+                              prefetch={false}
                             >
                               #{order.id}
                             </Link>
@@ -225,11 +228,11 @@ export default function AdminOrdersPage() {
                                 order.status
                               )} border-0 cursor-pointer`}
                             >
-                              <option value="pending">Pending</option>
-                              <option value="processing">Processing</option>
-                              <option value="shipped">Shipped</option>
-                              <option value="completed">Completed</option>
-                              <option value="cancelled">Cancelled</option>
+                              <option value="pending">{t('admin.orders.status.pending')}</option>
+                              <option value="processing">{t('admin.orders.status.processing')}</option>
+                              <option value="shipped">{t('admin.orders.status.shipped')}</option>
+                              <option value="completed">{t('admin.orders.status.completed')}</option>
+                              <option value="cancelled">{t('admin.orders.status.cancelled')}</option>
                             </select>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
@@ -243,7 +246,9 @@ export default function AdminOrdersPage() {
 
                 <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
                   <p className="text-sm text-gray-600">
-                    Showing {orders.length} order{orders.length !== 1 ? 's' : ''}
+                    {orders.length === 1
+                      ? t('admin.orders.showing-count').replace('{count}', orders.length.toString())
+                      : t('admin.orders.showing-count-plural').replace('{count}', orders.length.toString())}
                   </p>
                 </div>
               </>

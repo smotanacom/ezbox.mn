@@ -375,9 +375,14 @@ export interface SpecialWithPricing extends SpecialWithItems {
 
 export const specialAPI = {
   // Batched: specials with original prices
+  // Use admin endpoint when no status filter (returns all statuses)
+  // Use public endpoint when filtering by specific status
   getAll: (status?: string) => {
-    const params = status ? `?status=${status}` : '';
-    return apiRequest<{ specials: SpecialWithPricing[] }>(`/api/specials${params}`);
+    if (status) {
+      return apiRequest<{ specials: SpecialWithPricing[] }>(`/api/specials?status=${status}`);
+    }
+    // Admin endpoint returns all statuses
+    return apiRequest<{ specials: SpecialWithPricing[] }>('/api/admin/specials');
   },
 
   getById: (id: number) =>
@@ -519,6 +524,7 @@ export interface HomePageData {
   productsByCategory: Record<number, ProductWithDetails[]>;
   specials: SpecialWithPricing[];
   specialOriginalPrices: Record<number, number>;
+  customDesignCoverImage: string | null;
 }
 
 export const homeAPI = {

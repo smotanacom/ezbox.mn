@@ -6,6 +6,7 @@ import Link from 'next/link';
 import AdminRouteGuard from '@/components/AdminRouteGuard';
 import AdminNav from '@/components/AdminNav';
 import { productAPI, categoryAPI, parameterAPI } from '@/lib/api-client';
+import { useTranslation } from '@/contexts/LanguageContext';
 import type { Category, ParameterGroup, Parameter } from '@/types/database';
 
 interface InlineParameterGroup {
@@ -15,6 +16,7 @@ interface InlineParameterGroup {
 }
 
 export default function NewProductPage() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [categories, setCategories] = useState<Category[]>([]);
   const [allParameterGroups, setAllParameterGroups] = useState<ParameterGroup[]>([]);
@@ -68,12 +70,12 @@ export default function NewProductPage() {
 
   const handleCreate = async () => {
     if (!formData.name.trim()) {
-      alert('Please enter a product name');
+      alert(t('admin.new-product.name-required'));
       return;
     }
 
     if (formData.base_price < 0) {
-      alert('Base price cannot be negative');
+      alert(t('admin.new-product.price-negative'));
       return;
     }
 
@@ -105,12 +107,12 @@ export default function NewProductPage() {
         await productAPI.addParameterGroup(newProduct.id, group.id, defaultParamId);
       }
 
-      alert('Product created successfully!');
+      alert(t('admin.new-product.create-success'));
       router.push(`/admin/products/${newProduct.id}`);
     } catch (error) {
       console.error('Error creating product:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to create product';
-      alert(`Failed to create product: ${errorMessage}`);
+      const errorMessage = error instanceof Error ? error.message : t('admin.new-product.create-failed');
+      alert(`${t('admin.new-product.create-failed')}: ${errorMessage}`);
     } finally {
       setSaving(false);
     }
@@ -129,12 +131,12 @@ export default function NewProductPage() {
 
   const addInlineGroup = () => {
     if (!currentInlineGroup.name.trim()) {
-      alert('Please enter a group name');
+      alert(t('admin.new-product.enter-group-name'));
       return;
     }
     const validParams = currentInlineGroup.parameters.filter(p => p.name.trim());
     if (validParams.length === 0) {
-      alert('Please add at least one parameter');
+      alert(t('admin.new-product.add-one-param'));
       return;
     }
     setInlineGroups([...inlineGroups, { ...currentInlineGroup, parameters: validParams }]);
@@ -177,7 +179,7 @@ export default function NewProductPage() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div className="text-center py-12">
               <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-              <p className="mt-4 text-gray-600">Loading...</p>
+              <p className="mt-4 text-gray-600">{t('admin.new-product.loading')}</p>
             </div>
           </div>
         </div>
@@ -196,36 +198,36 @@ export default function NewProductPage() {
               href="/admin/products"
               className="text-blue-600 hover:text-blue-800 mb-4 inline-block"
             >
-              ← Back to Products
+              ← {t('admin.new-product.back')}
             </Link>
-            <h1 className="text-3xl font-bold text-gray-900">Create New Product</h1>
-            <p className="text-gray-600 mt-2">Add a new product to your catalog</p>
+            <h1 className="text-3xl font-bold text-gray-900">{t('admin.new-product.title')}</h1>
+            <p className="text-gray-600 mt-2">{t('admin.new-product.subtitle')}</p>
           </div>
 
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="space-y-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Product Name <span className="text-red-500">*</span>
+                  {t('admin.new-product.name')} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="e.g., Kitchen Cabinet"
+                  placeholder={t('admin.new-product.name-placeholder')}
                   className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Description
+                  {t('admin.new-product.description')}
                 </label>
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   rows={4}
-                  placeholder="Describe the product..."
+                  placeholder={t('admin.new-product.description-placeholder')}
                   className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
@@ -233,14 +235,14 @@ export default function NewProductPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Category
+                    {t('admin.new-product.category')}
                   </label>
                   <select
                     value={formData.category_id || ''}
                     onChange={(e) => setFormData({ ...formData, category_id: parseInt(e.target.value) || null })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
-                    <option value="">No category</option>
+                    <option value="">{t('admin.new-product.no-category')}</option>
                     {categories.map((cat) => (
                       <option key={cat.id} value={cat.id}>
                         {cat.name}
@@ -251,26 +253,26 @@ export default function NewProductPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Status
+                    {t('admin.new-product.status')}
                   </label>
                   <select
                     value={formData.status}
                     onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
-                    <option value="draft">Draft</option>
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
+                    <option value="draft">{t('admin.products.status.draft')}</option>
+                    <option value="active">{t('admin.products.status.active')}</option>
+                    <option value="inactive">{t('admin.products.status.inactive')}</option>
                   </select>
                   <p className="mt-1 text-sm text-gray-500">
-                    Create as draft to add parameter groups before publishing
+                    {t('admin.new-product.status-hint')}
                   </p>
                 </div>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Base Price (₮) <span className="text-red-500">*</span>
+                  {t('admin.new-product.base-price')} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="number"
@@ -282,7 +284,7 @@ export default function NewProductPage() {
                   className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
                 <p className="mt-1 text-sm text-gray-500">
-                  Base price before parameter modifiers
+                  {t('admin.new-product.base-price-hint')}
                 </p>
               </div>
 
@@ -290,8 +292,8 @@ export default function NewProductPage() {
               <div className="pt-6 border-t border-gray-200">
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <h3 className="text-lg font-medium text-gray-900">Parameter Groups</h3>
-                    <p className="text-sm text-gray-500">Add configuration options for this product</p>
+                    <h3 className="text-lg font-medium text-gray-900">{t('admin.new-product.param-groups')}</h3>
+                    <p className="text-sm text-gray-500">{t('admin.new-product.param-groups-hint')}</p>
                   </div>
                   {!showInlineForm && (
                     <button
@@ -299,7 +301,7 @@ export default function NewProductPage() {
                       onClick={() => setShowInlineForm(true)}
                       className="text-sm text-blue-600 hover:text-blue-800"
                     >
-                      + Create new group
+                      {t('admin.new-product.create-new-group')}
                     </button>
                   )}
                 </div>
@@ -327,7 +329,7 @@ export default function NewProductPage() {
                             onClick={() => removeSelectedGroup(groupId)}
                             className="text-red-600 hover:text-red-800 text-sm"
                           >
-                            Remove
+                            {t('admin.new-product.remove')}
                           </button>
                         </div>
                       );
@@ -338,7 +340,7 @@ export default function NewProductPage() {
                       <div key={`inline-${index}`} className="flex items-center justify-between bg-green-50 p-3 rounded-lg border border-green-200">
                         <div>
                           <span className="font-medium text-gray-900">{group.name}</span>
-                          <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded ml-2">New</span>
+                          <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded ml-2">{t('admin.new-product.new-badge')}</span>
                           {group.internal_name && group.internal_name !== group.name && (
                             <span className="text-xs text-gray-500 ml-2">({group.internal_name})</span>
                           )}
@@ -351,7 +353,7 @@ export default function NewProductPage() {
                           onClick={() => removeInlineGroup(index)}
                           className="text-red-600 hover:text-red-800 text-sm"
                         >
-                          Remove
+                          {t('admin.new-product.remove')}
                         </button>
                       </div>
                     ))}
@@ -369,7 +371,7 @@ export default function NewProductPage() {
                     }}
                     className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
-                    <option value="">Select existing group...</option>
+                    <option value="">{t('admin.new-product.select-group')}</option>
                     {allParameterGroups
                       .filter(pg => !selectedGroupIds.includes(pg.id))
                       .map(pg => (
@@ -383,10 +385,10 @@ export default function NewProductPage() {
                 {/* Inline Group Creation Form */}
                 {showInlineForm && (
                   <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                    <h4 className="font-medium text-gray-900 mb-3">Create New Parameter Group</h4>
+                    <h4 className="font-medium text-gray-900 mb-3">{t('admin.new-product.create-group-title')}</h4>
                     <div className="grid grid-cols-2 gap-3 mb-3">
                       <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">Group Name *</label>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">{t('admin.new-product.group-name')}</label>
                         <input
                           type="text"
                           value={currentInlineGroup.name}
@@ -396,12 +398,12 @@ export default function NewProductPage() {
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">Internal Name</label>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">{t('admin.new-product.internal-name')}</label>
                         <input
                           type="text"
                           value={currentInlineGroup.internal_name}
                           onChange={(e) => setCurrentInlineGroup({ ...currentInlineGroup, internal_name: e.target.value })}
-                          placeholder="Optional"
+                          placeholder={t('admin.new-product.optional')}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 text-sm"
                         />
                       </div>
@@ -410,13 +412,13 @@ export default function NewProductPage() {
                     {/* Parameters */}
                     <div className="mb-3">
                       <div className="flex items-center justify-between mb-2">
-                        <label className="block text-xs font-medium text-gray-600">Parameters *</label>
+                        <label className="block text-xs font-medium text-gray-600">{t('admin.new-product.parameters')}</label>
                         <button
                           type="button"
                           onClick={addParamRow}
                           className="text-xs text-blue-600 hover:text-blue-800"
                         >
-                          + Add
+                          {t('admin.new-product.add-param')}
                         </button>
                       </div>
                       <div className="space-y-2">
@@ -464,7 +466,7 @@ export default function NewProductPage() {
                         onClick={addInlineGroup}
                         className="px-3 py-1.5 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition"
                       >
-                        Add Group
+                        {t('admin.new-product.add-group')}
                       </button>
                       <button
                         type="button"
@@ -478,7 +480,7 @@ export default function NewProductPage() {
                         }}
                         className="px-3 py-1.5 bg-gray-200 text-gray-700 rounded text-sm hover:bg-gray-300 transition"
                       >
-                        Cancel
+                        {t('admin.new-product.cancel')}
                       </button>
                     </div>
                   </div>
@@ -492,17 +494,17 @@ export default function NewProductPage() {
                     disabled={saving}
                     className="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed font-medium"
                   >
-                    {saving ? 'Creating...' : 'Create Product'}
+                    {saving ? t('admin.new-product.creating') : t('admin.new-product.create')}
                   </button>
                   <Link
                     href="/admin/products"
                     className="px-6 py-3 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition font-medium inline-block"
                   >
-                    Cancel
+                    {t('admin.new-product.cancel')}
                   </Link>
                 </div>
                 <p className="mt-4 text-sm text-gray-600">
-                  After creating the product, you can upload images and 3D models on the product detail page.
+                  {t('admin.new-product.after-create-hint')}
                 </p>
               </div>
             </div>

@@ -74,10 +74,50 @@ export function getCategoryImageUrl(path: string): string {
  * Gets public URL for a special image path
  * Special images are stored in the product-images bucket
  *
- * @param path - Storage path (e.g., "specials/1/123_medium.jpg")
+ * @param path - Storage path (e.g., "specials/1/123_medium.jpg") or full URL
+ * @returns Public URL or null if it's a placeholder
+ */
+export function getSpecialImageUrl(path: string): string | null {
+  // Filter out placeholder images
+  if (path.includes('picsum.photos') || path.includes('placeholder')) {
+    return null;
+  }
+
+  // If it's already a full URL, return as-is
+  if (path.startsWith('http://') || path.startsWith('https://')) {
+    return path;
+  }
+
+  const { data } = supabase.storage
+    .from(BUCKETS.PRODUCT_IMAGES)
+    .getPublicUrl(path);
+
+  return data.publicUrl;
+}
+
+/**
+ * Gets public URL for a site settings image path
+ * Site images are stored in the product-images bucket under site/
+ *
+ * @param path - Storage path (e.g., "site/custom_design_cover_image/123_original.jpg")
  * @returns Public URL
  */
-export function getSpecialImageUrl(path: string): string {
+export function getSiteImageUrl(path: string): string {
+  const { data } = supabase.storage
+    .from(BUCKETS.PRODUCT_IMAGES)
+    .getPublicUrl(path);
+
+  return data.publicUrl;
+}
+
+/**
+ * Gets public URL for a custom project image path
+ * Project images are stored in the product-images bucket under projects/
+ *
+ * @param path - Storage path (e.g., "projects/1/123_medium.jpg")
+ * @returns Public URL
+ */
+export function getProjectImageUrl(path: string): string {
   const { data } = supabase.storage
     .from(BUCKETS.PRODUCT_IMAGES)
     .getPublicUrl(path);

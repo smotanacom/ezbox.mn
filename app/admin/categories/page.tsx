@@ -130,7 +130,7 @@ export default function AdminCategoriesPage() {
                     type="text"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Search by name or description..."
+                    placeholder={t('admin.categories.search-placeholder')}
                     className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
@@ -170,6 +170,7 @@ export default function AdminCategoriesPage() {
                             <Link
                               href={`/admin/categories/${category.id}`}
                               className="text-blue-600 hover:text-blue-800"
+                              prefetch={false}
                             >
                               #{category.id}
                             </Link>
@@ -196,7 +197,9 @@ export default function AdminCategoriesPage() {
 
                 <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
                   <p className="text-sm text-gray-600">
-                    Showing {filteredAndSortedCategories.length} categor{filteredAndSortedCategories.length !== 1 ? 'ies' : 'y'}
+                    {filteredAndSortedCategories.length === 1
+                      ? t('admin.categories.showing-count').replace('{count}', filteredAndSortedCategories.length.toString())
+                      : t('admin.categories.showing-count-plural').replace('{count}', filteredAndSortedCategories.length.toString())}
                   </p>
                 </div>
               </>

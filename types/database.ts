@@ -583,3 +583,46 @@ export interface OrderSnapshot {
 export interface OrderWithSnapshot extends Omit<Order, 'snapshot_data'> {
   snapshot_data: OrderSnapshot | null
 }
+
+// Custom Projects
+export interface CustomProject {
+  id: number
+  title: string
+  description: string | null
+  cover_image_path: string | null
+  special_id: number | null
+  status: 'draft' | 'published' | 'archived'
+  display_order: number
+  created_at: string
+  updated_at: string
+}
+
+export interface CustomProjectImage {
+  id: string
+  project_id: number
+  storage_path: string
+  thumbnail_path: string
+  medium_path: string
+  alt_text: string | null
+  display_order: number
+  created_at: string
+}
+
+export interface CustomProjectProduct {
+  id: number
+  project_id: number
+  product_id: number
+  quantity: number
+  selected_parameters: ParameterSelection
+  display_order: number
+  created_at: string
+}
+
+// Extended types with relations
+export interface CustomProjectWithDetails extends CustomProject {
+  images: CustomProjectImage[]
+  products: (CustomProjectProduct & {
+    product: ProductWithDetails
+  })[]
+  special: SpecialWithItems | null
+}

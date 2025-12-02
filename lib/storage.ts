@@ -752,3 +752,347 @@ export async function deleteSpecialImage(
     };
   }
 }
+
+/**
+ * Uploads a site setting image (e.g., custom design cover)
+ *
+ * @param settingKey - The setting key (e.g., 'custom_design_cover_image')
+ * @param file - Image file buffer
+ * @param fileName - Original file name
+ * @param mimeType - MIME type
+ * @returns Uploaded image path
+ */
+export async function uploadSiteImage(
+  settingKey: string,
+  file: Buffer,
+  fileName: string,
+  mimeType: string
+): Promise<{ data: { path: string; originalPath: string } | null; error: string | null }> {
+  try {
+    // Validate image
+    const validation = await validateImageFile(file, fileName, mimeType);
+    if (!validation.valid) {
+      return { data: null, error: validation.error || 'Invalid image file' };
+    }
+
+    // Generate all sizes
+    const sizes = await generateAllSizes(file);
+
+    // Generate unique file names
+    const timestamp = Date.now();
+    const ext = '.jpg'; // All processed images are saved as JPEG
+    const basePath = `site/${settingKey}`;
+
+    const paths = {
+      original: `${basePath}/${timestamp}_original${ext}`,
+      thumbnail: `${basePath}/${timestamp}_thumb${ext}`,
+      medium: `${basePath}/${timestamp}_medium${ext}`,
+    };
+
+    // Upload all sizes to storage
+    const uploadResults = await Promise.all([
+      supabase.storage
+        .from(BUCKETS.PRODUCT_IMAGES)
+        .upload(paths.original, sizes.original, {
+          contentType: 'image/jpeg',
+          upsert: false
+        }),
+      supabase.storage
+        .from(BUCKETS.PRODUCT_IMAGES)
+        .upload(paths.thumbnail, sizes.thumbnail, {
+          contentType: 'image/jpeg',
+          upsert: false
+        }),
+      supabase.storage
+        .from(BUCKETS.PRODUCT_IMAGES)
+        .upload(paths.medium, sizes.medium, {
+          contentType: 'image/jpeg',
+          upsert: false
+        })
+    ]);
+
+    // Check for upload errors
+    const uploadError = uploadResults.find(result => result.error);
+    if (uploadError?.error) {
+      // Cleanup uploaded files
+      await deleteStorageFiles(BUCKETS.PRODUCT_IMAGES, Object.values(paths));
+      return { data: null, error: uploadError.error.message };
+    }
+
+    // Return both medium (for display) and original (for hero) paths
+    return { data: { path: paths.medium, originalPath: paths.original }, error: null };
+  } catch (error) {
+    return {
+      data: null,
+      error: error instanceof Error ? error.message : 'Failed to upload site image'
+    };
+  }
+}
+
+/**
+ * Deletes a site setting image by its path
+ *
+ * @param imagePath - The medium or original path of the image
+ * @returns Success status
+ */
+export async function deleteSiteImage(
+  imagePath: string
+): Promise<{ success: boolean; error: string | null }> {
+  try {
+    // Derive all paths from the given path (handles both medium and original)
+    const basePath = imagePath.replace(/_(?:original|medium|thumb)\.jpg$/, '');
+    const paths = [
+      `${basePath}_original.jpg`,
+      `${basePath}_thumb.jpg`,
+      `${basePath}_medium.jpg`,
+    ];
+
+    await deleteStorageFiles(BUCKETS.PRODUCT_IMAGES, paths);
+    return { success: true, error: null };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to delete site image'
+    };
+  }
+}
+
+// ============================================================================
+// Custom Project Images
+// ============================================================================
+
+import type { CustomProjectImage } from '@/types/database';
+
+/**
+ * Uploads a custom project image with all required sizes
+ *
+ * @param projectId - Project ID
+ * @param file - Image file buffer
+ * @param fileName - Original file name
+ * @param mimeType - MIME type
+ * @param displayOrder - Display order in gallery
+ * @param altText - Alternative text for accessibility
+ * @returns Created project image record
+ */
+export async function uploadProjectImage(
+  projectId: number,
+  file: Buffer,
+  fileName: string,
+  mimeType: string,
+  displayOrder: number = 0,
+  altText?: string
+): Promise<{ data: CustomProjectImage | null; error: string | null }> {
+  try {
+    // Validate image
+    const validation = await validateImageFile(file, fileName, mimeType);
+    if (!validation.valid) {
+      return { data: null, error: validation.error || 'Invalid image file' };
+    }
+
+    // Generate all sizes
+    const sizes = await generateAllSizes(file);
+
+    // Generate unique file names
+    const timestamp = Date.now();
+    const ext = '.jpg';
+    const basePath = `projects/${projectId}`;
+
+    const paths = {
+      original: `${basePath}/${timestamp}_original${ext}`,
+      thumbnail: `${basePath}/${timestamp}_thumb${ext}`,
+      medium: `${basePath}/${timestamp}_medium${ext}`,
+    };
+
+    // Upload all sizes to storage
+    const uploadResults = await Promise.all([
+      supabase.storage
+        .from(BUCKETS.PRODUCT_IMAGES)
+        .upload(paths.original, sizes.original, {
+          contentType: 'image/jpeg',
+          upsert: false
+        }),
+      supabase.storage
+        .from(BUCKETS.PRODUCT_IMAGES)
+        .upload(paths.thumbnail, sizes.thumbnail, {
+          contentType: 'image/jpeg',
+          upsert: false
+        }),
+      supabase.storage
+        .from(BUCKETS.PRODUCT_IMAGES)
+        .upload(paths.medium, sizes.medium, {
+          contentType: 'image/jpeg',
+          upsert: false
+        })
+    ]);
+
+    // Check for upload errors
+    const uploadError = uploadResults.find(result => result.error);
+    if (uploadError?.error) {
+      await deleteStorageFiles(BUCKETS.PRODUCT_IMAGES, Object.values(paths));
+      return { data: null, error: uploadError.error.message };
+    }
+
+    // Save to database
+    const { data, error } = await supabase
+      .from('custom_project_images')
+      .insert({
+        project_id: projectId,
+        storage_path: paths.original,
+        thumbnail_path: paths.thumbnail,
+        medium_path: paths.medium,
+        display_order: displayOrder,
+        alt_text: altText || null
+      } as any)
+      .select()
+      .single();
+
+    if (error) {
+      await deleteStorageFiles(BUCKETS.PRODUCT_IMAGES, Object.values(paths));
+      return { data: null, error: error.message };
+    }
+
+    return { data: data as CustomProjectImage, error: null };
+  } catch (error) {
+    return {
+      data: null,
+      error: error instanceof Error ? error.message : 'Failed to upload project image'
+    };
+  }
+}
+
+/**
+ * Deletes a custom project image
+ *
+ * @param imageId - Image ID
+ * @returns Success status
+ */
+export async function deleteProjectImage(
+  imageId: string
+): Promise<{ success: boolean; error: string | null }> {
+  try {
+    // Get image record to find file paths
+    const { data: image, error: fetchError } = await supabase
+      .from('custom_project_images')
+      .select('storage_path, thumbnail_path, medium_path')
+      .eq('id', imageId)
+      .single();
+
+    if (fetchError || !image) {
+      return { success: false, error: 'Image not found' };
+    }
+
+    const img = image as any;
+
+    // Delete from storage
+    const paths = [img.storage_path, img.thumbnail_path, img.medium_path];
+    await deleteStorageFiles(BUCKETS.PRODUCT_IMAGES, paths);
+
+    // Delete from database
+    const { error: deleteError } = await supabase
+      .from('custom_project_images')
+      .delete()
+      .eq('id', imageId);
+
+    if (deleteError) {
+      return { success: false, error: deleteError.message };
+    }
+
+    return { success: true, error: null };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to delete project image'
+    };
+  }
+}
+
+/**
+ * Upload a project cover image
+ */
+export async function uploadProjectCoverImage(
+  projectId: number,
+  file: Buffer,
+  fileName: string,
+  mimeType: string
+): Promise<{ data: { path: string } | null; error: string | null }> {
+  try {
+    // Validate image
+    const validation = await validateImageFile(file, fileName, mimeType);
+    if (!validation.valid) {
+      return { data: null, error: validation.error || 'Invalid image file' };
+    }
+
+    // Generate all sizes
+    const sizes = await generateAllSizes(file);
+
+    // Generate unique file names
+    const timestamp = Date.now();
+    const ext = '.jpg';
+    const basePath = `projects/${projectId}/cover`;
+
+    const paths = {
+      original: `${basePath}/${timestamp}_original${ext}`,
+      thumbnail: `${basePath}/${timestamp}_thumb${ext}`,
+      medium: `${basePath}/${timestamp}_medium${ext}`,
+    };
+
+    // Upload all sizes
+    const uploadResults = await Promise.all([
+      supabase.storage
+        .from(BUCKETS.PRODUCT_IMAGES)
+        .upload(paths.original, sizes.original, {
+          contentType: 'image/jpeg',
+          upsert: false
+        }),
+      supabase.storage
+        .from(BUCKETS.PRODUCT_IMAGES)
+        .upload(paths.thumbnail, sizes.thumbnail, {
+          contentType: 'image/jpeg',
+          upsert: false
+        }),
+      supabase.storage
+        .from(BUCKETS.PRODUCT_IMAGES)
+        .upload(paths.medium, sizes.medium, {
+          contentType: 'image/jpeg',
+          upsert: false
+        })
+    ]);
+
+    const uploadError = uploadResults.find(result => result.error);
+    if (uploadError?.error) {
+      await deleteStorageFiles(BUCKETS.PRODUCT_IMAGES, Object.values(paths));
+      return { data: null, error: uploadError.error.message };
+    }
+
+    return { data: { path: paths.medium }, error: null };
+  } catch (error) {
+    return {
+      data: null,
+      error: error instanceof Error ? error.message : 'Failed to upload cover image'
+    };
+  }
+}
+
+/**
+ * Delete a project cover image
+ */
+export async function deleteProjectCoverImage(
+  imagePath: string
+): Promise<{ success: boolean; error: string | null }> {
+  try {
+    const basePath = imagePath.replace(/_medium\.jpg$/, '');
+    const paths = [
+      `${basePath}_original.jpg`,
+      `${basePath}_thumb.jpg`,
+      `${basePath}_medium.jpg`,
+    ];
+
+    await deleteStorageFiles(BUCKETS.PRODUCT_IMAGES, paths);
+    return { success: true, error: null };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to delete cover image'
+    };
+  }
+}

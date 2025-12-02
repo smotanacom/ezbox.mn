@@ -52,7 +52,7 @@ export default function AdminNewSpecialPage() {
 
   const handleAddItem = () => {
     if (!newItem.product_id) {
-      alert('Please select a product');
+      alert(t('admin.specials.select-product-required'));
       return;
     }
 
@@ -92,7 +92,7 @@ export default function AdminNewSpecialPage() {
     e.preventDefault();
 
     if (!formData.name || formData.discounted_price <= 0) {
-      alert('Please fill in all required fields');
+      alert(t('admin.specials.fill-required'));
       return;
     }
 
@@ -152,7 +152,7 @@ export default function AdminNewSpecialPage() {
               ← {t('admin.specials.back')}
             </Link>
             <h1 className="text-3xl font-bold text-gray-900">{t('admin.specials.new')}</h1>
-            <p className="text-gray-600 mt-2">Create a new special offer bundle</p>
+            <p className="text-gray-600 mt-2">{t('admin.specials.new-subtitle')}</p>
           </div>
 
           <form onSubmit={handleSubmit}>
@@ -334,7 +334,7 @@ export default function AdminNewSpecialPage() {
                     disabled={saving}
                     className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition disabled:bg-gray-400"
                   >
-                    {saving ? 'Creating...' : 'Create Special Offer'}
+                    {saving ? t('admin.specials.creating') : t('admin.specials.create-button')}
                   </button>
                   <Link
                     href="/admin/specials"
@@ -359,14 +359,14 @@ export default function AdminNewSpecialPage() {
                   </div>
 
                   <div className="mt-6 pt-6 border-t border-gray-200">
-                    <h4 className="font-semibold text-gray-900 mb-2">Bundle Info</h4>
+                    <h4 className="font-semibold text-gray-900 mb-2">{t('admin.specials.bundle-info')}</h4>
                     <dl className="space-y-2 text-sm">
                       <div>
                         <dt className="text-gray-600">{t('admin.specials.items')}</dt>
                         <dd className="text-gray-900">{selectedItems.length}</dd>
                       </div>
                       <div>
-                        <dt className="text-gray-600">Total Products</dt>
+                        <dt className="text-gray-600">{t('admin.specials.total-products')}</dt>
                         <dd className="text-gray-900">
                           {selectedItems.reduce((sum, item) => sum + item.quantity, 0)}
                         </dd>

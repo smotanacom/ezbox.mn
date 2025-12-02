@@ -7,11 +7,13 @@ import AdminRouteGuard from '@/components/AdminRouteGuard';
 import AdminNav from '@/components/AdminNav';
 import { orderAPI, historyAPI, type OrderWithItems } from '@/lib/api-client';
 import { useAdminAuth } from '@/hooks/useAuth';
+import { useTranslation } from '@/contexts/LanguageContext';
 import type { Order, OrderItem, HistoryWithUser, OrderSnapshot } from '@/types/database';
 
 export default function AdminOrderDetailPage() {
   const router = useRouter();
   const params = useParams();
+  const { t } = useTranslation();
   const orderId = parseInt(params.id as string);
   const { admin } = useAdminAuth();
 
@@ -33,7 +35,7 @@ export default function AdminOrderDetailPage() {
     try {
       const { order: orderData } = await orderAPI.getById(orderId);
       if (!orderData) {
-        alert('Order not found');
+        alert(t('admin.order.not-found'));
         router.push('/admin/orders');
         return;
       }
@@ -46,7 +48,7 @@ export default function AdminOrderDetailPage() {
       setHistory(historyData);
     } catch (error) {
       console.error('Error fetching order:', error);
-      alert('Failed to load order details');
+      alert(t('admin.order.load-failed'));
     } finally {
       setLoading(false);
     }
@@ -58,7 +60,7 @@ export default function AdminOrderDetailPage() {
       fetchOrderDetails();
     } catch (error) {
       console.error('Error updating status:', error);
-      alert('Failed to update status');
+      alert(t('admin.order.status-update-failed'));
     }
   };
 
@@ -105,10 +107,10 @@ export default function AdminOrderDetailPage() {
 
   const getActionLabel = (action: string) => {
     const labels: Record<string, string> = {
-      'created': 'Order Created',
-      'status_changed': 'Status Changed',
-      'updated': 'Order Updated',
-      'note_added': 'Note Added',
+      'created': t('admin.order.action-created'),
+      'status_changed': t('admin.order.action-status-changed'),
+      'updated': t('admin.order.action-updated'),
+      'note_added': t('admin.order.action-note-added'),
     };
     return labels[action] || action;
   };
@@ -142,7 +144,7 @@ export default function AdminOrderDetailPage() {
           <AdminNav />
           <div className="text-center py-12">
             <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-            <p className="mt-4 text-gray-600">Loading order details...</p>
+            <p className="mt-4 text-gray-600">{t('admin.order.loading')}</p>
           </div>
         </div>
       </AdminRouteGuard>
@@ -206,7 +208,7 @@ export default function AdminOrderDetailPage() {
               <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
               </svg>
-              Back to Orders
+              {t('admin.order.back')}
             </Link>
             <button
               onClick={handlePrint}
@@ -215,7 +217,7 @@ export default function AdminOrderDetailPage() {
               <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
               </svg>
-              Print
+              {t('admin.order.print')}
             </button>
           </div>
 
@@ -223,59 +225,59 @@ export default function AdminOrderDetailPage() {
             {/* Header - Compact */}
             <div className="flex flex-col sm:flex-row items-start sm:items-start justify-between mb-4 pb-3 border-b border-gray-300 gap-3">
               <div>
-                <h1 className="text-lg font-bold text-gray-900">Order #{order.id}</h1>
+                <h1 className="text-lg font-bold text-gray-900">{t('admin.order.order-number').replace('{id}', order.id.toString())}</h1>
                 <p className="text-xs text-gray-600 mt-1">
-                  Created: {formatDateShort(order.created_at)} | Updated: {formatDateShort(order.updated_at)}
+                  {t('admin.order.created')}: {formatDateShort(order.created_at)} | {t('admin.order.updated')}: {formatDateShort(order.updated_at)}
                 </p>
               </div>
               <div className="text-left sm:text-right">
-                <div className="text-xs text-gray-600 mb-1">Status:</div>
+                <div className="text-xs text-gray-600 mb-1">{t('admin.order.status-label')}</div>
                 <select
                   value={order.status}
                   onChange={(e) => handleStatusChange(e.target.value)}
                   className={`text-xs px-2 py-1 rounded border-0 font-semibold cursor-pointer ${getStatusColor(order.status)}`}
                 >
-                  <option value="pending">Pending</option>
-                  <option value="processing">Processing</option>
-                  <option value="shipped">Shipped</option>
-                  <option value="completed">Completed</option>
-                  <option value="cancelled">Cancelled</option>
+                  <option value="pending">{t('admin.orders.status.pending')}</option>
+                  <option value="processing">{t('admin.orders.status.processing')}</option>
+                  <option value="shipped">{t('admin.orders.status.shipped')}</option>
+                  <option value="completed">{t('admin.orders.status.completed')}</option>
+                  <option value="cancelled">{t('admin.orders.status.cancelled')}</option>
                 </select>
               </div>
             </div>
 
             {/* Customer Info - Compact */}
             <div className="mb-4 pb-3 border-b border-gray-300">
-              <h2 className="text-sm font-bold text-gray-900 mb-2">Customer</h2>
+              <h2 className="text-sm font-bold text-gray-900 mb-2">{t('admin.order.customer')}</h2>
               <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
                 <div>
-                  <span className="text-gray-600">Name:</span> <span className="font-medium">{order.name}</span>
+                  <span className="text-gray-600">{t('admin.order.name-label')}</span> <span className="font-medium">{order.name}</span>
                 </div>
                 <div>
-                  <span className="text-gray-600">Phone:</span> <span className="font-medium">{order.phone}</span>
+                  <span className="text-gray-600">{t('admin.order.phone-label')}</span> <span className="font-medium">{order.phone}</span>
                   {order.secondary_phone && (
                     <span className="text-gray-600"> / {order.secondary_phone}</span>
                   )}
                 </div>
                 <div className="col-span-2">
-                  <span className="text-gray-600">Address:</span> <span className="font-medium">{order.address}</span>
+                  <span className="text-gray-600">{t('admin.order.address-label')}</span> <span className="font-medium">{order.address}</span>
                 </div>
               </div>
             </div>
 
             {/* Items - Compact Table */}
             <div className="mb-4">
-              <h2 className="text-sm font-bold text-gray-900 mb-2">Items</h2>
+              <h2 className="text-sm font-bold text-gray-900 mb-2">{t('admin.order.items-title')}</h2>
               {items.length === 0 ? (
-                <p className="text-xs text-gray-600">No items</p>
+                <p className="text-xs text-gray-600">{t('admin.order.no-items')}</p>
               ) : (
                 <table className="w-full text-xs">
                   <thead>
                     <tr className="border-b border-gray-300">
-                      <th className="text-left py-1 font-semibold text-gray-700">Product</th>
-                      <th className="text-left py-1 font-semibold text-gray-700">Options</th>
-                      <th className="text-center py-1 font-semibold text-gray-700">Qty</th>
-                      <th className="text-right py-1 font-semibold text-gray-700">Price</th>
+                      <th className="text-left py-1 font-semibold text-gray-700">{t('admin.order.product-header')}</th>
+                      <th className="text-left py-1 font-semibold text-gray-700">{t('admin.order.options-header')}</th>
+                      <th className="text-center py-1 font-semibold text-gray-700">{t('admin.order.qty-header')}</th>
+                      <th className="text-right py-1 font-semibold text-gray-700">{t('admin.order.price-header')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -302,15 +304,15 @@ export default function AdminOrderDetailPage() {
             <div className="flex justify-end mb-4 pb-4 border-b border-gray-300">
               <div className="w-48">
                 <div className="flex justify-between text-xs py-1">
-                  <span className="text-gray-600">Subtotal:</span>
+                  <span className="text-gray-600">{t('admin.order.subtotal-label')}</span>
                   <span className="font-medium">₮{order.total_price.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between text-xs py-1">
-                  <span className="text-gray-600">Delivery:</span>
+                  <span className="text-gray-600">{t('admin.order.delivery-label')}</span>
                   <span className="font-medium">₮0</span>
                 </div>
                 <div className="flex justify-between text-sm font-bold pt-2 border-t border-gray-300">
-                  <span>Total:</span>
+                  <span>{t('admin.order.total-label')}</span>
                   <span>₮{order.total_price.toLocaleString()}</span>
                 </div>
               </div>
@@ -318,9 +320,9 @@ export default function AdminOrderDetailPage() {
 
             {/* History - Compact */}
             <div>
-              <h2 className="text-sm font-bold text-gray-900 mb-2">History</h2>
+              <h2 className="text-sm font-bold text-gray-900 mb-2">{t('admin.order.history-title')}</h2>
               {history.length === 0 ? (
-                <p className="text-xs text-gray-600">No history recorded</p>
+                <p className="text-xs text-gray-600">{t('admin.order.no-history')}</p>
               ) : (
                 <div className="space-y-2">
                   {history.map((entry) => (
@@ -354,27 +356,27 @@ export default function AdminOrderDetailPage() {
                           </div>
                           {entry.changed_by_admin && (
                             <div className="text-xs text-blue-600 font-medium">
-                              Admin: {entry.changed_by_admin.username}
+                              {t('admin.order.changed-by-admin').replace('{name}', entry.changed_by_admin.username)}
                             </div>
                           )}
                           {!entry.changed_by_admin && entry.changed_by && (
                             <div className="text-xs text-gray-600 font-medium">
-                              Customer: {entry.changed_by.phone}
+                              {t('admin.order.changed-by-customer').replace('{phone}', entry.changed_by.phone)}
                             </div>
                           )}
                           {!entry.changed_by_admin && !entry.changed_by && entry.changed_by_admin_id && (
                             <div className="text-xs text-blue-600 font-medium">
-                              Admin ID: {entry.changed_by_admin_id}
+                              {t('admin.order.changed-by-admin-id').replace('{id}', entry.changed_by_admin_id.toString())}
                             </div>
                           )}
                           {!entry.changed_by_admin && !entry.changed_by && entry.changed_by_user_id && (
                             <div className="text-xs text-gray-600 font-medium">
-                              User ID: {entry.changed_by_user_id}
+                              {t('admin.order.changed-by-user-id').replace('{id}', entry.changed_by_user_id.toString())}
                             </div>
                           )}
                           {!entry.changed_by_admin && !entry.changed_by && !entry.changed_by_admin_id && !entry.changed_by_user_id && (
                             <div className="text-xs text-gray-500 italic">
-                              System
+                              {t('admin.order.changed-by-system')}
                             </div>
                           )}
                         </div>

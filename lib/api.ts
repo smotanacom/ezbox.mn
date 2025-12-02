@@ -21,6 +21,10 @@ import type {
   OrderItem,
   OrderItemParameter,
   OrderTotals,
+  CustomProject,
+  CustomProjectImage,
+  CustomProjectProduct,
+  CustomProjectWithDetails,
 } from '@/types/database';
 
 // Categories
@@ -327,26 +331,110 @@ export async function getOrCreateCart(userId?: number, sessionId?: string): Prom
 }
 
 export async function getCartItems(cartId: number): Promise<CartItemWithDetails[]> {
-  const { data, error } = await supabase
+  // 1. Fetch all cart items in one query
+  const { data: cartItems, error } = await supabase
     .from('product_in_cart')
     .select('*')
     .eq('cart_id', cartId);
 
   if (error) throw error;
-  if (!data) return [];
+  if (!cartItems || cartItems.length === 0) return [];
 
-  // Enrich with product details
-  const itemsWithDetails = await Promise.all(
-    data.map(async (item: any) => {
-      const product = await getProductWithDetails(item.product_id);
-      return {
-        ...item,
-        product,
+  // 2. Collect unique product IDs
+  const productIds = [...new Set(cartItems.map((item: any) => item.product_id))];
+
+  // 3. Batch fetch all needed data in parallel (7 queries total instead of N*7)
+  const [
+    { data: products, error: productsError },
+    { data: categories, error: categoriesError },
+    { data: productParamGroups, error: ppgError },
+    { data: parameterGroups, error: pgError },
+    { data: parameters, error: paramsError },
+    { data: images, error: imagesError },
+    { data: models, error: modelsError },
+  ] = await Promise.all([
+    supabase.from('products').select('*').in('id', productIds),
+    supabase.from('categories').select('*').eq('status', 'active'),
+    supabase.from('product_parameter_groups').select('*').in('product_id', productIds),
+    supabase.from('parameter_groups').select('*').eq('status', 'active'),
+    supabase.from('parameters').select('*').eq('status', 'active'),
+    supabase.from('product_images').select('*').in('product_id', productIds).order('display_order', { ascending: true }),
+    supabase.from('product_models').select('*').in('product_id', productIds),
+  ]);
+
+  if (productsError) throw productsError;
+  if (categoriesError) throw categoriesError;
+  if (ppgError) throw ppgError;
+  if (pgError) throw pgError;
+  if (paramsError) throw paramsError;
+  if (imagesError) throw imagesError;
+  if (modelsError) throw modelsError;
+
+  // 4. Create lookup maps for efficient assembly
+  const categoryMap = new Map(categories?.map((c: any) => [c.id, c]) || []);
+  const paramGroupMap = new Map(parameterGroups?.map((pg: any) => [pg.id, pg]) || []);
+  const parametersByGroupId = (parameters || []).reduce((acc: any, param: any) => {
+    if (!acc[param.parameter_group_id]) {
+      acc[param.parameter_group_id] = [];
+    }
+    acc[param.parameter_group_id].push(param);
+    return acc;
+  }, {} as Record<number, any[]>);
+
+  const ppgByProductId = (productParamGroups || []).reduce((acc: any, ppg: any) => {
+    if (!acc[ppg.product_id]) {
+      acc[ppg.product_id] = [];
+    }
+    acc[ppg.product_id].push(ppg);
+    return acc;
+  }, {} as Record<number, any[]>);
+
+  const imagesByProductId = (images || []).reduce((acc: any, img: any) => {
+    if (!acc[img.product_id]) {
+      acc[img.product_id] = [];
+    }
+    acc[img.product_id].push(img);
+    return acc;
+  }, {} as Record<number, any[]>);
+
+  const modelsByProductId = new Map(models?.map((m: any) => [m.product_id, m]) || []);
+
+  // 5. Build products map with full details
+  const productsMap = new Map(
+    (products || []).map((product: any) => {
+      const category = categoryMap.get(product.category_id);
+      const ppgs = ppgByProductId[product.id] || [];
+
+      const parameterGroupsWithParams = ppgs.map((ppg: any) => {
+        const paramGroup = paramGroupMap.get(ppg.parameter_group_id);
+        const params = parametersByGroupId[ppg.parameter_group_id] || [];
+        const defaultParam = params.find((p: any) => p.id === ppg.default_parameter_id);
+
+        return {
+          ...ppg,
+          parameter_group: paramGroup,
+          default_parameter: defaultParam,
+          parameters: params,
+        };
+      });
+
+      const productWithDetails: ProductWithDetails = {
+        ...product,
+        category,
+        parameter_groups: parameterGroupsWithParams,
+        images: imagesByProductId[product.id] || [],
+        model: modelsByProductId.get(product.id) || null,
       };
+
+      return [product.id, productWithDetails];
     })
   );
 
-  return itemsWithDetails as CartItemWithDetails[];
+  // 6. Map products to cart items
+  return cartItems.map((item: any) => ({
+    ...item,
+    product: productsMap.get(item.product_id),
+  })) as CartItemWithDetails[];
 }
 
 export async function addToCart(
@@ -549,6 +637,36 @@ export async function calculateSpecialOriginalPrice(specialId: number): Promise<
   }
 
   return total;
+}
+
+// Batch calculate original prices for all specials using pre-fetched products
+// This avoids N+1 queries by reusing products already fetched
+export function calculateSpecialOriginalPricesBatch(
+  specials: SpecialWithItems[],
+  productsMap: Map<number, ProductWithDetails>
+): Record<number, number> {
+  const prices: Record<number, number> = {};
+
+  for (const special of specials) {
+    let total = 0;
+    const items = (special as any).items || [];
+
+    for (const item of items) {
+      const productId = item.product_id || item.product?.id;
+      if (!productId) continue;
+
+      const product = productsMap.get(productId);
+      if (!product) continue;
+
+      const selectedParams = (item.selected_parameters as ParameterSelection) || {};
+      const itemPrice = calculateProductPrice(product, selectedParams);
+      total += itemPrice * item.quantity;
+    }
+
+    prices[special.id] = total;
+  }
+
+  return prices;
 }
 
 export async function addSpecialToCart(
@@ -2391,4 +2509,362 @@ export async function restoreSpecial(
   }
 
   return data as Special;
+}
+
+// ============================================================================
+// Site Settings
+// ============================================================================
+
+export interface SiteSetting {
+  id: number;
+  key: string;
+  value: string | null;
+  value_type: string;
+  description: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Get a single site setting by key
+ */
+export async function getSiteSetting(key: string): Promise<SiteSetting | null> {
+  const { data, error } = await supabase
+    .from('site_settings')
+    .select('*')
+    .eq('key', key)
+    .single();
+
+  if (error) {
+    if (error.code === 'PGRST116') {
+      // No rows returned
+      return null;
+    }
+    throw error;
+  }
+
+  return data as SiteSetting;
+}
+
+/**
+ * Get multiple site settings by keys
+ */
+export async function getSiteSettings(keys: string[]): Promise<SiteSetting[]> {
+  const { data, error } = await supabase
+    .from('site_settings')
+    .select('*')
+    .in('key', keys);
+
+  if (error) throw error;
+  return data as SiteSetting[];
+}
+
+/**
+ * Update a site setting value
+ */
+export async function updateSiteSetting(
+  key: string,
+  value: string | null
+): Promise<SiteSetting> {
+  const { data, error } = await (supabase
+    .from('site_settings')
+    // @ts-ignore - Supabase type inference issue
+    .update({ value, updated_at: new Date().toISOString() })
+    .eq('key', key)
+    .select()
+    .single() as any);
+
+  if (error) throw error;
+  return data as SiteSetting;
+}
+
+/**
+ * Get the custom design cover image path
+ */
+export async function getCustomDesignCoverImage(): Promise<string | null> {
+  const setting = await getSiteSetting('custom_design_cover_image');
+  return setting?.value || null;
+}
+
+/**
+ * Update the custom design cover image path
+ */
+export async function updateCustomDesignCoverImage(
+  imagePath: string | null
+): Promise<SiteSetting> {
+  return updateSiteSetting('custom_design_cover_image', imagePath);
+}
+
+// ============================================================================
+// Custom Projects
+// ============================================================================
+
+/**
+ * Get all custom projects (for admin)
+ */
+export async function getCustomProjects(includeAll = false): Promise<CustomProject[]> {
+  let query = supabase.from('custom_projects').select('*');
+
+  if (!includeAll) {
+    query = query.eq('status', 'published');
+  }
+
+  const { data, error } = await query.order('display_order').order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return data as CustomProject[];
+}
+
+/**
+ * Get a single custom project with all details
+ */
+export async function getCustomProjectWithDetails(projectId: number): Promise<CustomProjectWithDetails | null> {
+  // Get the project
+  const { data: project, error: projectError } = await supabase
+    .from('custom_projects')
+    .select('*')
+    .eq('id', projectId)
+    .single();
+
+  if (projectError) {
+    if (projectError.code === 'PGRST116') return null;
+    throw projectError;
+  }
+
+  if (!project) return null;
+
+  const proj = project as any;
+
+  // Get images, products, and special in parallel
+  const [
+    { data: images, error: imagesError },
+    { data: projectProducts, error: productsError },
+  ] = await Promise.all([
+    supabase
+      .from('custom_project_images')
+      .select('*')
+      .eq('project_id', projectId)
+      .order('display_order'),
+    supabase
+      .from('custom_project_products')
+      .select('*')
+      .eq('project_id', projectId)
+      .order('display_order'),
+  ]);
+
+  if (imagesError) throw imagesError;
+  if (productsError) throw productsError;
+
+  // Get full product details for each project product
+  const productsWithDetails = [];
+  for (const pp of (projectProducts as any[]) || []) {
+    const productDetails = await getProductWithDetails(pp.product_id);
+    if (productDetails) {
+      productsWithDetails.push({
+        ...pp,
+        product: productDetails,
+      });
+    }
+  }
+
+  // Get special if linked
+  let special = null;
+  if (proj.special_id) {
+    special = await getSpecialWithDetails(proj.special_id);
+  }
+
+  return {
+    ...proj,
+    images: images || [],
+    products: productsWithDetails,
+    special,
+  } as CustomProjectWithDetails;
+}
+
+/**
+ * Get published custom projects with details for public display
+ */
+export async function getPublishedCustomProjectsWithDetails(): Promise<CustomProjectWithDetails[]> {
+  const projects = await getCustomProjects(false);
+
+  const projectsWithDetails = await Promise.all(
+    projects.map(async (project) => {
+      const details = await getCustomProjectWithDetails(project.id);
+      return details;
+    })
+  );
+
+  return projectsWithDetails.filter((p): p is CustomProjectWithDetails => p !== null);
+}
+
+/**
+ * Create a new custom project
+ */
+export async function createCustomProject(data: {
+  title: string;
+  description?: string;
+  status?: string;
+  display_order?: number;
+}): Promise<CustomProject> {
+  const { data: project, error } = await (supabase
+    .from('custom_projects')
+    // @ts-ignore - Supabase type inference issue
+    .insert({
+      title: data.title,
+      description: data.description || null,
+      status: data.status || 'draft',
+      display_order: data.display_order || 0,
+    })
+    .select()
+    .single() as any);
+
+  if (error) throw error;
+  return project as CustomProject;
+}
+
+/**
+ * Update a custom project
+ */
+export async function updateCustomProject(
+  projectId: number,
+  data: Partial<{
+    title: string;
+    description: string | null;
+    cover_image_path: string | null;
+    special_id: number | null;
+    status: string;
+    display_order: number;
+  }>
+): Promise<CustomProject> {
+  const { data: project, error } = await (supabase
+    .from('custom_projects')
+    // @ts-ignore - Supabase type inference issue
+    .update({ ...data, updated_at: new Date().toISOString() })
+    .eq('id', projectId)
+    .select()
+    .single() as any);
+
+  if (error) throw error;
+  return project as CustomProject;
+}
+
+/**
+ * Delete a custom project (and all related images/products via CASCADE)
+ */
+export async function deleteCustomProject(projectId: number): Promise<void> {
+  const { error } = await supabase
+    .from('custom_projects')
+    .delete()
+    .eq('id', projectId);
+
+  if (error) throw error;
+}
+
+/**
+ * Add a product to a custom project
+ */
+export async function addProductToProject(
+  projectId: number,
+  productId: number,
+  quantity: number = 1,
+  selectedParameters: ParameterSelection = {}
+): Promise<CustomProjectProduct> {
+  const { data, error } = await (supabase
+    .from('custom_project_products')
+    // @ts-ignore - Supabase type inference issue
+    .insert({
+      project_id: projectId,
+      product_id: productId,
+      quantity,
+      selected_parameters: selectedParameters,
+    })
+    .select()
+    .single() as any);
+
+  if (error) throw error;
+  return data as CustomProjectProduct;
+}
+
+/**
+ * Remove a product from a custom project
+ */
+export async function removeProductFromProject(projectProductId: number): Promise<void> {
+  const { error } = await supabase
+    .from('custom_project_products')
+    .delete()
+    .eq('id', projectProductId);
+
+  if (error) throw error;
+}
+
+/**
+ * Update a project product (quantity, parameters)
+ */
+export async function updateProjectProduct(
+  projectProductId: number,
+  data: {
+    quantity?: number;
+    selected_parameters?: ParameterSelection;
+  }
+): Promise<CustomProjectProduct> {
+  const { data: result, error } = await (supabase
+    .from('custom_project_products')
+    // @ts-ignore - Supabase type inference issue
+    .update(data)
+    .eq('id', projectProductId)
+    .select()
+    .single() as any);
+
+  if (error) throw error;
+  return result as CustomProjectProduct;
+}
+
+/**
+ * Get project images
+ */
+export async function getProjectImages(projectId: number): Promise<CustomProjectImage[]> {
+  const { data, error } = await supabase
+    .from('custom_project_images')
+    .select('*')
+    .eq('project_id', projectId)
+    .order('display_order');
+
+  if (error) throw error;
+  return data as CustomProjectImage[];
+}
+
+/**
+ * Check if project products/special are still available
+ */
+export async function checkProjectAvailability(projectId: number): Promise<{
+  available: boolean;
+  unavailableProducts: string[];
+  specialUnavailable: boolean;
+}> {
+  const project = await getCustomProjectWithDetails(projectId);
+
+  if (!project) {
+    return { available: false, unavailableProducts: [], specialUnavailable: false };
+  }
+
+  const unavailableProducts: string[] = [];
+  let specialUnavailable = false;
+
+  // Check special availability
+  if (project.special) {
+    if (project.special.status !== 'available') {
+      specialUnavailable = true;
+    }
+  }
+
+  // Check individual products availability
+  for (const pp of project.products) {
+    if (pp.product.status !== 'active') {
+      unavailableProducts.push(pp.product.name);
+    }
+  }
+
+  const available = !specialUnavailable && unavailableProducts.length === 0;
+
+  return { available, unavailableProducts, specialUnavailable };
 }
