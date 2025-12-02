@@ -1,6 +1,7 @@
 'use client';
 
 import { ReactNode } from 'react';
+import Link from 'next/link';
 import Image from '@/components/Image';
 import ImageCarousel from '@/components/ImageCarousel';
 import { Input } from '@/components/ui/input';
@@ -45,9 +46,9 @@ export default function ProductConfigRow({
 
   return (
     <div className={`p-3 mb-3 bg-white rounded-lg border shadow-sm ${disabled ? 'opacity-50' : ''} ${className}`}>
-      <div className="flex gap-3">
+      <div className="flex gap-3 lg:gap-4">
         {/* Product Image */}
-        <div className="relative flex-shrink-0 w-20 h-20 bg-gray-50 rounded-md overflow-hidden border">
+        <div className="relative flex-shrink-0 w-20 h-20 lg:w-32 lg:h-32 bg-gray-50 rounded-md overflow-hidden border">
           <ImageCarousel
             images={product.images || []}
             productName={product.name}
@@ -61,9 +62,14 @@ export default function ProductConfigRow({
         <div className="flex-1 min-w-0">
           {/* Product Name & Description */}
           <div className="mb-2">
-            <h3 className="font-semibold text-sm leading-tight mb-0.5">
-              {product.name}
-            </h3>
+            <Link
+              href={`/products/${product.id}`}
+              className="inline-block"
+            >
+              <h3 className="font-semibold text-base lg:text-lg leading-tight hover:text-primary transition-colors">
+                {product.name}
+              </h3>
+            </Link>
             {product.description && (
               <p className="text-xs text-muted-foreground line-clamp-2">
                 {product.description}

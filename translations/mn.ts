@@ -63,6 +63,18 @@ export const translations = {
   'products.cart-total': 'Нийт',
   'products.view-cart': 'Сагс үзэх',
 
+  // Product detail page
+  'product.not-found': 'Бүтээгдэхүүн олдсонгүй',
+  'product.not-found-description': 'Таны хайж буй бүтээгдэхүүн байхгүй эсвэл устгагдсан байна.',
+  'product.back-to-products': 'Бүтээгдэхүүн рүү буцах',
+  'product.base-price': 'Үндсэн үнэ',
+  'product.current-price': 'Одоогийн үнэ',
+  'product.configure-options': 'Тохиргоо сонгох',
+  'product.total': 'Нийт дүн',
+  'product.previous-image': 'Өмнөх зураг',
+  'product.next-image': 'Дараах зураг',
+  'product.view-details': 'Дэлгэрэнгүй үзэх',
+
   // Cart component
   'cart.shopping-cart': 'Худалдан авалтын сагс',
   'cart.items-count': 'бараа',

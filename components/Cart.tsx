@@ -39,7 +39,8 @@ export default function Cart({ showCheckoutButton = true, compact = false, stick
   const [removingSpecials, setRemovingSpecials] = useState<Set<number>>(new Set());
   const [itemErrors, setItemErrors] = useState<Record<number, string>>({});
   const [isMinimized, setIsMinimized] = useState(true);
-  const prevItemsLength = useRef(items.length);
+  const prevItemsLength = useRef<number | null>(null); // null = not yet initialized
+  const isInitialMount = useRef(true);
   const updateTimers = useRef<Record<number, NodeJS.Timeout>>({});
 
   // Group items by special_id
@@ -80,13 +81,24 @@ export default function Cart({ showCheckoutButton = true, compact = false, stick
     }, 0);
   };
 
-  // Expand cart when items are added
+  // Expand cart when items are added (but not on initial load)
   useEffect(() => {
-    if (items.length > prevItemsLength.current && isMinimized) {
+    // Skip during loading - wait for cart to be fully loaded
+    if (loading) return;
+
+    // On initial mount after loading completes, just record the current count
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      prevItemsLength.current = items.length;
+      return;
+    }
+
+    // Only expand if items were actually added (not on initial load)
+    if (prevItemsLength.current !== null && items.length > prevItemsLength.current && isMinimized) {
       setIsMinimized(false);
     }
     prevItemsLength.current = items.length;
-  }, [items.length, isMinimized]);
+  }, [items.length, isMinimized, loading]);
 
   const getItemPrice = (item: typeof items[0]) => {
     if (!item.product) return 0;

@@ -63,6 +63,18 @@ export const translations = {
   'products.cart-total': 'Total',
   'products.view-cart': 'View Cart',
 
+  // Product detail page
+  'product.not-found': 'Product not found',
+  'product.not-found-description': 'The product you are looking for does not exist or has been removed.',
+  'product.back-to-products': 'Back to Products',
+  'product.base-price': 'Base Price',
+  'product.current-price': 'Current Price',
+  'product.configure-options': 'Configure Options',
+  'product.total': 'Total',
+  'product.previous-image': 'Previous image',
+  'product.next-image': 'Next image',
+  'product.view-details': 'View Details',
+
   // Cart component
   'cart.shopping-cart': 'Shopping Cart',
   'cart.items-count': 'items',
