@@ -3,7 +3,7 @@
 import { ReactNode } from 'react';
 import Link from 'next/link';
 import Image from '@/components/Image';
-import ImageCarousel from '@/components/ImageCarousel';
+import { getFirstImageUrl } from '@/lib/storage-client';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Minus, Plus } from 'lucide-react';
@@ -47,16 +47,17 @@ export default function ProductConfigRow({
   return (
     <div className={`p-3 mb-3 bg-white rounded-lg border shadow-sm ${disabled ? 'opacity-50' : ''} ${className}`}>
       <div className="flex gap-3 lg:gap-4">
-        {/* Product Image */}
-        <div className="relative flex-shrink-0 w-20 h-20 lg:w-32 lg:h-32 bg-gray-50 rounded-md overflow-hidden border">
-          <ImageCarousel
-            images={product.images || []}
-            productName={product.name}
-            model={product.model}
-            className="rounded-md"
-            showControls={false}
+        {/* Product Image - Clickable */}
+        <Link
+          href={`/products/${product.id}`}
+          className="relative flex-shrink-0 w-20 h-20 lg:w-32 lg:h-32 bg-gray-50 rounded-md overflow-hidden border hover:ring-2 hover:ring-primary/50 transition-all"
+        >
+          <Image
+            src={getFirstImageUrl(product.images || [])}
+            alt={product.name}
+            className="w-full h-full object-cover"
           />
-        </div>
+        </Link>
 
         {/* Product Info & Configuration */}
         <div className="flex-1 min-w-0">
