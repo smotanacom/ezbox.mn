@@ -9,6 +9,7 @@ import ImageUpload from '@/components/admin/ImageUpload';
 import ModelUpload from '@/components/admin/ModelUpload';
 import { productAPI, categoryAPI, parameterAPI } from '@/lib/api-client';
 import { useTranslation } from '@/contexts/LanguageContext';
+import { useCacheInvalidation } from '@/lib/queries/invalidation';
 import type { ProductWithDetails, Category, ParameterGroup, Parameter } from '@/types/database';
 
 export default function AdminProductDetailPage() {
@@ -16,6 +17,7 @@ export default function AdminProductDetailPage() {
   const params = useParams();
   const router = useRouter();
   const productId = parseInt(params?.id as string);
+  const { invalidateProducts, invalidateParameters } = useCacheInvalidation();
 
   const [product, setProduct] = useState<ProductWithDetails | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -89,6 +91,8 @@ export default function AdminProductDetailPage() {
     setSaving(true);
     try {
       await productAPI.update(productId, formData);
+      // Invalidate product caches so other pages see updated data
+      invalidateProducts(productId);
       alert(t('admin.product.update-success'));
       await fetchData();
     } catch (error) {
@@ -106,6 +110,8 @@ export default function AdminProductDetailPage() {
 
     try {
       await productAPI.delete(productId);
+      // Invalidate product caches so other pages see the deletion
+      invalidateProducts();
       alert(t('admin.product.delete-success'));
       router.push('/admin/products');
     } catch (error) {
@@ -121,6 +127,8 @@ export default function AdminProductDetailPage() {
       const defaultParamId = params && params.length > 0 ? params[0].id : undefined;
 
       await productAPI.addParameterGroup(productId, groupId, defaultParamId);
+      // Invalidate caches - product parameters changed
+      invalidateProducts(productId);
       await fetchData();
     } catch (error) {
       console.error('Error adding parameter group:', error);
@@ -131,6 +139,8 @@ export default function AdminProductDetailPage() {
   const handleRemoveParameterGroup = async (groupId: number) => {
     try {
       await productAPI.removeParameterGroup(productId, groupId);
+      // Invalidate caches - product parameters changed
+      invalidateProducts(productId);
       await fetchData();
     } catch (error) {
       console.error('Error removing parameter group:', error);
@@ -162,6 +172,10 @@ export default function AdminProductDetailPage() {
       // Add it to this product with first parameter as default
       const defaultParamId = parameters.length > 0 ? parameters[0].id : undefined;
       await productAPI.addParameterGroup(productId, group.id, defaultParamId);
+
+      // Invalidate caches - new parameter group created and added to product
+      invalidateParameters(group.id);
+      invalidateProducts(productId);
 
       // Refresh data
       await fetchData();

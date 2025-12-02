@@ -569,7 +569,16 @@ export async function calculateCartTotal(cartId: number): Promise<number> {
 
 // Specials
 export async function getSpecials(status?: string | null): Promise<SpecialWithItems[]> {
-  let query = supabase.from('specials').select('*');
+  // Use single relational query instead of N+1 pattern
+  let query = supabase
+    .from('specials')
+    .select(`
+      *,
+      items:special_items(
+        *,
+        product:products(*)
+      )
+    `);
 
   // If status is explicitly provided (including null to show all), use it
   // Otherwise, default to showing only 'available' specials
@@ -588,25 +597,7 @@ export async function getSpecials(status?: string | null): Promise<SpecialWithIt
   if (error) throw error;
   if (!specials) return [];
 
-  // Get items for each special
-  const specialsWithItems = await Promise.all(
-    specials.map(async (special: any) => {
-      const { data: items } = await supabase
-        .from('special_items')
-        .select(`
-          *,
-          product:products(*)
-        `)
-        .eq('special_id', special.id);
-
-      return {
-        ...special,
-        items: items || [],
-      };
-    })
-  );
-
-  return specialsWithItems as SpecialWithItems[];
+  return specials as SpecialWithItems[];
 }
 
 // Calculate the original price of a special (sum of all items with their parameters)

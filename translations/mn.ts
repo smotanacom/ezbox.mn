@@ -493,6 +493,7 @@ export const translations = {
   'admin.dashboard.stats.shipped': 'Илгээсэн',
   'admin.dashboard.stats.completed': 'Дууссан',
   'admin.dashboard.stats.cancelled': 'Цуцалсан',
+  'admin.dashboard.stats.revenue': 'Нийт орлого',
   'admin.dashboard.orders-description': 'Бүх захиалгыг харах ба удирдах. Хайх, шүүх, төлөв шинэчлэх.',
   'admin.dashboard.products-description': 'Бүтээгдэхүүн, ангилал, параметрийн бүлгүүдийг удирдах.',
   'admin.dashboard.categories-description': 'Бүтээгдэхүүний ангилал болон зохион байгуулалтыг удирдах.',
@@ -938,6 +939,12 @@ export const translations = {
   'admin.orders.no-orders': 'Захиалга олдсонгүй',
   'admin.orders.showing-count': '{count} захиалга харуулж байна',
   'admin.orders.showing-count-plural': '{count} захиалга харуулж байна',
+  'admin.orders.showing-range': '{total} захиалгаас {from}-{to} харуулж байна',
+  'admin.orders.pagination.first': 'Эхлэл',
+  'admin.orders.pagination.prev': 'Өмнөх',
+  'admin.orders.pagination.next': 'Дараах',
+  'admin.orders.pagination.last': 'Сүүлийн',
+  'admin.orders.pagination.page': 'Хуудас {page}/{total}',
   'admin.orders.update-failed': 'Захиалгын төлөв шинэчлэхэд алдаа гарлаа',
 
   // Админ захиалгын дэлгэрэнгүй хуудас

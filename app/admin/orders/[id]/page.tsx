@@ -8,6 +8,7 @@ import AdminNav from '@/components/AdminNav';
 import { orderAPI, historyAPI, type OrderWithItems } from '@/lib/api-client';
 import { useAdminAuth } from '@/hooks/useAuth';
 import { useTranslation } from '@/contexts/LanguageContext';
+import { useCacheInvalidation } from '@/lib/queries/invalidation';
 import type { Order, OrderItem, HistoryWithUser, OrderSnapshot } from '@/types/database';
 
 export default function AdminOrderDetailPage() {
@@ -16,6 +17,7 @@ export default function AdminOrderDetailPage() {
   const { t } = useTranslation();
   const orderId = parseInt(params.id as string);
   const { admin } = useAdminAuth();
+  const { invalidateOrders } = useCacheInvalidation();
 
   const [order, setOrder] = useState<OrderWithItems | null>(null);
   const [items, setItems] = useState<OrderWithItems['items']>([]);
@@ -57,6 +59,8 @@ export default function AdminOrderDetailPage() {
   const handleStatusChange = async (newStatus: string) => {
     try {
       await orderAPI.updateStatus(orderId, newStatus);
+      // Invalidate order caches so order list shows updated status
+      invalidateOrders(orderId);
       fetchOrderDetails();
     } catch (error) {
       console.error('Error updating status:', error);

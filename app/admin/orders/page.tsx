@@ -1,22 +1,20 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import AdminRouteGuard from '@/components/AdminRouteGuard';
 import AdminNav from '@/components/AdminNav';
-import { useOrders, useUpdateOrderStatus } from '@/lib/queries';
+import { useAdminOrdersPaginated, useUpdateOrderStatus } from '@/lib/queries';
 import { useTranslation } from '@/contexts/LanguageContext';
-import type { Order } from '@/types/database';
 
 type SortField = 'id' | 'name' | 'phone' | 'total_price' | 'status' | 'created_at';
+const PAGE_SIZE = 20;
 
 export default function AdminOrdersPage() {
   const { t } = useTranslation();
-  // Use React Query hooks
-  const { data: ordersData, isLoading: loading } = useOrders();
-  const updateStatusMutation = useUpdateOrderStatus();
 
-  // UI State
+  // Pagination and filter state
+  const [page, setPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [sortBy, setSortBy] = useState<SortField>('created_at');
@@ -27,49 +25,29 @@ export default function AdminOrdersPage() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearchTerm(searchTerm);
+      setPage(1); // Reset to first page on search
     }, 300);
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  // Apply filtering and sorting using useMemo
-  const orders = useMemo(() => {
-    let filteredOrders = ordersData || [];
+  // Reset page when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [statusFilter, sortBy, sortOrder]);
 
-    // Apply status filter
-    if (statusFilter && statusFilter !== 'all') {
-      filteredOrders = filteredOrders.filter(order => order.status === statusFilter);
-    }
+  // Use paginated query hook
+  const { data, isLoading: loading, isFetching } = useAdminOrdersPaginated({
+    page,
+    limit: PAGE_SIZE,
+    status: statusFilter !== 'all' ? statusFilter : undefined,
+    search: debouncedSearchTerm || undefined,
+    sortBy,
+    sortOrder,
+  });
 
-    // Apply search filter
-    if (debouncedSearchTerm) {
-      const term = debouncedSearchTerm.toLowerCase();
-      filteredOrders = filteredOrders.filter(order =>
-        order.name?.toLowerCase().includes(term) ||
-        order.phone?.toLowerCase().includes(term) ||
-        order.address?.toLowerCase().includes(term)
-      );
-    }
-
-    // Apply sorting
-    const sorted = [...filteredOrders].sort((a, b) => {
-      let aVal = a[sortBy as keyof Order];
-      let bVal = b[sortBy as keyof Order];
-
-      // Handle numeric values
-      if (typeof aVal === 'number' && typeof bVal === 'number') {
-        return sortOrder === 'asc' ? aVal - bVal : bVal - aVal;
-      }
-
-      // Handle string values
-      const aStr = String(aVal || '');
-      const bStr = String(bVal || '');
-      return sortOrder === 'asc'
-        ? aStr.localeCompare(bStr)
-        : bStr.localeCompare(aStr);
-    });
-
-    return sorted;
-  }, [ordersData, statusFilter, debouncedSearchTerm, sortBy, sortOrder]);
+  const orders = data?.orders || [];
+  const pagination = data?.pagination;
+  const updateStatusMutation = useUpdateOrderStatus();
 
   const handleSort = (field: SortField) => {
     if (sortBy === field) {
@@ -187,7 +165,12 @@ export default function AdminOrdersPage() {
               </div>
             ) : (
               <>
-                <div className="overflow-x-auto">
+                <div className={`overflow-x-auto relative ${isFetching && !loading ? 'opacity-60' : ''}`}>
+                  {isFetching && !loading && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-white/50 z-10">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    </div>
+                  )}
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                       <tr>
@@ -245,11 +228,53 @@ export default function AdminOrdersPage() {
                 </div>
 
                 <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
-                  <p className="text-sm text-gray-600">
-                    {orders.length === 1
-                      ? t('admin.orders.showing-count').replace('{count}', orders.length.toString())
-                      : t('admin.orders.showing-count-plural').replace('{count}', orders.length.toString())}
-                  </p>
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <p className="text-sm text-gray-600">
+                      {pagination
+                        ? t('admin.orders.showing-range')
+                            .replace('{from}', (((pagination.page - 1) * pagination.limit) + 1).toString())
+                            .replace('{to}', Math.min(pagination.page * pagination.limit, pagination.total).toString())
+                            .replace('{total}', pagination.total.toString())
+                        : t('admin.orders.showing-count').replace('{count}', orders.length.toString())}
+                    </p>
+                    {pagination && pagination.totalPages > 1 && (
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setPage(1)}
+                          disabled={!pagination.hasPrevPage || isFetching}
+                          className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {t('admin.orders.pagination.first')}
+                        </button>
+                        <button
+                          onClick={() => setPage(page - 1)}
+                          disabled={!pagination.hasPrevPage || isFetching}
+                          className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {t('admin.orders.pagination.prev')}
+                        </button>
+                        <span className="text-sm text-gray-600 px-2">
+                          {t('admin.orders.pagination.page')
+                            .replace('{page}', pagination.page.toString())
+                            .replace('{total}', pagination.totalPages.toString())}
+                        </span>
+                        <button
+                          onClick={() => setPage(page + 1)}
+                          disabled={!pagination.hasNextPage || isFetching}
+                          className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {t('admin.orders.pagination.next')}
+                        </button>
+                        <button
+                          onClick={() => setPage(pagination.totalPages)}
+                          disabled={!pagination.hasNextPage || isFetching}
+                          className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {t('admin.orders.pagination.last')}
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </>
             )}

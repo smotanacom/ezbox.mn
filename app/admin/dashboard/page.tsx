@@ -13,6 +13,7 @@ interface DashboardStats {
   shippedOrders: number;
   completedOrders: number;
   cancelledOrders: number;
+  totalRevenue: number;
 }
 
 export default function AdminDashboardPage() {
@@ -24,6 +25,7 @@ export default function AdminDashboardPage() {
     shippedOrders: 0,
     completedOrders: 0,
     cancelledOrders: 0,
+    totalRevenue: 0,
   });
   const [loading, setLoading] = useState(true);
 
@@ -66,7 +68,11 @@ export default function AdminDashboardPage() {
             <>
               <div className="bg-white rounded-lg shadow-md p-6 mb-8">
                 <h2 className="text-lg font-bold text-gray-900 mb-4">{t('admin.dashboard.order-stats')}</h2>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6">
+                  <div className="bg-green-50 rounded-lg p-4">
+                    <div className="text-xs font-medium text-green-600 mb-1">{t('admin.dashboard.stats.revenue')}</div>
+                    <div className="text-2xl font-bold text-green-700">₮{stats.totalRevenue.toLocaleString()}</div>
+                  </div>
                   <div>
                     <div className="text-xs font-medium text-gray-600 mb-1">{t('admin.dashboard.stats.total')}</div>
                     <div className="text-2xl font-bold text-gray-900">{stats.totalOrders}</div>
@@ -79,6 +85,8 @@ export default function AdminDashboardPage() {
                     <div className="text-xs font-medium text-gray-600 mb-1">{t('admin.dashboard.stats.processing')}</div>
                     <div className="text-2xl font-bold text-blue-600">{stats.processingOrders}</div>
                   </div>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   <div>
                     <div className="text-xs font-medium text-gray-600 mb-1">{t('admin.dashboard.stats.shipped')}</div>
                     <div className="text-2xl font-bold text-purple-600">{stats.shippedOrders}</div>

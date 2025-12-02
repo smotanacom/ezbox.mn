@@ -2,8 +2,8 @@
  * React Query hooks for order operations
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { orderAPI } from '@/lib/api-client';
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
+import { orderAPI, adminOrderAPI, PaginatedOrdersParams } from '@/lib/api-client';
 
 // Query keys
 export const orderKeys = {
@@ -12,6 +12,8 @@ export const orderKeys = {
   list: () => [...orderKeys.lists()] as const,
   details: () => [...orderKeys.all, 'detail'] as const,
   detail: (id: number) => [...orderKeys.details(), id] as const,
+  adminPaginated: (params: PaginatedOrdersParams) =>
+    [...orderKeys.all, 'admin', 'paginated', params] as const,
 };
 
 /**
@@ -120,5 +122,19 @@ export function useDeleteOrder() {
       // Invalidate all order queries
       queryClient.invalidateQueries({ queryKey: orderKeys.all });
     },
+  });
+}
+
+/**
+ * Hook to get paginated orders for admin
+ * Supports server-side filtering, sorting, and pagination
+ */
+export function useAdminOrdersPaginated(params: PaginatedOrdersParams) {
+  return useQuery({
+    queryKey: orderKeys.adminPaginated(params),
+    queryFn: () => adminOrderAPI.getPaginated(params),
+    staleTime: 2 * 60 * 1000,
+    // Keep previous data while fetching new page for smoother UX
+    placeholderData: keepPreviousData,
   });
 }

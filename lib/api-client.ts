@@ -497,6 +497,45 @@ export const orderAPI = {
     }),
 };
 
+// Admin orders with pagination
+export interface PaginatedOrdersParams {
+  page?: number;
+  limit?: number;
+  status?: string;
+  search?: string;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+}
+
+export interface PaginatedOrdersResponse {
+  orders: Order[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+  };
+}
+
+export const adminOrderAPI = {
+  getPaginated: (params: PaginatedOrdersParams = {}) => {
+    const searchParams = new URLSearchParams();
+    if (params.page) searchParams.set('page', params.page.toString());
+    if (params.limit) searchParams.set('limit', params.limit.toString());
+    if (params.status) searchParams.set('status', params.status);
+    if (params.search) searchParams.set('search', params.search);
+    if (params.sortBy) searchParams.set('sortBy', params.sortBy);
+    if (params.sortOrder) searchParams.set('sortOrder', params.sortOrder);
+
+    const queryString = searchParams.toString();
+    return apiRequest<PaginatedOrdersResponse>(
+      `/api/admin/orders${queryString ? `?${queryString}` : ''}`
+    );
+  },
+};
+
 // ==================== STORAGE ====================
 
 export const storageAPI = {

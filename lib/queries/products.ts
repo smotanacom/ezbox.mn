@@ -4,6 +4,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { productAPI } from '@/lib/api-client';
+import { homeKeys } from './home';
 
 // Query keys
 export const productKeys = {
@@ -59,6 +60,8 @@ export function useCreateProduct() {
     onSuccess: () => {
       // Invalidate product lists to refetch
       queryClient.invalidateQueries({ queryKey: productKeys.lists() });
+      // Also invalidate home page data since it shows products
+      queryClient.invalidateQueries({ queryKey: homeKeys.data() });
     },
   });
 }
@@ -86,6 +89,8 @@ export function useUpdateProduct() {
       // Invalidate the specific product and all product lists
       queryClient.invalidateQueries({ queryKey: productKeys.detail(variables.id) });
       queryClient.invalidateQueries({ queryKey: productKeys.lists() });
+      // Also invalidate home page data since it shows products
+      queryClient.invalidateQueries({ queryKey: homeKeys.data() });
     },
   });
 }
@@ -101,6 +106,8 @@ export function useDeleteProduct() {
     onSuccess: () => {
       // Invalidate all product queries
       queryClient.invalidateQueries({ queryKey: productKeys.all });
+      // Also invalidate home page data since it shows products
+      queryClient.invalidateQueries({ queryKey: homeKeys.data() });
     },
   });
 }

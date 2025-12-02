@@ -19,9 +19,15 @@ export async function GET() {
       parameters: allParameters.filter(p => p.parameter_group_id === group.id),
     }));
 
-    return NextResponse.json({
-      parameterGroups: parameterGroupsWithParameters,
-    });
+    return NextResponse.json(
+      { parameterGroups: parameterGroupsWithParameters },
+      {
+        headers: {
+          // Cache for 1 hour, revalidate in background for 24 hours
+          'Cache-Control': 'public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400',
+        },
+      }
+    );
   } catch (error: any) {
     console.error('Error fetching parameter groups:', error);
     return NextResponse.json(

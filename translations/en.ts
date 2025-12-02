@@ -493,6 +493,7 @@ export const translations = {
   'admin.dashboard.stats.shipped': 'Shipped',
   'admin.dashboard.stats.completed': 'Completed',
   'admin.dashboard.stats.cancelled': 'Cancelled',
+  'admin.dashboard.stats.revenue': 'Total Revenue',
   'admin.dashboard.orders-description': 'View and manage all orders. Search, filter, and update order status.',
   'admin.dashboard.products-description': 'Manage products, categories, and parameter groups.',
   'admin.dashboard.categories-description': 'Manage product categories and organization.',
@@ -938,6 +939,12 @@ export const translations = {
   'admin.orders.no-orders': 'No orders found',
   'admin.orders.showing-count': 'Showing {count} order',
   'admin.orders.showing-count-plural': 'Showing {count} orders',
+  'admin.orders.showing-range': 'Showing {from}-{to} of {total} orders',
+  'admin.orders.pagination.first': 'First',
+  'admin.orders.pagination.prev': 'Previous',
+  'admin.orders.pagination.next': 'Next',
+  'admin.orders.pagination.last': 'Last',
+  'admin.orders.pagination.page': 'Page {page} of {total}',
   'admin.orders.update-failed': 'Failed to update order status',
 
   // Admin Order Detail Page

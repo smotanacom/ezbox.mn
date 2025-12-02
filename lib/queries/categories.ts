@@ -4,6 +4,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { categoryAPI } from '@/lib/api-client';
+import { homeKeys } from './home';
 
 // Query keys
 export const categoryKeys = {
@@ -61,6 +62,8 @@ export function useCreateCategory() {
     onSuccess: () => {
       // Invalidate category list to refetch
       queryClient.invalidateQueries({ queryKey: categoryKeys.lists() });
+      // Also invalidate home page data since it shows categories
+      queryClient.invalidateQueries({ queryKey: homeKeys.data() });
     },
   });
 }
@@ -85,6 +88,8 @@ export function useUpdateCategory() {
       // Invalidate the specific category and all category lists
       queryClient.invalidateQueries({ queryKey: categoryKeys.detail(variables.id) });
       queryClient.invalidateQueries({ queryKey: categoryKeys.lists() });
+      // Also invalidate home page data since it shows categories
+      queryClient.invalidateQueries({ queryKey: homeKeys.data() });
     },
   });
 }
@@ -100,6 +105,8 @@ export function useDeleteCategory() {
     onSuccess: () => {
       // Invalidate all category queries
       queryClient.invalidateQueries({ queryKey: categoryKeys.all });
+      // Also invalidate home page data since it shows categories
+      queryClient.invalidateQueries({ queryKey: homeKeys.data() });
     },
   });
 }

@@ -4,6 +4,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { specialAPI } from '@/lib/api-client';
+import { homeKeys } from './home';
 
 // Query keys
 export const specialKeys = {
@@ -62,6 +63,8 @@ export function useCreateSpecial() {
     onSuccess: () => {
       // Invalidate special lists to refetch
       queryClient.invalidateQueries({ queryKey: specialKeys.lists() });
+      // Also invalidate home page data since it shows specials
+      queryClient.invalidateQueries({ queryKey: homeKeys.data() });
     },
   });
 }
@@ -88,6 +91,8 @@ export function useUpdateSpecial() {
       // Invalidate the specific special and all special lists
       queryClient.invalidateQueries({ queryKey: specialKeys.detail(variables.id) });
       queryClient.invalidateQueries({ queryKey: specialKeys.lists() });
+      // Also invalidate home page data since it shows specials
+      queryClient.invalidateQueries({ queryKey: homeKeys.data() });
     },
   });
 }
@@ -103,6 +108,8 @@ export function useDeleteSpecial() {
     onSuccess: () => {
       // Invalidate all special queries
       queryClient.invalidateQueries({ queryKey: specialKeys.all });
+      // Also invalidate home page data since it shows specials
+      queryClient.invalidateQueries({ queryKey: homeKeys.data() });
     },
   });
 }
