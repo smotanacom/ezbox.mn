@@ -1,16 +1,23 @@
+'use client';
+
+import { memo, useState } from 'react';
+
 interface ImageProps {
   src?: string | null;
   alt?: string;
   className?: string;
 }
 
-export default function Image({
+export default memo(function Image({
   src,
   alt = 'Image',
   className = '',
 }: ImageProps) {
-  // If no src, show a simple gray placeholder
-  if (!src) {
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [hasError, setHasError] = useState(false);
+
+  // If no src or error, show a simple gray placeholder
+  if (!src || hasError) {
     return (
       <div
         className={`bg-gray-200 flex items-center justify-center ${className || 'max-w-[200px] max-h-[200px] rounded'}`}
@@ -35,10 +42,20 @@ export default function Image({
   }
 
   return (
-    <img
-      src={src}
-      alt={alt}
-      className={className || 'max-w-[200px] max-h-[200px] rounded object-cover'}
-    />
+    <div className={`relative overflow-hidden ${className || 'max-w-[200px] max-h-[200px] rounded'}`}>
+      {/* Loading skeleton - shows until image loads */}
+      {!isLoaded && (
+        <div className="absolute inset-0 bg-gray-200 animate-pulse" />
+      )}
+      <img
+        src={src}
+        alt={alt}
+        className={`w-full h-full object-cover transition-opacity duration-300 ${
+          isLoaded ? 'opacity-100' : 'opacity-0'
+        }`}
+        onLoad={() => setIsLoaded(true)}
+        onError={() => setHasError(true)}
+      />
+    </div>
   );
-}
+});

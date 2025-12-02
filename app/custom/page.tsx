@@ -9,7 +9,15 @@ import { submitCustomDesignRequest } from '@/app/actions/customDesign';
 import { useTranslation } from '@/contexts/LanguageContext';
 import { getSiteImageUrl, getProjectImageUrl } from '@/lib/storage-client';
 import { Package, Gift, ImageIcon } from 'lucide-react';
-import type { CustomProjectWithDetails } from '@/types/database';
+
+type ProjectListing = {
+  id: number;
+  title: string;
+  description: string | null;
+  cover_image_path: string | null;
+  special_id: number | null;
+  product_count: number;
+};
 
 export default function CustomDesignPage() {
   const { t } = useTranslation();
@@ -21,7 +29,7 @@ export default function CustomDesignPage() {
   const [coverImagePath, setCoverImagePath] = useState<string | null>(null);
 
   // Projects state
-  const [projects, setProjects] = useState<CustomProjectWithDetails[]>([]);
+  const [projects, setProjects] = useState<ProjectListing[]>([]);
   const [loadingProjects, setLoadingProjects] = useState(true);
 
   useEffect(() => {
@@ -77,27 +85,23 @@ export default function CustomDesignPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
-      {/* Hero Cover Image */}
-      {coverImagePath && (
-        <div className="w-full">
-          <Image
-            src={getSiteImageUrl(coverImagePath)}
-            alt={t('custom.title')}
-            className="w-full h-auto max-h-[500px] object-cover"
-          />
-        </div>
-      )}
+      {/* Hero Section */}
+      <div
+        className="relative text-white py-16 bg-cover bg-center"
+        style={coverImagePath ? { backgroundImage: `url(${getSiteImageUrl(coverImagePath)})` } : undefined}
+      >
+        {/* Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/80 to-blue-700/80" />
 
-      {/* Title Section */}
-      <div className="bg-gradient-to-r from-primary to-blue-700 text-white py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-4">
+        {/* Content */}
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-4">
           <Badge className="mb-2 bg-white/20 text-white hover:bg-white/30">
             {t('home.custom.badge')}
           </Badge>
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight">
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight drop-shadow-lg">
             {t('custom.title')}
           </h1>
-          <p className="text-xl sm:text-2xl text-blue-100 max-w-3xl mx-auto">
+          <p className="text-xl sm:text-2xl text-blue-100 max-w-3xl mx-auto drop-shadow">
             {t('custom.subtitle')}
           </p>
         </div>
@@ -280,10 +284,10 @@ export default function CustomDesignPage() {
                           {t('home.specials.title')}
                         </Badge>
                       )}
-                      {project.products && project.products.length > 0 && (
+                      {project.product_count > 0 && (
                         <Badge variant="outline" className="text-xs">
                           <Package className="w-3 h-3 mr-1" />
-                          {project.products.length} {project.products.length === 1 ? 'product' : 'products'}
+                          {project.product_count} {project.product_count === 1 ? 'product' : 'products'}
                         </Badge>
                       )}
                     </div>

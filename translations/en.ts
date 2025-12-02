@@ -1064,4 +1064,9 @@ export const translations = {
   'admin.chat.page-id-step2': 'Click on "About" in the left menu',
   'admin.chat.page-id-step3': 'Scroll down to find "Page ID"',
   'admin.chat.page-id-step4': 'Or check Page Settings → Page Transparency',
+
+  // Error messages
+  'error.something-went-wrong': 'Something went wrong',
+  'error.try-again': 'Try Again',
+  'error.unexpected': 'We encountered an unexpected error. Please try again.',
 } as const;

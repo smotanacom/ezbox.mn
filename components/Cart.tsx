@@ -186,8 +186,8 @@ export default function Cart({ showCheckoutButton = true, compact = false, stick
     return (
       <div className={`
         fixed bottom-0 left-0 right-0 bg-white shadow-[0_-4px_20px_rgba(0,0,0,0.15)] border-t z-50
-        transition-[height] duration-200 ease-out will-change-[height]
-        ${isMinimized ? 'h-16' : 'h-[40vh]'}
+        transition-all duration-300 ease-out overflow-hidden
+        ${isMinimized ? 'max-h-16' : 'max-h-[40vh]'}
       `}>
         {/* Header Bar */}
         <div

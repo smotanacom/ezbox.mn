@@ -1064,4 +1064,9 @@ export const translations = {
   'admin.chat.page-id-step2': 'Зүүн цэснээс "About" дээр дарах',
   'admin.chat.page-id-step3': 'Доош гүйлгэж "Page ID"-г олох',
   'admin.chat.page-id-step4': 'Эсвэл Page тохиргоо → Page Transparency-г шалгах',
+
+  // Error messages
+  'error.something-went-wrong': 'Алдаа гарлаа',
+  'error.try-again': 'Дахин оролдох',
+  'error.unexpected': 'Гэнэтийн алдаа гарлаа. Дахин оролдоно уу.',
 } as const;

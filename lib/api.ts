@@ -2682,6 +2682,43 @@ export async function getCustomProjectWithDetails(projectId: number): Promise<Cu
 }
 
 /**
+ * Get published projects for public listing (optimized - single query)
+ */
+export async function getPublishedProjectsForListing(): Promise<Array<{
+  id: number;
+  title: string;
+  description: string | null;
+  cover_image_path: string | null;
+  special_id: number | null;
+  product_count: number;
+}>> {
+  const { data, error } = await supabase
+    .from('custom_projects')
+    .select(`
+      id,
+      title,
+      description,
+      cover_image_path,
+      special_id,
+      custom_project_products(count)
+    `)
+    .eq('status', 'published')
+    .order('display_order')
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+
+  return (data || []).map((project: any) => ({
+    id: project.id,
+    title: project.title,
+    description: project.description,
+    cover_image_path: project.cover_image_path,
+    special_id: project.special_id,
+    product_count: project.custom_project_products?.[0]?.count || 0,
+  }));
+}
+
+/**
  * Get published custom projects with details for public display
  */
 export async function getPublishedCustomProjectsWithDetails(): Promise<CustomProjectWithDetails[]> {

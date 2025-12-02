@@ -9,7 +9,7 @@ import Image from '@/components/Image';
 import KitchenTetris from '@/components/KitchenTetris';
 import CategoryProductGrid from '@/components/CategoryProductGrid';
 import SpecialOffersCarousel from '@/components/SpecialOffersCarousel';
-import { LoadingState } from '@/components/layout';
+import { HomePageSkeleton } from '@/components/HomePageSkeleton';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Package } from 'lucide-react';
@@ -68,7 +68,7 @@ export default function Home() {
   };
 
   if (loading) {
-    return <LoadingState />;
+    return <HomePageSkeleton />;
   }
 
   return (

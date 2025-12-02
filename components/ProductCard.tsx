@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import Image from '@/components/Image';
 import { Card } from '@/components/ui/card';
 
@@ -17,7 +18,7 @@ interface ProductCardProps {
   className?: string;
 }
 
-export default function ProductCard({
+export default memo(function ProductCard({
   imageUrl,
   title,
   description,
@@ -101,4 +102,4 @@ export default function ProductCard({
       {content}
     </Card>
   );
-}
+});

@@ -57,7 +57,7 @@ export function useAddToCart() {
 }
 
 /**
- * Hook to update cart item
+ * Hook to update cart item with optimistic updates
  */
 export function useUpdateCartItem() {
   const queryClient = useQueryClient();
@@ -71,23 +71,91 @@ export function useUpdateCartItem() {
       quantity?: number;
       selectedParameters?: Record<string, number>;
     }) => cartAPI.updateItem(itemId, data),
-    onSuccess: (response) => {
-      // Invalidate all cart queries to refetch
+    // Optimistic update
+    onMutate: async ({ itemId, quantity }) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: cartKeys.all });
+
+      // Snapshot previous value for rollback
+      const previousData = queryClient.getQueriesData<CartResponse>({ queryKey: cartKeys.all });
+
+      // Optimistically update all matching cart queries
+      queryClient.setQueriesData<CartResponse>(
+        { queryKey: cartKeys.all },
+        (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            items: old.items.map((item) =>
+              item.id === itemId && quantity !== undefined
+                ? { ...item, quantity }
+                : item
+            ),
+          };
+        }
+      );
+
+      return { previousData };
+    },
+    // Rollback on error
+    onError: (err, variables, context) => {
+      if (context?.previousData) {
+        context.previousData.forEach(([queryKey, data]) => {
+          if (data) {
+            queryClient.setQueryData(queryKey, data);
+          }
+        });
+      }
+    },
+    // Always refetch after error or success to sync with server
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: cartKeys.all });
     },
   });
 }
 
 /**
- * Hook to remove item from cart
+ * Hook to remove item from cart with optimistic updates
  */
 export function useRemoveCartItem() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (itemId: number) => cartAPI.removeItem(itemId),
-    onSuccess: () => {
-      // Invalidate all cart queries to refetch
+    // Optimistic update
+    onMutate: async (itemId) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: cartKeys.all });
+
+      // Snapshot previous value for rollback
+      const previousData = queryClient.getQueriesData<CartResponse>({ queryKey: cartKeys.all });
+
+      // Optimistically remove item from all matching cart queries
+      queryClient.setQueriesData<CartResponse>(
+        { queryKey: cartKeys.all },
+        (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            items: old.items.filter((item) => item.id !== itemId),
+          };
+        }
+      );
+
+      return { previousData };
+    },
+    // Rollback on error
+    onError: (err, variables, context) => {
+      if (context?.previousData) {
+        context.previousData.forEach(([queryKey, data]) => {
+          if (data) {
+            queryClient.setQueryData(queryKey, data);
+          }
+        });
+      }
+    },
+    // Always refetch after error or success to sync with server
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: cartKeys.all });
     },
   });

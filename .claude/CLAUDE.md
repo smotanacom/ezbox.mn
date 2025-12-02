@@ -759,6 +759,179 @@ Next.js `<Link>` components automatically prefetch pages when they enter the vie
 
 **Remember**: When creating new pages with tables or grids, always add `prefetch={false}` to Links inside loops.
 
+### 8. Performance & UX Best Practices
+
+**CRITICAL: Follow these patterns to avoid performance issues.**
+
+#### Avoid N+1 Query Patterns
+
+**Problem**: Fetching related data inside a loop causes exponential database queries.
+
+```typescript
+// ❌ WRONG - N+1 pattern (10 items = 11 queries)
+const items = await getCartItems(cartId);
+const itemsWithDetails = await Promise.all(
+  items.map(async (item) => {
+    const product = await getProductWithDetails(item.product_id); // N queries!
+    return { ...item, product };
+  })
+);
+
+// ✅ CORRECT - Batch fetch pattern (always 7 queries)
+const items = await getCartItems(cartId);
+const productIds = [...new Set(items.map(i => i.product_id))];
+const [products, categories, ...] = await Promise.all([
+  supabase.from('products').select('*').in('id', productIds),
+  supabase.from('categories').select('*'),
+  // ... other parallel queries
+]);
+// Assemble in memory using Maps
+```
+
+**When to watch for N+1**:
+- Any function that fetches data inside a `.map()` or `for` loop
+- Functions called repeatedly from parent loops (e.g., `calculatePrice` for each item)
+- Related data enrichment (adding product details to cart items)
+
+#### Use React.memo for List Items
+
+**Problem**: Components in lists re-render when parent state changes, even if their props haven't changed.
+
+```typescript
+// ❌ WRONG - Re-renders on every parent update
+export default function ProductCard({ ... }) { ... }
+
+// ✅ CORRECT - Only re-renders when props change
+import { memo } from 'react';
+export default memo(function ProductCard({ ... }) { ... });
+```
+
+**When to use `memo()`**:
+- Components rendered in `.map()` loops (ProductCard, CartItem, TableRow)
+- Components with expensive rendering (images, animations)
+- Pure presentational components
+
+#### Add Loading States (Skeletons)
+
+**Problem**: Blank screens during data fetch create poor UX and perceived slowness.
+
+```typescript
+// ❌ WRONG - Blank screen or spinner
+if (loading) return <Spinner />;
+
+// ✅ CORRECT - Skeleton matching actual layout
+if (loading) return <PageSkeleton />;
+```
+
+**Skeleton best practices**:
+- Match the actual component dimensions to prevent layout shift
+- Use `animate-pulse` with `bg-gray-200` for consistency
+- Create page-specific skeletons (e.g., `HomePageSkeleton`, `ProductGridSkeleton`)
+- Base skeleton component: `components/ui/skeleton.tsx`
+
+#### Prevent Layout Shift (CLS)
+
+**Problem**: Content that changes size causes jarring visual jumps.
+
+```typescript
+// ❌ WRONG - Height change causes layout shift
+${isMinimized ? 'h-16' : 'h-[40vh]'}
+
+// ✅ CORRECT - max-height with overflow-hidden for smooth transitions
+${isMinimized ? 'max-h-16' : 'max-h-[40vh]'}
+```
+
+**CLS prevention checklist**:
+- Use `max-height` instead of `height` for expandable sections
+- Always set image dimensions or use `aspect-*` classes
+- Reserve space for dynamic content (badges, buttons)
+- Use `overflow-hidden` with height transitions
+
+#### Use Optimistic Updates for Mutations
+
+**Problem**: Waiting for API response before updating UI feels slow.
+
+```typescript
+// ❌ WRONG - Wait for server response
+onSuccess: () => {
+  queryClient.invalidateQueries({ queryKey: ['cart'] });
+}
+
+// ✅ CORRECT - Update immediately, rollback on error
+onMutate: async (variables) => {
+  await queryClient.cancelQueries({ queryKey: ['cart'] });
+  const previousData = queryClient.getQueriesData({ queryKey: ['cart'] });
+  queryClient.setQueriesData({ queryKey: ['cart'] }, (old) => {
+    // Optimistically update
+    return { ...old, items: old.items.map(...) };
+  });
+  return { previousData };
+},
+onError: (err, vars, context) => {
+  // Rollback on error
+  context?.previousData.forEach(([key, data]) => {
+    queryClient.setQueryData(key, data);
+  });
+},
+onSettled: () => {
+  queryClient.invalidateQueries({ queryKey: ['cart'] });
+}
+```
+
+**When to use optimistic updates**:
+- Cart quantity changes
+- Item removal
+- Toggle states (favorites, selections)
+- Any mutation where immediate feedback improves UX
+
+#### Add Image Loading States
+
+**Problem**: Images pop in suddenly, causing visual jank.
+
+```typescript
+// ✅ CORRECT - Fade in after load
+const [isLoaded, setIsLoaded] = useState(false);
+
+return (
+  <div className="relative overflow-hidden">
+    {!isLoaded && <div className="absolute inset-0 bg-gray-200 animate-pulse" />}
+    <img
+      className={`transition-opacity duration-300 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
+      onLoad={() => setIsLoaded(true)}
+      onError={() => setHasError(true)}
+    />
+  </div>
+);
+```
+
+#### Reuse Pre-fetched Data
+
+**Problem**: Fetching the same data multiple times in different functions.
+
+```typescript
+// ❌ WRONG - Fetches products again for price calculation
+const specials = await getSpecials();
+for (const special of specials) {
+  const price = await calculateSpecialPrice(special.id); // Fetches products again!
+}
+
+// ✅ CORRECT - Reuse already-fetched products
+const [products, specials] = await Promise.all([
+  getAllProductsWithDetails(),
+  getSpecials()
+]);
+const productsMap = new Map(products.map(p => [p.id, p]));
+const prices = calculateSpecialPricesBatch(specials, productsMap); // No additional queries
+```
+
+**Key files with these patterns**:
+- `lib/api.ts` - `getCartItems()` uses batched fetching
+- `lib/api.ts` - `calculateSpecialOriginalPricesBatch()` reuses product data
+- `lib/queries/cart.ts` - Optimistic updates for cart mutations
+- `components/Image.tsx` - Loading state with fade-in
+- `components/ProductCard.tsx` - Memoized for list rendering
+- `components/HomePageSkeleton.tsx` - Skeleton loader example
+
 ---
 
 This project uses Supabase for all database operations. The codebase is clean, well-structured, and follows modern React/Next.js best practices.
