@@ -6,19 +6,12 @@
   <component name="ChangeListManager">
     <list default="true" id="05251fdd-fde1-4284-8085-e91806d67fa1" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/admin/categories/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/admin/categories/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/admin/orders/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/admin/orders/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/admin/parameter-groups/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/admin/parameter-groups/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/admin/products/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/admin/products/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/admin/specials/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/admin/specials/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/api/home/route.ts" beforeDir="false" afterPath="$PROJECT_DIR$/app/api/home/route.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/layout.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/page.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/products/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/products/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/contexts/CartContext.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/contexts/CartContext.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/api-client.ts" beforeDir="false" afterPath="$PROJECT_DIR$/lib/api-client.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/package-lock.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/HomeContent.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/HomeContent.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/KitchenTetris.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/KitchenTetris.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/SpecialOffersCarousel.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/SpecialOffersCarousel.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/translations/en.ts" beforeDir="false" afterPath="$PROJECT_DIR$/translations/en.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/translations/mn.ts" beforeDir="false" afterPath="$PROJECT_DIR$/translations/mn.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -54,26 +47,43 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
-    &quot;last_opened_file_path&quot;: &quot;/Users/matus/dev/ezbox&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;ts.external.directory.path&quot;: &quot;/Users/matus/dev/ezbox/node_modules/typescript/lib&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "git-widget-placeholder": "master",
+    "js.debugger.nextJs.config.created.client": "true",
+    "js.debugger.nextJs.config.created.server": "true",
+    "last_opened_file_path": "/Users/matus/dev/ezbox",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "ts.external.directory.path": "/Users/matus/dev/ezbox/node_modules/typescript/lib",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$" />
     </key>
+  </component>
+  <component name="RunManager" selected="npm.Next.js: server-side">
+    <configuration name="Next.js: debug client-side" type="JavascriptDebugType" uri="http://localhost:3000/">
+      <method v="2" />
+    </configuration>
+    <configuration name="Next.js: server-side" type="js.build_tools.npm">
+      <package-json value="$PROJECT_DIR$/package.json" />
+      <command value="run" />
+      <scripts>
+        <script value="dev" />
+      </scripts>
+      <node-interpreter value="project" />
+      <envs />
+      <method v="2" />
+    </configuration>
   </component>
   <component name="SharedIndexes">
     <attachedChunks>
@@ -92,10 +102,19 @@
       <workItem from="1756859336792" duration="29377000" />
       <workItem from="1759340633810" duration="3651000" />
       <workItem from="1763397544787" duration="29261000" />
+      <workItem from="1764780582815" duration="412000" />
     </task>
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
+  </component>
+  <component name="github-copilot-workspace">
+    <instructionFileLocations>
+      <option value=".github/instructions" />
+    </instructionFileLocations>
+    <promptFileLocations>
+      <option value=".github/prompts" />
+    </promptFileLocations>
   </component>
 </project>
