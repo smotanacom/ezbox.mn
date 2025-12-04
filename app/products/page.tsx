@@ -2,16 +2,16 @@
 
 import { Suspense, useEffect, useState, useMemo, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { calculateProductPrice } from '@/lib/api-client';
 import { useCart } from '@/contexts/CartContext';
 import { useProducts } from '@/lib/queries';
-import ProductCard from '@/components/ProductCard';
+import { getSiteImageUrl } from '@/lib/storage-client';
 import ProductConfigRow from '@/components/ProductConfigRow';
 import Cart from '@/components/Cart';
 import CategorySelector from '@/components/CategorySelector';
-import { PageContainer, PageTitle, SectionHeader, LoadingState } from '@/components/layout';
+import { LoadingState } from '@/components/layout';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { ShoppingCart, Check } from 'lucide-react';
 import { useTranslation } from '@/contexts/LanguageContext';
 import type {
@@ -67,6 +67,17 @@ function ProductsContent() {
 
   // Track which product has been auto-added to prevent duplicates
   const autoAddedProductRef = useRef<number | null>(null);
+
+  // Cover image state
+  const [coverImagePath, setCoverImagePath] = useState<string | null>(null);
+
+  // Fetch cover image on mount
+  useEffect(() => {
+    fetch('/api/upload/site-image?settingKey=products_cover_image')
+      .then(res => res.json())
+      .then(data => setCoverImagePath(data.path))
+      .catch(err => console.error('Error fetching cover image:', err));
+  }, []);
 
   // Handle URL params and auto-add after products are loaded
   useEffect(() => {
@@ -300,9 +311,31 @@ function ProductsContent() {
 
   return (
     <>
-      <PageContainer className="pb-[calc(40vh+2rem)]">
-      {/* Categories Section with Product Configuration */}
-      <section className="bg-gray-50 -mx-4 sm:-mx-6 lg:-mx-12 px-4 sm:px-6 lg:px-8 py-12">
+      <div className="min-h-screen bg-gray-50 pb-[calc(40vh+2rem)]">
+        {/* Hero Section */}
+        <div
+          className="relative text-white py-16 bg-cover bg-center"
+          style={coverImagePath ? { backgroundImage: `url(${getSiteImageUrl(coverImagePath)})` } : undefined}
+        >
+          {/* Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/80 to-blue-700/80" />
+
+          {/* Content */}
+          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-4">
+            <Badge className="mb-2 bg-white/20 text-white hover:bg-white/30">
+              {t('products.badge')}
+            </Badge>
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight drop-shadow-lg">
+              {t('products.title')}
+            </h1>
+            <p className="text-xl sm:text-2xl text-blue-100 max-w-3xl mx-auto drop-shadow">
+              {t('products.subtitle')}
+            </p>
+          </div>
+        </div>
+
+        {/* Categories Section with Product Configuration */}
+        <section className="px-4 sm:px-6 lg:px-8 py-12">
         <div className="max-w-7xl mx-auto">
           <CategorySelector
             categories={categories}
@@ -320,8 +353,8 @@ function ProductsContent() {
             renderDesktopContent={() => renderProductConfiguration()}
           />
         </div>
-      </section>
-      </PageContainer>
+        </section>
+      </div>
 
       {/* Sticky Cart at Bottom */}
       <Cart compact sticky />

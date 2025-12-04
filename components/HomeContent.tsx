@@ -6,12 +6,11 @@ import { useCart } from '@/contexts/CartContext';
 import { useTranslation } from '@/contexts/LanguageContext';
 import Image from '@/components/Image';
 import KitchenTetris from '@/components/KitchenTetris';
-import CategoryProductGrid from '@/components/CategoryProductGrid';
 import SpecialOffersCarousel from '@/components/SpecialOffersCarousel';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Package } from 'lucide-react';
-import { getSiteImageUrl } from '@/lib/storage-client';
+import { getSiteImageUrl, getCategoryImageUrl } from '@/lib/storage-client';
 import type { Category, ProductWithDetails, SpecialWithItems } from '@/types/database';
 
 interface HomeContentProps {
@@ -74,10 +73,8 @@ export function HomeContent({
 
   return (
     <>
-      {/* Hero + Specials Container */}
-      <div className="flex flex-col lg:flex-row border-b">
-        {/* Hero Section */}
-        <div className="relative bg-gradient-to-br from-primary/5 via-white to-secondary/5 overflow-hidden min-h-[600px] flex-1">
+      {/* Hero Section */}
+      <div className="relative bg-gradient-to-br from-primary/5 via-white to-secondary/5 overflow-hidden min-h-[600px]">
           {/* Animated Background */}
           <KitchenTetris />
 
@@ -92,39 +89,57 @@ export function HomeContent({
                 </h1>
               </div>
 
-              {/* CTA Buttons */}
-              <div className="flex flex-col sm:flex-row gap-4 justify-center pt-6">
-                <Button asChild size="lg" className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-white px-8 py-6 text-lg transition-all">
-                  <Link href="/products">
-                    {t('home.browse-products')}
-                  </Link>
-                </Button>
-              </div>
+              {/* Category Boxes */}
+              {categories.length > 0 && (
+                <div className="pt-8">
+                  <div className="flex flex-wrap gap-3 justify-center">
+                    {categories
+                      .filter(cat => {
+                        const products = productsByCategory[cat.id] || [];
+                        return products.length > 0;
+                      })
+                      .map(category => (
+                        <Link
+                          key={category.id}
+                          href={`/products?category=${category.id}`}
+                          prefetch={false}
+                          className="flex flex-col items-center group"
+                        >
+                          <div className="w-20 h-20 sm:w-24 sm:h-24 relative rounded-xl overflow-hidden shadow-lg group-hover:shadow-xl transition-all group-hover:ring-2 group-hover:ring-primary bg-white ring-1 ring-black/10">
+                            <Image
+                              src={category.picture_url ? getCategoryImageUrl(category.picture_url) : null}
+                              alt={category.name}
+                              className="object-cover w-full h-full group-hover:scale-105 transition-transform"
+                            />
+                          </div>
+                          <h3 className="mt-2 text-xs sm:text-sm font-semibold text-gray-700 text-center group-hover:text-primary transition-colors line-clamp-2 max-w-[80px] sm:max-w-[96px]">
+                            {category.name}
+                          </h3>
+                        </Link>
+                      ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
-        </div>
+      </div>
 
-        {/* Specials Section */}
-        <div className="flex-1">
+      {/* Specials Section */}
+      <div className="mt-12 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="rounded-2xl overflow-hidden shadow-2xl ring-1 ring-black/5">
           <SpecialOffersCarousel
-            specials={specials}
-            specialOriginalPrices={specialOriginalPrices}
-            onAddToCart={handleAddSpecialToCart}
-            addingSpecial={addingSpecial}
-            addedSpecial={addedSpecial}
-            specialErrors={specialErrors}
+          specials={specials}
+          specialOriginalPrices={specialOriginalPrices}
+          onAddToCart={handleAddSpecialToCart}
+          addingSpecial={addingSpecial}
+          addedSpecial={addedSpecial}
+          specialErrors={specialErrors}
           />
         </div>
       </div>
 
-      {/* Products by Category - Grid View */}
-      <CategoryProductGrid
-        categories={categories}
-        productsByCategory={productsByCategory}
-      />
-
       {/* Custom Design Section */}
-      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-t border-gray-200">
+      <div className="mt-12 bg-gradient-to-br from-blue-50 to-indigo-50">
         <div className="max-w-7xl mx-auto px-4 py-16 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
             {/* Image */}

@@ -64,6 +64,8 @@ export const translations = {
 
   // Product page
   'products.title': 'Бүтээгдэхүүн',
+  'products.subtitle': 'Манай каталогоос сонгон төгс гал тогооны тоног төхөөрөмжөө тохируулаарай',
+  'products.badge': 'Дэлгүүр',
   'products.loading': 'Бүтээгдэхүүн уншиж байна...',
   'products.select-category': 'Бүтээгдэхүүн үзэхийн тулд ангилал сонгоно уу',
   'products.no-products': 'Энэ ангилалд бүтээгдэхүүн олдсонгүй',

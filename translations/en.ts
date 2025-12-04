@@ -64,6 +64,8 @@ export const translations = {
 
   // Product page
   'products.title': 'Products',
+  'products.subtitle': 'Browse our catalog and customize your perfect kitchen',
+  'products.badge': 'Shop Now',
   'products.loading': 'Loading products...',
   'products.select-category': 'Please select a category to view products',
   'products.no-products': 'No products found in this category',

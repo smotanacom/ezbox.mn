@@ -442,7 +442,7 @@ export default function KitchenTetris() {
                     {/* Each cell shows a portion of this block's image */}
                     {block.productImage ? (
                       <div
-                        className="absolute inset-0 opacity-[0.35]"
+                        className="absolute inset-0 opacity-25"
                         style={{
                           backgroundImage: `url(${block.productImage})`,
                           backgroundSize: `${renderedShapeWidth}px ${renderedShapeHeight}px`,
@@ -452,7 +452,7 @@ export default function KitchenTetris() {
                       />
                     ) : (
                       /* Fallback gradient if no image */
-                      <div className={`absolute inset-0 bg-gradient-to-br ${block.shape.gradient} opacity-[0.35]`}></div>
+                      <div className={`absolute inset-0 bg-gradient-to-br ${block.shape.gradient} opacity-25`}></div>
                     )}
 
                     {/* Subtle overlay for depth */}
