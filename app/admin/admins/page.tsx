@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import AdminRouteGuard from '@/components/AdminRouteGuard';
 import AdminNav from '@/components/AdminNav';
-import { listAdmins, createAdmin, deleteAdmin } from '@/lib/adminAuth';
+import { listAdmins, createAdmin, deleteAdmin, setAdminPassword } from '@/lib/adminAuth';
 import { useTranslation } from '@/contexts/LanguageContext';
 import type { Admin } from '@/types/database';
 
@@ -26,6 +26,15 @@ export default function AdminManagementPage() {
   });
   const [formError, setFormError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  // Password reset modal state
+  const [passwordModalAdmin, setPasswordModalAdmin] = useState<Admin | null>(null);
+  const [passwordFormData, setPasswordFormData] = useState({
+    password: '',
+    confirmPassword: '',
+  });
+  const [passwordError, setPasswordError] = useState('');
+  const [settingPassword, setSettingPassword] = useState(false);
 
   // Debounce search term
   useEffect(() => {
@@ -108,6 +117,47 @@ export default function AdminManagementPage() {
     } catch (error) {
       console.error('Error deleting admin:', error);
       alert(t('admin.admins.delete-failed'));
+    }
+  };
+
+  const openPasswordModal = (admin: Admin) => {
+    setPasswordModalAdmin(admin);
+    setPasswordFormData({ password: '', confirmPassword: '' });
+    setPasswordError('');
+  };
+
+  const closePasswordModal = () => {
+    setPasswordModalAdmin(null);
+    setPasswordFormData({ password: '', confirmPassword: '' });
+    setPasswordError('');
+  };
+
+  const handleSetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordError('');
+
+    if (!passwordModalAdmin) return;
+
+    if (passwordFormData.password.length < 6) {
+      setPasswordError(t('admin.admins.password-error'));
+      return;
+    }
+
+    if (passwordFormData.password !== passwordFormData.confirmPassword) {
+      setPasswordError(t('admin.admins.passwords-no-match'));
+      return;
+    }
+
+    setSettingPassword(true);
+
+    try {
+      await setAdminPassword(passwordModalAdmin.id, passwordFormData.password);
+      closePasswordModal();
+      alert(t('admin.admins.password-set-success'));
+    } catch (error) {
+      setPasswordError(error instanceof Error ? error.message : t('admin.admins.password-set-failed'));
+    } finally {
+      setSettingPassword(false);
     }
   };
 
@@ -356,7 +406,13 @@ export default function AdminManagementPage() {
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                             {formatDate(admin.updated_at)}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
+                            <button
+                              onClick={() => openPasswordModal(admin)}
+                              className="text-blue-600 hover:text-blue-800"
+                            >
+                              {t('admin.admins.set-password')}
+                            </button>
                             <button
                               onClick={() => handleDelete(admin)}
                               className="text-red-600 hover:text-red-800"
@@ -381,6 +437,74 @@ export default function AdminManagementPage() {
             )}
           </div>
         </div>
+
+        {/* Password Reset Modal */}
+        {passwordModalAdmin && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">
+                {t('admin.admins.set-password-title').replace('{name}', passwordModalAdmin.username)}
+              </h2>
+              <form onSubmit={handleSetPassword} className="space-y-4">
+                {passwordError && (
+                  <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+                    {passwordError}
+                  </div>
+                )}
+
+                <div>
+                  <label htmlFor="new-password" className="block text-sm font-medium text-gray-700 mb-2">
+                    {t('admin.admins.new-password')}
+                  </label>
+                  <input
+                    id="new-password"
+                    type="password"
+                    value={passwordFormData.password}
+                    onChange={(e) => setPasswordFormData({ ...passwordFormData, password: e.target.value })}
+                    required
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder={t('admin.admins.password-placeholder')}
+                    disabled={settingPassword}
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="confirm-new-password" className="block text-sm font-medium text-gray-700 mb-2">
+                    {t('admin.admins.confirm-password')}
+                  </label>
+                  <input
+                    id="confirm-new-password"
+                    type="password"
+                    value={passwordFormData.confirmPassword}
+                    onChange={(e) => setPasswordFormData({ ...passwordFormData, confirmPassword: e.target.value })}
+                    required
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder={t('admin.admins.confirm-password-placeholder')}
+                    disabled={settingPassword}
+                  />
+                </div>
+
+                <div className="flex space-x-3 pt-2">
+                  <button
+                    type="submit"
+                    disabled={settingPassword}
+                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed"
+                  >
+                    {settingPassword ? t('admin.admins.setting-password') : t('admin.admins.set-password')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={closePasswordModal}
+                    disabled={settingPassword}
+                    className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition disabled:opacity-50"
+                  >
+                    {t('admin.admins.cancel')}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
     </AdminRouteGuard>
   );

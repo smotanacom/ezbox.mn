@@ -139,6 +139,26 @@ export async function changeAdminPassword(
   if (updateError) throw updateError;
 }
 
+// Set admin password (admin management - no current password required)
+export async function setAdminPassword(
+  adminId: number,
+  newPassword: string
+): Promise<void> {
+  const response = await fetch(`/api/admins/${adminId}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include',
+    body: JSON.stringify({ password: newPassword }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to set password');
+  }
+}
+
 // List all admins (admin management)
 export async function listAdmins(): Promise<Admin[]> {
   const response = await fetch('/api/admins', {

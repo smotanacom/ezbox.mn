@@ -1028,6 +1028,12 @@ export const translations = {
   'admin.admins.delete-failed': 'Failed to delete admin',
   'admin.admins.create-success': 'Admin created successfully!',
   'admin.admins.load-failed': 'Failed to load admins',
+  'admin.admins.set-password': 'Set Password',
+  'admin.admins.set-password-title': 'Set Password for {name}',
+  'admin.admins.new-password': 'New Password',
+  'admin.admins.setting-password': 'Setting...',
+  'admin.admins.password-set-success': 'Password updated successfully!',
+  'admin.admins.password-set-failed': 'Failed to set password',
 
   // Admin Chat Settings
   'admin.nav.chat': 'Chat',

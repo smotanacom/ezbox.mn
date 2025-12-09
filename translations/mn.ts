@@ -1028,6 +1028,12 @@ export const translations = {
   'admin.admins.delete-failed': 'Админ устгахад алдаа гарлаа',
   'admin.admins.create-success': 'Админ амжилттай үүсгэгдлээ!',
   'admin.admins.load-failed': 'Админууд уншихад алдаа гарлаа',
+  'admin.admins.set-password': 'Нууц үг тохируулах',
+  'admin.admins.set-password-title': '{name}-н нууц үг тохируулах',
+  'admin.admins.new-password': 'Шинэ нууц үг',
+  'admin.admins.setting-password': 'Тохируулж байна...',
+  'admin.admins.password-set-success': 'Нууц үг амжилттай шинэчлэгдлээ!',
+  'admin.admins.password-set-failed': 'Нууц үг тохируулахад алдаа гарлаа',
 
   // Админ чат тохиргоо
   'admin.nav.chat': 'Чат',

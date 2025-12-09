@@ -1,6 +1,73 @@
 import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth-server';
 import { supabase } from '@/lib/supabase';
+import { hashPassword } from '@/lib/adminAuth';
+
+// PATCH /api/admins/[id] - Update an admin's password
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    // Require admin authentication
+    await requireAdmin();
+
+    const { id } = await params;
+    const adminId = parseInt(id, 10);
+
+    if (isNaN(adminId)) {
+      return NextResponse.json(
+        { error: 'Invalid admin ID' },
+        { status: 400 }
+      );
+    }
+
+    const body = await request.json();
+    const { password } = body;
+
+    if (!password || typeof password !== 'string') {
+      return NextResponse.json(
+        { error: 'Password is required' },
+        { status: 400 }
+      );
+    }
+
+    if (password.length < 6) {
+      return NextResponse.json(
+        { error: 'Password must be at least 6 characters' },
+        { status: 400 }
+      );
+    }
+
+    // Hash the new password
+    const passwordHash = await hashPassword(password);
+
+    // Update admin password
+    const { error } = await (supabase as any)
+      .from('admins')
+      .update({
+        password_hash: passwordHash,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', adminId);
+
+    if (error) {
+      console.error('Error updating admin password:', error);
+      return NextResponse.json(
+        { error: 'Failed to update password' },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    console.error('Error in PATCH /api/admins/[id]:', error);
+    return NextResponse.json(
+      { error: error.message || 'Unauthorized' },
+      { status: error.message?.includes('Unauthorized') ? 401 : 500 }
+    );
+  }
+}
 
 // DELETE /api/admins/[id] - Delete an admin
 export async function DELETE(
